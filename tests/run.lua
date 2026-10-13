@@ -1,0 +1,50 @@
+-- Run from the addon folder:  /opt/homebrew/bin/luajit tests/run.lua
+--
+--   tests/run.lua -v              sections and everything the addon printed
+--   tests/run.lua trade diary     just those files
+--
+-- Loads the addon against the mock in wowmock.lua, once per file, and asserts
+-- the behaviour that the client would otherwise have to prove. Extend this
+-- whenever a module lands: it is the only regression net this project has.
+-- A new file goes in FILES below; see harness.lua for what a file receives.
+
+local here = (arg and arg[0] or "tests/run.lua"):match("^(.*)[/\\]") or "."
+
+local FILES = {
+    "identity",
+    "interactions",
+    "trade",
+    "whisper",
+    "diary",
+    "notes",
+    "menus",
+    "group_sessions",
+    "deaths",
+    "pvp",
+    "journey",
+    "firsts",
+    "skills",
+    "skills_ui",
+    "combat",
+    "questie",
+    "journal_ui",
+    "journey_ui",
+    "killer_card",
+    "combat_ui",
+    "hunt_card",
+    "lucky_card",
+    "ink_trail",
+    "ink_blot",
+    "people",
+    "reunion",
+    "settings",
+    "sightings",
+    "timeline",
+    "instances",
+    "events",
+    "slash",
+    "helpers",
+    "sounds",
+}
+
+dofile(here .. "/harness.lua").Run(here, FILES, arg)

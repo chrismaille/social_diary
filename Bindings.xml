@@ -1,0 +1,12 @@
+<Bindings>
+    <!-- DIA-2's "Remember this" keybind. Loaded automatically from the addon
+         folder; it must not be listed in the TOC. -->
+    <Binding name="SOCIALDIARY_REMEMBER" header="SOCIAL_DIARY" category="ADDONS">
+        SocialDiary_Remember()
+    </Binding>
+    <!-- JNL-4's keybind. No header: only the first binding declares it,
+         a second header="SOCIAL_DIARY" errors as a duplicate on load. -->
+    <Binding name="SOCIALDIARY_JOURNAL" category="ADDONS">
+        SocialDiary_ToggleJournal()
+    </Binding>
+</Bindings>

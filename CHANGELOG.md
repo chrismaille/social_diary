@@ -1,0 +1,95 @@
+# Changelog
+
+All notable changes to Social Diary. Versions follow the `## Version` line in
+`social_diary.toc`; a release is the matching `v` tag (for example `v1.0.0`).
+
+## [Unreleased]
+
+## [1.5.0]
+
+### Shiny new Things
+
+- Lucky and unlucky quest drops get their own cards on _Your Diary_'s _Plates_
+
+### Changes
+
+- _Plates_ in _Your Diary_ now favour what happened over level-ups
+- Close call cards in _Your Diary_ now carry a heading
+
+### Fixes
+
+- Unlucky quest items in _Your Diary_ are now counted correctly
+- _Your Diary_ labels now use the full available width
+
+## [1.4.0]
+
+### Shiny new Things
+
+- _Your Diary_ now remembers your first bag, shoulders, green, blue and epic
+- _Your Diary_ now showcases NPCs that killed you
+  - Death marks name their killer on hover
+- _Your Diary_ marks close calls and unlucky quest drops on its _Plates_
+- _Your Diary_ celebrates the end of long quest chains
+- _Your Diary_ notes when a profession reaches its cap
+- _Your Diary_ reads Questie's data when it is installed
+  - Quest drops are measured against real drop rates, lucky ones too
+  - _Settings_ has an _Integrations_ page showing whether it's found
+- _Settings_ pages have subpages now
+  - Also added draggable macros for opening the main window and Remember this
+- Each character keeps its own diary and settings now
+  - _Settings_ can share one diary between all your characters
+
+### Changes
+
+- _Your Diary_ level entries read more naturally
+- _People_ maps include sightings from before you added someone
+- Repeated level-ups and deaths on a timeline fold into one line
+- Margin notes in _Your Diary_ point to their marks with pencil lines
+- Margin notes in _Your Diary_ quote what you wrote about someone
+- _People_ remembers how you sorted it across reloads and relogs
+- First sightings only appear for people you interacted with
+
+### Fixes
+
+- Map _Plates_ in _Your Diary_ now show only their own level's content
+
+## [1.1.0]
+
+### Shiny new Things
+
+- _Your Diary_: your own journey, one entry per level
+  - Map _Plates_ and full-page zone maps of where you went
+- Your route is recorded and inked onto the zone maps
+  - Can be switched off in _Settings_
+- First sightings appear once someone turns out to matter
+- New "Pencil and ink" page explains how strangers become entries
+- The login slip is now a parcel to unwrap
+
+### Changes
+
+- Characters with an existing diary start their route from now on
+- Maps show explored areas, like your world map
+- The book opens on _Your Diary_ once the intro is read
+- The front matter previews each section of the book
+- Ribbons turn the book from the intro too
+- Opening people's pages turns forward one page at a time
+
+### Fixes
+
+- An error in one event handler no longer breaks the others
+
+## [1.0.0]
+
+First packaged build, for WoW Classic Beta (Interface 16001).
+
+### Shiny new Things
+
+- Add people to your diary with tags and dated notes
+  - From unit menus, chat names, a keybind or `/sd add`
+- Trades, chat, groups, deaths and PvP kills are recorded
+- _Recently nearby_ lists players you've seen out in the world
+- _People_ pages show a timeline and a map of where you met
+- _Toasts_ and tooltips greet diary friends when they're nearby
+  - Optional alert for foes
+- The journal: _People_, profiles, front matter and _Settings_
+- Strangers are forgotten after 30 days of nothing new

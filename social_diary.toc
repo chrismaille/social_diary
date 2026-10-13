@@ -1,0 +1,99 @@
+## Interface: 16001
+## Title: Social Diary
+## Notes: Remembers the people you meet in the open world.
+## Author: social-diary
+## Version: 1.5.0
+## SavedVariables: SocialDiaryDB
+## SavedVariablesPerCharacter: SocialDiaryCharDB
+## IconTexture: Interface\Icons\INV_Misc_Book_09
+## AddonCompartmentFunc: SocialDiary_OnCompartmentClick
+## X-Category: Social
+## OptionalDeps: QuestieDB, Questie
+## X-License: MIT
+
+Core/Addon.lua
+Core/DB.lua
+Core/Bridges/Questie.lua
+Data/Finales.lua
+Core/Identity.lua
+Core/Location.lua
+Core/Characters.lua
+Core/Heat.lua
+Core/Interactions.lua
+Core/Fights.lua
+Core/Sightings.lua
+Core/Diary.lua
+Core/Notes.lua
+Core/Sessions.lua
+Core/Instances.lua
+Core/Roster.lua
+Core/Reunions.lua
+Core/Timeline.lua
+Core/People.lua
+Core/Candidates.lua
+Core/Journey.lua
+Core/JourneyRecap.lua
+Core/Events.lua
+Core/Slash.lua
+
+UI/Shared.lua
+UI/StyleTokens.lua
+UI/StyleArt.lua
+UI/StyleBook.lua
+UI/StyleWidgets.lua
+UI/KeyCapture.lua
+UI/PaperStrip.lua
+UI/KillerCard.lua
+UI/FindCard.lua
+UI/HuntCard.lua
+UI/LuckyCard.lua
+UI/Entry.lua
+UI/Picker.lua
+UI/LooseSheet.lua
+UI/MapOverlayData.lua
+UI/MapArt.lua
+UI/InkBlot.lua
+UI/HeatMap.lua
+UI/InkTrail.lua
+UI/JourneyPlate.lua
+UI/LinkSheet.lua
+UI/NoteSheet.lua
+UI/TimelineText.lua
+UI/JourneyText.lua
+UI/Journal.lua
+UI/JournalJourney.lua
+UI/JournalTimeline.lua
+UI/JournalPeople.lua
+UI/JournalProfile.lua
+UI/NearbyPage.lua
+UI/JournalFront.lua
+UI/JournalFrontispiece.lua
+UI/JournalEmpty.lua
+UI/Reunion.lua
+UI/Tooltip.lua
+UI/Settings.lua
+UI/Intro.lua
+UI/SocialTab.lua
+
+Capture/Trade.lua
+Capture/Whisper.lua
+Capture/Menus.lua
+Capture/Group.lua
+Capture/Together.lua
+Capture/Deaths.lua
+Capture/PvP.lua
+Capture/Nearby.lua
+Capture/Sightings.lua
+Capture/Journey.lua
+Capture/Combat.lua
+
+#@do-not-package@
+# Development tooling: diagnostics, /sd art, /sd journey and /sd testdata. They
+# register their own /sd commands. The packager strips this block, so a
+# release never loads them (.pkgmeta leaves the folder out as well).
+Dev/Art.lua
+Dev/Diagnostics.lua
+Dev/SightingsDebug.lua
+Dev/JourneyDebug.lua
+Dev/TestData.lua
+#@end-do-not-package@
