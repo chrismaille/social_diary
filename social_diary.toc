@@ -47,6 +47,7 @@ UI/KillerCard.lua
 UI/FindCard.lua
 UI/HuntCard.lua
 UI/LuckyCard.lua
+UI/WitnessCard.lua
 UI/Entry.lua
 UI/Picker.lua
 UI/LooseSheet.lua

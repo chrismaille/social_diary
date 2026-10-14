@@ -300,6 +300,65 @@ function KillerCard.Foe(marks)
         display = type(display) == "number" and display > 0 and display or nil }
 end
 
+-- The plate's one witness (Journey.WitnessesAt), or nil: someone who tried
+-- to save the user from a death on this plate, saved them in a close call
+-- on it, or watched them die on it. A witness goes before the killer card
+-- (or the close call's, for one who saved the user): a person in the
+-- moment is the better story than the creature (14 Oct, the user's call).
+-- Who acted before who watched, then the longer watcher, then the latest.
+-- `crosses` as Match left them, `marks` plate.closeMarks, `index`
+-- Journey.WitnessIndex's, `onPage(x, y)` a card spot to the page.
+--
+-- { kind ("helped" | "watched"), type (the row's: "tried_to_help",
+-- "saved_you", "watched_death"), guid, row, t, watched (seconds, a
+-- watcher's), pct (health left, a rescue's), creature ({ npcID, name,
+-- rank }, nil when not known), death (the Journey.Deaths record) or call
+-- (the close call's), others (how many more witnessed the same moment),
+-- mark (where its cross is on the page) }.
+local DEATH_WITNESS = { tried_to_help = true, watched_death = true }
+local CLOSE_WITNESS = { saved_you = true }
+
+function KillerCard.Witness(crosses, marks, index, onPage)
+    local Journey = ns.Journey
+    local best
+    local function Consider(found, extra)
+        local w = found[1]
+        if not w then return end
+        local helped = Journey.WITNESS[w.row.type] == "helped"
+        local c = w.row.context or {}
+        local better = not best
+        if best then
+            local bh = best.kind == "helped"
+            if helped ~= bh then
+                better = helped
+            elseif (c.watched or 0) ~= (best.watched or 0) then
+                better = (c.watched or 0) > (best.watched or 0)
+            else
+                better = w.t > best.t
+            end
+        end
+        if not better then return end
+        best = { kind = Journey.WITNESS[w.row.type], type = w.row.type, guid = w.guid, row = w.row, t = w.t,
+            watched = c.watched, pct = c.pct, others = #found - 1,
+            creature = type(c.name) == "string" and { npcID = c.npcID, name = c.name, rank = c.rank } or nil }
+        for key, value in pairs(extra) do best[key] = value end
+    end
+    for _, cross in ipairs(crosses or {}) do
+        for _, d in ipairs(cross.deaths or {}) do
+            local px, py = onPage(cross.x, cross.y)
+            Consider(Journey.WitnessesAt(index, d.t, DEATH_WITNESS), { death = d, mark = { px, py } })
+        end
+    end
+    for _, mark in ipairs(marks or {}) do
+        for _, m in ipairs(mark.list or {}) do
+            if m.call then
+                Consider(Journey.WitnessesAt(index, m.call.t, CLOSE_WITNESS), { call = m.call, mark = mark.at })
+            end
+        end
+    end
+    return best
+end
+
 --------------------------------------------------------------------------
 -- The model, guarded
 --------------------------------------------------------------------------

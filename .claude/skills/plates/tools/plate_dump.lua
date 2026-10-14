@@ -58,7 +58,11 @@ local function Summary(label, e)
     for i, plate in ipairs(page.plates) do
         if plate:IsShown() then
             local ks = {}
-            for _, it in ipairs(plate.margin or {}) do ks[#ks + 1] = it.kind end
+            -- A witness's card with the size it took (UI/WitnessCard.lua).
+            for _, it in ipairs(plate.margin or {}) do
+                ks[#ks + 1] = it.kind .. (it.kind == "witness" and it.note and it.note.form
+                    and ("(" .. it.note.form .. ")") or "")
+            end
             margins[#margins + 1] = i .. ":" .. table.concat(ks, ",") .. (plate.print and ("+S(" .. plate.print.form .. ")") or "")
         end
     end

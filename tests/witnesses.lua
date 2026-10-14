@@ -478,6 +478,49 @@ W.Survived(from, mock.now, 96, 100)
 Eq(Rows(STRANGER.guid), 0, "a look 30 s before the foe died made a rescuer")
 
 --------------------------------------------------------------------------
+Section("on the plates: a witness before the killer")
+
+-- The rows find their death or close call by time (Journey.WitnessesAt),
+-- and the plate picks one (KillerCard.Witness): who acted before who
+-- watched, then the longer watcher.
+Fresh()
+local t0 = mock.now
+ns.Interactions.Add(STRANGER.guid, W.WATCHED, { time = t0, context = { watched = 6.2, name = "Kobold Vermin", npcID = 6 } })
+ns.Interactions.Add(GARRICK.guid, W.WATCHED, { time = t0 + 1, context = { watched = 2 } })
+ns.Interactions.Add(FRIEND.guid, W.HELPED, { time = t0 + 600, context = { name = "Kobold Vermin", npcID = 6 } })
+ns.Interactions.Add(STRANGER2.guid, W.SAVED, { time = t0 + 1200, context = { pct = 11, name = "Burly Rockjaw Trogg" } })
+local index = ns.Journey.WitnessIndex()
+Eq(#index, 4, "the index")
+local at = ns.Journey.WitnessesAt(index, t0, { watched_death = true, tried_to_help = true })
+Eq(#at, 2, "both watchers of the first death")
+Eq(at[1].guid, STRANGER.guid, "the longer watcher first")
+Eq(#ns.Journey.WitnessesAt(index, t0 + 10, { watched_death = true }), 0, "a death ten seconds on had watchers")
+Eq(#ns.Journey.WitnessesAt(index, t0 + 1200, { watched_death = true, tried_to_help = true }), 0,
+    "a rescue was a death's witness")
+
+local Card = ns.UI.KillerCard
+local function OnPage(x, y) return x + 100, y + 200 end
+local first = { t = t0 }
+local second = { t = t0 + 600 }
+local crosses = { { x = 10, y = 20, deaths = { first } }, { x = 30, y = 40, deaths = { second } } }
+local w = Card.Witness(crosses, {}, index, OnPage)
+Eq(w and w.guid, FRIEND.guid, "who tried to save you goes before who watched")
+Eq(w.kind, "helped", "kind")
+Eq(w.death, second, "the death")
+Eq(w.mark[1] .. "," .. w.mark[2], "130,240", "where its cross is on the page")
+Eq(w.creature and w.creature.name, "Kobold Vermin", "the creature")
+w = Card.Witness({ crosses[1] }, {}, index, OnPage)
+Eq(w.guid, STRANGER.guid, "the longer watcher")
+Eq(w.watched, 6.2, "how long")
+Eq(w.others, 1, "one more watched")
+local call = { t = t0 + 1200, pct = 11 }
+w = Card.Witness({}, { { at = { 5, 6 }, list = { { call = call } } } }, index, OnPage)
+Eq(w and w.type, W.SAVED, "a rescue on a close call")
+Eq(w.call, call, "its close call")
+Eq(w.pct, 11, "health left")
+Eq(Card.Witness({ { x = 0, y = 0, deaths = { { t = t0 + 3000 } } } }, {}, index, OnPage), nil, "nobody was there")
+
+--------------------------------------------------------------------------
 Section("the picker's reasons")
 
 Fresh()

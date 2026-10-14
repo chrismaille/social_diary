@@ -129,7 +129,9 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   again until they agree (`Mark`/`Undo` roll the pools back). Anyone a
   strip names is not named again in the words.
 - **Margin order** (`MarginOrder`): tier-1 people (session, fight, note,
-  added, find given) → firsts found (`FindCard.Items`) → killer → close call
+  added, find given) → firsts found (`FindCard.Items`) → witness (`UI/WitnessCard.lua`:
+  someone who watched you die, tried to save you or saved you; it replaces the
+  killer card, or a rescue the close call's) → killer → close call
   (`foe`) → lucky (good luck, `UI/LuckyCard.lua`; on a light plate's print
   it is the print's S instead, never in the margin) → hunt (bad luck, the
   first to go) → tier-2/3 people (first
@@ -140,7 +142,7 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   or `row` boxes, shared by `Shared`/`ROW.most`). Pools: `notePool`
   (`UI/PaperStrip.lua`), `findPool` (`UI/FindCard.lua`), `killerPool`
   (`UI/KillerCard.lua`, also the close-call card via `KillerCard.Foe`),
-  `huntPool` (`UI/HuntCard.lua`), `luckyPool` (`UI/LuckyCard.lua`: a card
+  `huntPool` (`UI/HuntCard.lua`), `witnessPool` (`UI/WitnessCard.lua`), `luckyPool` (`UI/LuckyCard.lua`: a card
   and its tag, a second slip, `card.tag`), `leaderPool`, `dotPool`.
 - **S, good luck on a light print** (`LuckyCard.Print`, drawn by the plate in
   `DrawPrint` through its own toolkit, `PRINT_LAYERS` on the `over` frame,
@@ -240,7 +242,10 @@ turn, shadow, lift, glue, vignette). Drawing is pooled, deterministic
 - Testdata today (13 Oct): lv10 F+L, lv11 FL (lucky card L in the column),
   lv12 FF (light plate too wide → full; lucky card M2 in the 122 px column),
   lv13 FL (S on the print; F+L given up for it), lv14 one plate (lucky card
-  XL in the row, L in the mock), lv15–16 one plate, week 1 LF, week 2 FFF. None of FLF/FFL/LFF/LFL
+  XL in the row, L in the mock), lv15–16 one plate, week 1 LF, week 2 FFF. Witness cards (14 Oct): lv10 tried
+  (M, F+L row), lv11 saved (L), lv13 watched (L), lv14 saw + two others (M),
+  the cap's oasis mercilessly watched (XL on lv16's page, smaller on a week's),
+  the crag on the last week tried (XL); the weeks fall by the calendar. None of FLF/FFL/LFF/LFL
   occur naturally; they're only seen forced. If a change needs them for
   real, add a testdata entry in `Dev/TestData.lua` (`TestData.WriteJourney`).
 

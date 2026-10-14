@@ -1155,7 +1155,12 @@ end
 -- hunt (the user's choice, 13 Oct): rarer, and a happy moment, but never
 -- in place of a person, a find, a death or a close call; on a light plate's
 -- print it is told on the print instead (the plate's S), so not here.
--- Each { kind = "person", "find", "killer", "foe", "lucky" or "hunt", top (its mark's
+-- Someone who was there (a witness, UI/WitnessCard.lua) goes where the
+-- card they took the place of would have (the user's call, 14 Oct: a
+-- witness before the killer): with the killer's, ahead of the close call's
+-- (UI/JourneyPlate.lua clears the one they replace, plate.killer for a
+-- death's witness, plate.foe for a rescue).
+-- Each { kind = "person", "find", "witness", "killer", "foe", "lucky" or "hunt", top (its mark's
 -- height on the page), x (where across the page its leader likeliest
 -- goes, for a row of notes under the plate), rank (its place in that
 -- order) }.
@@ -1183,6 +1188,9 @@ local function MarginOrder(plate, groups)
     end
     for _, item in ipairs(ns.UI.FindCard.Items(plate)) do
         Add({ kind = "find", item = item, top = item.top, x = item.mark and item.mark[1] or 0 })
+    end
+    if plate.witness then
+        Add({ kind = "witness", witness = plate.witness, top = plate.witness.mark[2], x = plate.witness.mark[1] })
     end
     if plate.killer then
         Add({ kind = "killer", killer = plate.killer, top = plate.killer.mark[2], x = plate.killer.mark[1] })
@@ -1247,6 +1255,14 @@ local function MarginNote(plate, e, it, named)
         card:SetHunt(it.lucky, table.concat({ "lucky", hunt.questID or hunt.item or "", plate.mapID or 0, level }, ":"),
             page.now)
         return card
+    elseif it.kind == "witness" then
+        -- Their name opens their page, as a person's strip does.
+        local card = page.witnessPool:Next()
+        local w = it.witness
+        local guid = w.guid and ns.db.characters[w.guid] ~= nil and w.guid or nil
+        card:SetWitness(w, table.concat({ "witness", w.guid or "", plate.mapID or 0, level }, ":"), page.now, guid,
+            ToPerson)
+        return card
     end
     local card = page.killerPool:Next()
     if it.kind == "foe" then
@@ -1267,6 +1283,7 @@ local function MarginMark(plate, it, note)
     if it.kind == "find" then return it.item.mark end
     if it.kind == "hunt" then return it.hunt.mark end
     if it.kind == "lucky" then return it.lucky.mark end
+    if it.kind == "witness" then return it.witness.mark end
     if it.kind == "foe" then return it.foe.mark end
     return it.killer.mark
 end
@@ -1335,6 +1352,7 @@ local function Shared(order, boxes)
     for _, it in ipairs(order) do
         if it.kind == "hunt" then want = math.max(want, ns.UI.HuntCard.Preferred(it.hunt)) end
         if it.kind == "lucky" then want = math.max(want, ns.UI.LuckyCard.Preferred(it.lucky)) end
+        if it.kind == "witness" then want = math.max(want, ns.UI.WitnessCard.Preferred(it.witness)) end
     end
     if want <= first.w then return boxes end
     local x0, x1 = first.x, last.x + last.w
@@ -1410,6 +1428,9 @@ local function LayNotes(plate, e, items, boxes, named, replay)
             if x ~= box.x then note:Layout(x, y, Wide(), Room()) end
         end
         Leader(note, MarginMark(plate, it, note), plate)
+        -- The note as laid, for the caption (Plated: whether a witness's
+        -- card kept its foe's line).
+        it.note = note
         y = y + h + CAPTION.gap
     end
     return #items
@@ -1417,7 +1438,8 @@ end
 
 -- What the right page's pools and leaders hold now, and back to it: a
 -- margin laid again from there.
-local MARGIN_POOLS = { "notePool", "findPool", "killerPool", "huntPool", "luckyPool", "leaderPool", "dotPool" }
+local MARGIN_POOLS = { "notePool", "findPool", "killerPool", "huntPool", "luckyPool", "witnessPool", "leaderPool",
+    "dotPool" }
 
 local function Mark()
     local at = { links = #page.links }
@@ -1483,6 +1505,18 @@ local function WriteMargin(plate, e, groups, boxes)
     return shown, #order
 end
 
+-- The creature a witness's death was to, as Text.KillerName takes it (the
+-- row's, else the death's own), for the caption where their card does not
+-- name it; nil for a death to the world or to nobody known.
+local function WitnessKiller(w)
+    if w.creature and w.creature.name then return w.creature end
+    local d = w.death
+    if d and type(d.name) == "string" and d.name ~= "" and not d.environment then
+        return { name = d.name, rank = d.rank }
+    end
+    return nil
+end
+
 -- A plate's heading by hand, "The Barrens, yesterday", in ink: on one line
 -- at the first of CAPTION.hand's sizes that fits `width`. Where none does,
 -- the zone alone (at the size that fits, else the smallest, wrapping), and
@@ -1524,7 +1558,8 @@ local function Plated(ctx, slot, over)
     plate:SetSlot(slot)
     local aw, ah = ArtSize(slot)
     plate:Draw(SheetOf(p.mapID), e, Plate.Window(p.mapID, p.cx, p.cy, aw, ah), { moments = MomentsOf(e),
-        cap = Plate.Share(slot), fights = page.fights, now = page.now, deaths = ns.Journey.Deaths(ctx.j) })
+        cap = Plate.Share(slot), fights = page.fights, witnesses = page.witnesses, now = page.now,
+        deaths = ns.Journey.Deaths(ctx.j) })
     plate.share, plate.plan = Plate.Share(slot), p
     plate:SetClick(function()
         Style.PlaySound("pageTurn")
@@ -1553,9 +1588,9 @@ local function Plated(ctx, slot, over)
     -- told there whatever the margin does; on a lucky card it is taken as
     -- shown, as the hunt's is, until the card is left off.
     local printed = plate.print and { hunt = plate.print.hunt, print = true } or nil
-    local function Words(named, killer, shown, foe, hunted, lucky)
+    local function Words(named, killer, shown, foe, hunted, lucky, witness)
         local text = Text.PlateCaption(p, ctx.began, named, killer and Text.KillerName(killer), shown or allFinds,
-            foe, hunted, printed or lucky)
+            foe, hunted, printed or lucky, witness)
         return day and (day:sub(1, 1):upper() .. day:sub(2) .. ". " .. text) or text
     end
     -- The margin (WriteMargin) under the words, and the words naming
@@ -1567,12 +1602,16 @@ local function Plated(ctx, slot, over)
     local top = cap.y + h + CAPTION.under
     -- The hunt with a card is taken as shown, as the finds are, until it
     -- is left off.
-    local tall = Write(words, FONT.body, Words(Named(groups, #groups), nil, nil, plate.foe ~= nil,
+    -- A witness's card (UI/WitnessCard.lua) is taken as shown too, its
+    -- creature named on it: a rescue's as the close call's card would.
+    local seen = plate.witness
+    local tall = Write(words, FONT.body, Words(Named(groups, #groups), nil, nil,
+        plate.foe ~= nil or (seen ~= nil and seen.call ~= nil),
         plate.hunt and plate.hunt.hunt, plate.lucky and not slot.light and { hunt = plate.lucky.hunt }), cap.x, top,
         cap.w, cap.align)
     if over and not Short(tall) then return false end
     local at, shown, all = Mark(), nil, 0
-    local people, finds, killer, foe, hunted, lucky
+    local people, finds, killer, foe, hunted, lucky, witness, named
     for pass = 1, 4 do
         -- Its notes: in their own column first and then under the
         -- caption, or under the caption; over the plate, in the row
@@ -1587,7 +1626,7 @@ local function Plated(ctx, slot, over)
             boxes = slot.notes and { slot.notes, under } or { under }
         end
         shown, all = WriteMargin(plate, e, groups, boxes)
-        people, finds, killer, foe, hunted, lucky = {}, {}, nil, nil, nil, nil
+        people, finds, killer, foe, hunted, lucky, witness, named = {}, {}, nil, nil, nil, nil, nil, false
         for _, it in ipairs(shown) do
             if it.kind == "person" then
                 people[#people + 1] = it.g
@@ -1599,14 +1638,22 @@ local function Plated(ctx, slot, over)
                 hunted = it.hunt.hunt
             elseif it.kind == "lucky" then
                 lucky = { hunt = it.lucky.hunt }
+            elseif it.kind == "witness" then
+                witness = it.witness
+                named = it.note ~= nil and it.note.plan ~= nil and it.note.plan.foe ~= nil
             else
                 killer = it.killer
             end
         end
-        -- Whoever and whatever has no note goes back into the words.
+        -- Whoever and whatever has no note goes back into the words: a
+        -- witness in a sentence of their own, and the creature their card
+        -- did not name (a death's, as its killer's card would have; a
+        -- rescue's, as the close call's).
         local dropped = plate.killer ~= killer and plate.killer or nil
-        local again = Write(words, FONT.body, Words(Named(people, #people), dropped, finds, foe ~= nil, hunted,
-            lucky), cap.x, top, cap.w, cap.align)
+        if seen and seen.death and not named then dropped = dropped or WitnessKiller(seen) end
+        local again = Write(words, FONT.body, Words(Named(people, #people), dropped, finds,
+            foe ~= nil or (named and seen.call ~= nil), hunted, lucky, seen ~= witness and seen or nil), cap.x, top,
+            cap.w, cap.align)
         if over or again <= tall or pass == 4 then
             tall = math.max(tall, again)
             if over and (not Short(again) or (slot.whole and #shown < all)) then
@@ -1623,6 +1670,7 @@ local function Plated(ctx, slot, over)
     page.foesWritten = page.foesWritten + (foe and 1 or 0)
     page.huntsWritten = page.huntsWritten + (hunted and 1 or 0)
     page.luckyWritten = page.luckyWritten + ((lucky or printed) and 1 or 0)
+    page.witnessesWritten = page.witnessesWritten + (witness and 1 or 0)
     for _, it in ipairs(shown) do
         if it.kind == "find" then page.findsWritten = page.findsWritten + 1 end
     end
@@ -1641,7 +1689,7 @@ local function DrawPlates(e)
     local plates, layout, pattern = PlatesOf(e)
     page.layout, page.pattern = #plates, pattern
     page.notesWritten, page.killersWritten, page.findsWritten, page.foesWritten = 0, 0, 0, 0
-    page.huntsWritten, page.luckyWritten = 0, 0
+    page.huntsWritten, page.luckyWritten, page.witnessesWritten = 0, 0, 0
     if #plates == 0 then
         -- JRN-21: a level whose road was not kept says so, faded.
         page.nothing:SetText("Nothing of this level's road was kept.")
@@ -1706,7 +1754,8 @@ local function DrawFullPlate(e, view)
     if view then f, cx, cy = view.f, view.cx, view.cy end
     local window, box = Plate.Frame(mapID, f, cx, cy, aw, ah, FULL.pad,
         f > f0 + 1e-9 and Plate.FULLZOOM.overscan or nil)
-    plate:Draw(sheet, e, window, { moments = MomentsOf(e), cap = 1, fights = page.fights, now = page.now,
+    plate:Draw(sheet, e, window, { moments = MomentsOf(e), cap = 1, fights = page.fights,
+        witnesses = page.witnesses, now = page.now,
         box = box, deaths = ns.Journey.Deaths(ns.Journey.For(ns.ownGUID)) })
     plate.share, plate.plan = 1, nil
     plate:SetClick(Back, false)
@@ -2156,8 +2205,14 @@ function ns.UI.BuildJourneyPage(parent)
         card:SetFrameLevel(page.right:GetFrameLevel() + STRIPS.level)
         return card
     end)
+    -- The witness cards: one a plate at most (UI/WitnessCard.lua).
+    page.witnessPool = Handout(function()
+        local card = ns.UI.WitnessCard.New(page.right)
+        card:SetFrameLevel(page.right:GetFrameLevel() + STRIPS.level)
+        return card
+    end)
     page.rightPools = { page.leaderPool, page.dotPool, page.headingPool, page.captionPool, page.notePool,
-        page.killerPool, page.findPool, page.huntPool, page.luckyPool }
+        page.killerPool, page.findPool, page.huntPool, page.luckyPool, page.witnessPool }
 
     page.nothing = Style.Text(page.right, FONT.faded)
     page.nothing:SetPoint("TOPLEFT", NOTHING.x, -NOTHING.y)
@@ -2271,6 +2326,7 @@ function ns.UI.RefreshJourneyPage(opening)
     if changed then
         page.recap, page.ctx, page.day, page.now = recap, ctx, day, now
         page.fights = ns.Journey.FightIndex()
+        page.witnesses = ns.Journey.WitnessIndex()
         page.sheets, page.moments = {}, {}
     end
     local count = #recap.entries

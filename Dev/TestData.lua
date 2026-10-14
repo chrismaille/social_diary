@@ -48,6 +48,27 @@ local function Me()
     return { guid = ns.ownGUID, first = "You", role = "DAMAGER" }
 end
 
+-- Strangers who were there when the made-up route's character died or
+-- nearly did (Capture/Witnesses.lua), for the plates' witness card
+-- (UI/WitnessCard.lua). Made up, realm 0000, never in the diary: pencilled
+-- in as capture would leave them, and forgotten with the rest.
+local WITNESSES = {
+    wenna = { guid = "Player-0000-7E57E580", first = "Wenna", class = "PALADIN", race = "BloodElf", level = 11, sex = 3 },
+    numa = { guid = "Player-0000-7E57E581", first = "Numa", class = "DRUID", race = "Tauren", level = 14, sex = 3 },
+    grisha = { guid = "Player-0000-7E57E582", first = "Grisha", class = "ROGUE", race = "Orc", level = 17, sex = 3 },
+    brakk = { guid = "Player-0000-7E57E586", first = "Brakk", class = "WARRIOR", race = "Orc", level = 15, sex = 2 },
+    corvin = { guid = "Player-0000-7E57E584", first = "Corvin", class = "WARLOCK", race = "Scourge", level = 18,
+        sex = 2 },
+    ilsabet = { guid = "Player-0000-7E57E585", first = "Ilsabet", class = "MAGE", race = "BloodElf", level = 20,
+        sex = 3 },
+    sefa = { guid = "Player-0000-7E57E587", first = "Sefa", class = "PRIEST", race = "Troll", level = 13, sex = 3 },
+}
+TestData.WITNESSES = WITNESSES
+
+local function ForgetWitnesses()
+    for _, who in pairs(WITNESSES) do ns.Characters.Forget(who.guid) end
+end
+
 local function Tester()
     return { guid = GUID, first = "Tester", surname = "Testerson", class = "SHAMAN", role = "DAMAGER" }
 end
@@ -208,10 +229,33 @@ function TestData.WriteJourney(now)
             name = name, rank = rank }
     end
 
+    -- The deaths with what killed them (Journey.Died, Journey.Killer), at
+    -- the stops that count them; and who was there (Capture/Witnesses.lua's
+    -- rows, written at the end, on WITNESSES): a row at a death's or a close
+    -- call's own time, as capture writes it. One a plate, so each of the
+    -- witness card's cases and sizes is on a page of its own (the proposal's
+    -- checklist).
+    j.deaths = {}
+    local function Death(at, map, x, y, npcID, name, extra)
+        local d = { t = at, mapID = map, x = x, y = y, npcID = npcID, name = name }
+        for key, value in pairs(extra or {}) do d[key] = value end
+        j.deaths[#j.deaths + 1] = d
+        return d
+    end
+    local witnessed = {}
+    local function Witness(who, kind, at, zone, map, context)
+        witnessed[#witnessed + 1] = { who = who, kind = kind, at = at, zone = zone, map = map, context = context }
+    end
+
     -- Level 10: Durotar, grinding by Razor Hill, Sen'jin, then west into
     -- The Barrens (the border splits the road).
     Road(600, DUROTAR, { 0.52, 0.44, 0.50, 0.48, 0.47, 0.52, 0.45, 0.55 })
     Stop(1500, DUROTAR, 0.45, 0.56, 55, { combat = 900, deaths = 1 }, "Razor Hill")
+    -- Killed by a raptor; Wenna waded in and could not save you (the
+    -- witness card, helped, in the row under the plate).
+    Death(t - 700, DUROTAR, 0.44, 0.57, 3123, "Bloodtalon Scythemaw", { spell = "Rend" })
+    Witness(WITNESSES.wenna, "tried_to_help", t - 700, "Durotar", DUROTAR,
+        { npcID = 3123, name = "Bloodtalon Scythemaw" })
     Find("bag", t - 400, DUROTAR, 0.47, 0.54, POUCH, "loot")
     Hunt(t - 300, DUROTAR, 0.46, 0.55, { 817, "Practical Prey", "Durotar Tiger Fur" }, 4, 7, 3121, "Durotar Tiger",
         { itemID = 4892 })
@@ -233,6 +277,9 @@ function TestData.WriteJourney(now)
     J.Fight(j, "lost", nil, t - 600, { mapID = BARRENS, x = 0.45, y = 0.46 })
     -- A close call with no creature targeted: its cross, and no card.
     Close(t - 1500, BARRENS, 0.44, 0.44, 9, 70)
+    -- Numa pulled you out of it: a rescue's card (the close call had none),
+    -- with no creature to name, in the 176 px column.
+    Witness(WITNESSES.numa, "saved_you", t - 1500, "The Barrens", BARRENS, { pct = 9 })
     Hunt(t - 200, BARRENS, 0.46, 0.45, { 845, "The Zhevra", "Zhevra Hooves" }, 4, 6, 3242, "Zhevra Runner",
         { itemID = 5086 })
     -- Good luck on a full plate with a caption column (UI/LuckyCard.lua's
@@ -281,8 +328,13 @@ function TestData.WriteJourney(now)
     Road(700, BARRENS, { 0.06, 0.22, 0.20, 0.28, 0.32, 0.33, 0.42, 0.36, 0.46, 0.36 })
     Dungeon(3000, BARRENS, 0.46, 0.36, 43, "Wailing Caverns")
     Road(400, BARRENS, { 0.46, 0.36, 0.49, 0.33, 0.52, 0.30 })
-    Stop(600, BARRENS, 0.52, 0.30, 30, { questsOut = 3, resting = 500 }, "The Crossroads")
+    Stop(600, BARRENS, 0.52, 0.30, 30, { questsOut = 3, resting = 500, deaths = 1 }, "The Crossroads")
     Find("shoulder", t - 250, BARRENS, 0.53, 0.31, SHOULDERS, "vendor")
+    -- A centaur raid on the Crossroads, and Corvin watched you die for
+    -- three seconds (the watched card in the 176 px column, L).
+    Death(t - 450, BARRENS, 0.51, 0.31, 3274, "Kolkar Pack Runner", { spell = "Rend" })
+    Witness(WITNESSES.corvin, "watched_death", t - 450, "The Barrens", BARRENS,
+        { watched = 3.2, name = "Kolkar Pack Runner", npcID = 3274, subZone = "The Crossroads" })
     Hunt(t - 2000, BARRENS, 0.50, 0.40, { 867, "Harpy Raiders", "Harpy Talon" }, 8, 13, 3276, "Witchwing Harpy")
     -- A chain of eight brought to its end, begun at the Sludge Fen.
     Finale(t - 150, BARRENS, 0.52, 0.31, 3924, "Samophlange Manual", 8, samophlange)
@@ -301,6 +353,16 @@ function TestData.WriteJourney(now)
     t = start + 4 * DAY
     Road(900, BARRENS, { 0.52, 0.30, 0.50, 0.40, 0.48, 0.50, 0.47, 0.58 })
     Stop(2400, BARRENS, 0.47, 0.58, 60, { combat = 1600, deaths = 2 }, "Camp Taurajo")
+    -- Two deaths; the second, three strangers only saw, a glance each (the
+    -- glance's card, "Ilsabet & two others" and its few drops of blood, M).
+    Death(t - 2000, BARRENS, 0.46, 0.57, 3275, "Kolkar Marauder")
+    Death(t - 500, BARRENS, 0.48, 0.59, 3265, "Razormane Hunter", { spell = "Shoot" })
+    Witness(WITNESSES.ilsabet, "watched_death", t - 500, "The Barrens", BARRENS,
+        { watched = 1.3, name = "Razormane Hunter", npcID = 3265, subZone = "Camp Taurajo" })
+    Witness(WITNESSES.wenna, "watched_death", t - 500, "The Barrens", BARRENS,
+        { watched = 0.9, name = "Razormane Hunter", npcID = 3265, subZone = "Camp Taurajo" })
+    Witness(WITNESSES.sefa, "watched_death", t - 499, "The Barrens", BARRENS,
+        { watched = 0.6, name = "Razormane Hunter", npcID = 3265, subZone = "Camp Taurajo" })
     -- One common creature of level 13, with its display: its card cut in
     -- ink over the chart, "Lv 13" on its tag, no deed.
     -- The Murloc Streamrunner (735) and its display (527) are the pair seen
@@ -336,7 +398,13 @@ function TestData.WriteJourney(now)
     -- Two weeks at the cap, under Tester's sessions (TestData.Write).
     t = now - 12 * DAY
     Road(600, BARRENS, { 0.50, 0.63, 0.53, 0.52, 0.56, 0.44 })
-    Stop(1800, BARRENS, 0.56, 0.42, 45, { combat = 1000 }, "Lushwater Oasis")
+    Stop(1800, BARRENS, 0.56, 0.42, 45, { combat = 1000, deaths = 1 }, "Lushwater Oasis")
+    -- Grisha stood and watched you die for six seconds (the merciless
+    -- card, before Humar's close call: XL where the plate has a page of its
+    -- own, smaller where a week's page shares it out).
+    Death(t - 400, BARRENS, 0.55, 0.43, 3461, "Oasis Snapjaw", { spell = "Bite" })
+    Witness(WITNESSES.grisha, "watched_death", t - 400, "The Barrens", BARRENS,
+        { watched = 6.4, name = "Oasis Snapjaw", npcID = 3461, subZone = "Lushwater Oasis" })
     -- A rare of level 23 and another with it, out at 1%: the barest bar.
     Close(t - 900, BARRENS, 0.57, 0.41, 1, 38, { npcID = 5828, name = "Humar the Pridelord", rank = "rare",
         foeLevel = 23, foes = 2 })
@@ -352,7 +420,12 @@ function TestData.WriteJourney(now)
     Dungeon(52 * MIN, BARRENS, 0.46, 0.36, 43, "Wailing Caverns")
     Road(600, BARRENS, { 0.46, 0.36, 0.35, 0.30, 0.22, 0.25, 0.05, 0.20 })
     Road(600, STONETALON, { 0.90, 0.80, 0.80, 0.72, 0.72, 0.62 })
-    Stop(2700, STONETALON, 0.71, 0.61, 55, { combat = 1200, questsOut = 4 }, "Windshear Crag")
+    Stop(2700, STONETALON, 0.71, 0.61, 55, { combat = 1200, questsOut = 4, deaths = 1 }, "Windshear Crag")
+    -- A death on the crag; Brakk tried to save you (the helped card in a
+    -- three-plate page's wide column, XL, over Kazzak's close call).
+    Death(t - 1500, STONETALON, 0.72, 0.62, 4022, "Bloodfury Harpy")
+    Witness(WITNESSES.brakk, "tried_to_help", t - 1500, "Stonetalon Mountains", STONETALON,
+        { name = "Bloodfury Harpy", npcID = 4022 })
     -- A boss with a skull for its level, made up for the tag: "Lv ?? (Boss)".
     Close(t - 800, STONETALON, 0.70, 0.60, 3, 120, { npcID = 12397, name = "Lord Kazzak", rank = "worldboss",
         foeLevel = -1 })
@@ -364,12 +437,23 @@ function TestData.WriteJourney(now)
     -- Tester's gift, in the trade of that session (TestData.Write).
     Find("rare", now - GIFT_AGO, BARRENS, 0.535, 0.31, CLOAK, "trade", GUID)
 
+    -- The witnesses: pencilled in as strangers, a row each.
+    ForgetWitnesses()
+    for _, w in ipairs(witnessed) do
+        local who = w.who
+        ns.Characters.Observe(who.guid, { first = who.first, class = who.class, race = who.race, level = who.level,
+            sex = who.sex, faction = "Horde", time = w.at })
+        ns.Interactions.Add(who.guid, w.kind, { time = w.at, where = { zone = w.zone, mapID = w.map },
+            context = w.context })
+    end
+
     J.Touch()
     return j
 end
 
 function TestData.Remove()
     TestData.RemoveJourney()
+    ForgetWitnesses()
     local had = ns.db.characters[GUID] ~= nil
     -- Every test session has Tester as its only participant, so forgetting
     -- them drops those sessions. A visit outlives one member, though, so the

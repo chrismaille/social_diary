@@ -696,7 +696,14 @@ end
 -- second would make the words longer because a card showed. On a light
 -- plate's print (`print`: the card's S, no heading) the caption names the
 -- item and who dropped it, the print how it went (Text.LuckyCaption).
-function Text.PlateCaption(plate, began, named, killer, shown, foe, hunted, lucky)
+-- `witness` (optional): someone who was there at a death or a close call
+-- on the plate (UI/KillerCard.lua's Witness) whose card
+-- (UI/WitnessCard.lua) found no room beside it: told in a sentence of its
+-- own after the rest, in the timeline's words ("Two deaths, to a Sunscale
+-- Lashtail. Grisha mercilessly watched you die."). With the card beside
+-- the plate the words say nothing of them; the creature the card names
+-- is the caller's to leave out (`killer`, `foe`), as with the killer's.
+function Text.PlateCaption(plate, began, named, killer, shown, foe, hunted, lucky, witness)
     named = named or {}
     shown = shown or {}
     local function Shown(m) return shown[m] or (m.find ~= nil and shown[m.find]) or false end
@@ -887,7 +894,7 @@ function Text.PlateCaption(plate, began, named, killer, shown, foe, hunted, luck
     else
         text = "On the road"
     end
-    return text .. "."
+    return text .. "." .. (witness and (" " .. Text.WitnessCaption(witness)) or "")
 end
 
 -- The player's own words on a person's margin note: their latest note
@@ -1176,6 +1183,110 @@ function Text.FoeTip(call, now)
     end
     lines[#lines + 1] = When(call.t, call.level, now)
     return call.name, lines
+end
+
+--------------------------------------------------------------------------
+-- Witnesses to a death or a close call (Capture/Witnesses.lua)
+--------------------------------------------------------------------------
+--
+-- The witness card (UI/WitnessCard.lua) in the margin words' register,
+-- the timeline's own verbs (UI/TimelineText.lua) so the card and the
+-- profile's row say the same thing: who (the subject, in the hand), what
+-- they did (the hand), what it was against (small print). `w` is the
+-- plate's witness (UI/KillerCard.lua's Witness).
+
+-- Their first name, "Someone" where the buffer no longer has it.
+function Text.WitnessName(w)
+    return Short(w and w.guid) or "Someone"
+end
+
+-- How many more were there, after the name on the card's one line:
+-- "& another", "& two others" (the user's words, 14 Oct); nil for none.
+-- `prose`: as a sentence says it, "and another", "and two others".
+function Text.WitnessOthers(n, prose)
+    n = n or 0
+    if n < 1 then return nil end
+    local und = prose and "and" or "&"
+    if n == 1 then return und .. " another" end
+    return und .. " " .. (NUMBER[n] or tostring(n)) .. " others"
+end
+
+-- What the watching was, by how long (Witnesses.WATCHING): "saw" under
+-- `saw` seconds, "merciless" from `merciless` on, else (or not timed, a
+-- row from before) "watched". Nil for a helper.
+function Text.WitnessLook(w)
+    if not (w and w.type == "watched_death") then return nil end
+    local W = ns.Witnesses and ns.Witnesses.WATCHING or { saw = 1.5, merciless = 5 }
+    local s = w.watched
+    if type(s) ~= "number" then return "watched" end
+    if s < W.saw then return "saw" end
+    if s >= W.merciless then return "merciless" end
+    return "watched"
+end
+
+-- What they did, in the hand under their name: "mercilessly watched you
+-- die", "watched you die", "saw you die", "tried to save you", "saved you".
+-- The second value is the word the hand underlines (twice), if any.
+function Text.WitnessDeed(w)
+    local look = Text.WitnessLook(w)
+    if look == "merciless" then return "mercilessly watched you die", "mercilessly" end
+    if look == "saw" then return "saw you die" end
+    if look then return "watched you die" end
+    if w and w.type == "saved_you" then return "saved you" end
+    return "tried to save you"
+end
+
+-- The creature, in small print under the deed: "to a Ragged Young Wolf"
+-- (a death watched), "from Hogger" (a rescue, tried or not); nil where none
+-- was kept.
+function Text.WitnessFoe(w)
+    local name = w and w.creature and Text.KillerName(w.creature)
+    if not name then return nil end
+    return (w.type == "watched_death" and "to " or "from ") .. name
+end
+
+-- The witness in a sentence of its own after the caption's, where the card
+-- has no room: "Grisha mercilessly watched you die.", "Numa and another
+-- tried to save you.", the timeline's verbs.
+function Text.WitnessCaption(w)
+    local who = Text.WitnessName(w)
+    local others = Text.WitnessOthers(w and w.others, true)
+    if others then who = who .. " " .. others end
+    return who .. " " .. Text.WitnessDeed(w) .. "."
+end
+
+-- The card's tooltip: their full name, who they are, what they did (the
+-- watching to a tenth of a second), whether they were alone, when.
+function Text.WitnessTip(w, now)
+    local record = ns.Characters.Get and ns.Characters.Get(w.guid) or nil
+    local lines = {}
+    if record then
+        local who = {}
+        if record.level then who[#who + 1] = "Level " .. record.level end
+        who[#who + 1] = ns.UI.RaceName(record)
+        who[#who + 1] = ns.UI.ClassName(record)
+        if #who > 0 then lines[#lines + 1] = table.concat(who, " ") end
+    end
+    local look = Text.WitnessLook(w)
+    if look then
+        if type(w.watched) == "number" then
+            lines[#lines + 1] = "Watched for " .. Glue(("%.1f seconds"):format(w.watched))
+        end
+        lines[#lines + 1] = "Not in a fight themselves"
+    elseif w.type == "saved_you" then
+        lines[#lines + 1] = "Joined your fight"
+        lines[#lines + 1] = "You came out of it with " .. Health(w)
+    else
+        lines[#lines + 1] = "Joined the fight you died in"
+    end
+    local more = w.others or 0
+    if more > 0 then
+        lines[#lines + 1] = more == 1 and "One other was there too"
+            or (Capital(NUMBER[more] or tostring(more)) .. " others were there too")
+    end
+    local at = w.death or w.call
+    lines[#lines + 1] = When(w.t, at and at.level, now)
+    return Who(w.guid) or Text.WitnessName(w), lines
 end
 
 -- Whether a hunt's kills were of more kinds than one (EXT-2).

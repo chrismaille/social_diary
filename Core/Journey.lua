@@ -1182,6 +1182,64 @@ function Journey.FightIndex()
 end
 
 --------------------------------------------------------------------------
+-- Witnesses to the user's deaths and close calls
+--------------------------------------------------------------------------
+--
+-- Capture/Witnesses.lua writes who watched the user die, who tried to save
+-- them and who saved them as rows on that player (Interactions.Add), at the
+-- death's or the close call's own time: the same PLAYER_DEAD, the same
+-- close-call judge. So a death or a close call on the route finds its
+-- witnesses by time, as fights find their strangers (FightIndex), and the
+-- route keeps no names (forgetting someone takes their rows, and with them
+-- their part on the plates).
+
+-- Row type -> what the witness did.
+local WITNESS = { tried_to_help = "helped", saved_you = "helped", watched_death = "watched" }
+Journey.WITNESS = WITNESS
+
+-- Seconds a row's time may be from its moment's: both are read in the same
+-- second, so this is only leeway.
+local WITNESS_SLACK = 3
+
+-- Every witness row in the buffer, oldest first: { t, guid, row }. Built
+-- once per drawing.
+function Journey.WitnessIndex()
+    local list = {}
+    for guid, rows in pairs(ns.db.interactions) do
+        for i = 1, #rows do
+            local row = rows[i]
+            if WITNESS[row.type] and type(row.time) == "number" then
+                list[#list + 1] = { t = row.time, guid = guid, row = row }
+            end
+        end
+    end
+    table.sort(list, function(a, b) return a.t < b.t end)
+    return list
+end
+
+-- The witnesses (WitnessIndex's) to a moment at `t` whose row type is in
+-- `types` ({ [type] = true }), best first: who acted before who watched,
+-- the longer watcher first, then by GUID so a drawing is the same each
+-- time.
+function Journey.WitnessesAt(index, t, types)
+    local found = {}
+    if type(t) ~= "number" then return found end
+    for _, w in ipairs(index or {}) do
+        if w.t > t + WITNESS_SLACK then break end
+        if w.t >= t - WITNESS_SLACK and types[w.row.type] then found[#found + 1] = w end
+    end
+    table.sort(found, function(a, b)
+        local ha, hb = WITNESS[a.row.type] == "helped", WITNESS[b.row.type] == "helped"
+        if ha ~= hb then return ha end
+        local wa = a.row.context and a.row.context.watched or 0
+        local wb = b.row.context and b.row.context.watched or 0
+        if wa ~= wb then return wa > wb end
+        return a.guid < b.guid
+    end)
+    return found
+end
+
+--------------------------------------------------------------------------
 -- The user's deaths, and what killed them
 --------------------------------------------------------------------------
 --

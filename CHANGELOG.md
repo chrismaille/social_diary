@@ -8,6 +8,7 @@ All notable changes to Social Diary. Versions follow the `## Version` line in
 ### Shiny new Things
 
 - Profiles now remember who watched you die, tried to save you, or saved you
+  - They also appear in your _Your Diary_
 
 ### Changes
 

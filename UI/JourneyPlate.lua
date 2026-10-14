@@ -1964,7 +1964,7 @@ local function New(parent, slot)
     -- mouse ("Died here twice" / "Sunscale Lashtail, with Bite"), and the
     -- plate's one killer is chosen from them (UI/KillerCard.lua), with
     -- where its card's leader ends on the page (plate.killer.mark).
-    local function DrawKillers(deaths, mapID, At, entry)
+    local function DrawKillers(deaths, mapID, At, entry, witnesses)
         local Card = ns.UI.KillerCard
         local j = ns.Journey.For(ns.ownGUID)
         Card.Match(crosses, deaths, mapID, function(d) return At(d.x, d.y) end, entry,
@@ -1986,6 +1986,14 @@ local function New(parent, slot)
         -- is one (a close call and a death are two fights, even with the
         -- same creature).
         plate.foe = Card.Foe(plate.closeMarks)
+        -- Someone who was there (Capture/Witnesses.lua) goes before the
+        -- creature: a witness to a death takes the killer card's place, one
+        -- who saved the user in a close call the close call's card's
+        -- (14 Oct, the user's call). plate.witness is UI/KillerCard.lua's
+        -- Witness.
+        plate.witness = Card.Witness(crosses, plate.closeMarks, witnesses, OnPage)
+        if plate.witness and plate.witness.death then plate.killer = nil end
+        if plate.witness and plate.witness.call then plate.foe = nil end
     end
 
     -- Good luck told on the print (UI/LuckyCard.lua's S): on a light
@@ -2063,7 +2071,8 @@ local function New(parent, slot)
     -- `entry` (a level or a week: only its from..to is drawn). `opts`:
     -- moments (Recap.Moments of the entry: its marks), cap (the plate's
     -- share of the caps, Plate.Share), fights (Journey.FightIndex, built
-    -- once), deaths (Journey.Deaths: the deaths kept with their killers).
+    -- once), deaths (Journey.Deaths: the deaths kept with their killers),
+    -- witnesses (Journey.WitnessIndex, built once).
     function plate:Draw(sheet, entry, window, opts)
         opts = opts or {}
         local started = debugprofilestop and debugprofilestop()
@@ -2108,7 +2117,7 @@ local function New(parent, slot)
         end
 
         DrawMoments(sheet, opts.moments, mapID, At, pools, entry, now, fights)
-        DrawKillers(opts.deaths, mapID, At, entry)
+        DrawKillers(opts.deaths, mapID, At, entry, opts.witnesses or ns.Journey.WitnessIndex())
         DrawPrint(entry, now)
         self.counts.labels = 0
 
