@@ -9,7 +9,7 @@ local Section, Check, Eq = T.Section, T.Check, T.Eq
 local DAY = T.DAY
 local ns = T.Boot()
 
-local J, R = ns.Journey, ns.JourneyRecap
+local J, R, P = ns.Journey, ns.JourneyRecap, ns.ProfessionCaps
 local SELF = F.SELF
 local MULGORE = 1412
 local FIRST_AID, MINING = 129, 186
@@ -27,7 +27,7 @@ end
 --------------------------------------------------------------------------
 Section("what counts as reaching a cap")
 
-local Is = J.IsSkillCap
+local Is = P.IsCap
 Check(Is({ rank = 74, max = 75 }, { rank = 75, max = 75 }), "74 to 75 of 75")
 Check(Is({ rank = 70, max = 75 }, { rank = 76, max = 75 }), "a climb past the max was not taken for a cap")
 Check(not Is({ rank = 75, max = 75 }, { rank = 75, max = 150 }), "training was taken for a cap")
@@ -124,7 +124,7 @@ end
 -- Kept to T.skillCaps, the oldest going.
 do
     local r = {}
-    for i = 1, J.T.skillCaps + 3 do J.SkillCap(r, { t = i, skillLine = MINING, rank = 75 }, {}) end
+    for i = 1, J.T.skillCaps + 3 do P.Add(r, { t = i, skillLine = MINING, rank = 75 }, {}) end
     Eq(#r.skillCaps, J.T.skillCaps, "more caps kept than T.skillCaps")
     Eq(r.skillCaps[1].t, 4, "the oldest caps were not the ones to go")
 end

@@ -46,9 +46,7 @@
 --              cross in outline for a close call (JRN-25: out of a fight
 --              alive with a tenth of your health or less), a tally for
 --              bad luck with a quest's drops (JRN-26) and a star for good
---              luck with them (EXT-3), a tailpiece where a long quest
---              chain ended (JRN-28), a flight of stairs where a profession
---              reached its cap (JRN-29), and whatever a feature registers
+--              luck with them (EXT-3), and whatever a feature registers
 --              (Plate.RegisterMark)
 --              Each has a tooltip (UI/JourneyText.lua)
 -- The page writes the margin notes and draws their pencil leaders (they
@@ -258,7 +256,7 @@ local DOOR = { body = { y = 0.18, w = 0.8, h = 0.62 }, head = { y = -0.1, size =
 -- What a plate marks at most; past it, the rest is left off. The trail's
 -- own caps are InkTrail's; a registered mark's (Plate.RegisterMark) is
 -- its `cap`, filled in here under its `count` as it registers
--- (closeCalls, hunts, fortunes, finales, skills, ...).
+-- (closeCalls, hunts, fortunes, ...).
 local CAP = { meetings = 150, flights = 40, dashes = 600, dungeons = 30, pins = 80, firsts = 60, finds = 10 }
 -- A point this far past the art's edge (px) is still on it; a piece of ink
 -- may reach `SPILL` px past it (onto the neat line), and is left off past
@@ -297,7 +295,7 @@ local function Clamp(v, lo, hi) return v < lo and lo or (v > hi and hi or v) end
 --   order    a number, lowest drawn first. A mark down keeps its place and
 --            the later ones step round it (Apart, with a tether), so the
 --            order says which matter most where they crowd. Today's:
---            finale 10, skill 20, close 30, luck 40, fortune 50, then the
+--            close 30, luck 40, fortune 50, then the
 --            deaths on the road (ROAD_DEATHS, 60, core); a kind registered
 --            from Features/<Name>/ says its number there (filler goes after
 --            the deaths on the road, last of all). Leave gaps; equal orders draw in the
@@ -307,7 +305,7 @@ local function Clamp(v, lo, hi) return v < lo and lo or (v > hi and hi or v) end
 --            is left off. Kept in CAP under `count` (Plate.CAP.hunts, ...).
 --   count    its key in plate.counts (how many marks were drawn) and in
 --            CAP. The plural names the tests know, never the kind's:
---            "finales", "skills", "closeCalls", "hunts", "fortunes".
+--            "closeCalls", "hunts", "fortunes".
 --   radius   the room the mark claims (Apart's r, Radius(kind)): about
 --            half its height, a px or two more.
 --   halo     the size of the round paper laid under it (MARK.halo), so it
@@ -319,7 +317,7 @@ local function Clamp(v, lo, hi) return v < lo and lo or (v > hi and hi or v) end
 --            only through the kit (below), so it turns and is lit with
 --            the card and its textures come from the plate's pools.
 --   arg      optional function(list) → draw's `arg`, from the moments
---            merged on the spot (a profession's stairs: the best rank).
+--            merged on the spot (say, the best of their records).
 --   tip      function(m, now) → title, lines: each moment's words under
 --            the mouse (UI/JourneyText.lua's, looked up when asked: it
 --            loads after this file).
@@ -1821,8 +1819,7 @@ local function New(parent, slot)
 
         -- The registered marks (Plate.RegisterMark): close calls (JRN-25),
         -- bad and good luck with a quest's drops (JRN-26, EXT-3), the ends
-        -- of long quest chains (JRN-28), the professions brought to their
-        -- cap (JRN-29), and whatever a feature adds:
+        -- of long quest chains (JRN-28), and whatever a feature adds:
         -- a mark where each was, those on one spot (MARK.merge) one mark,
         -- its tooltip telling each.
         local function Spots(kind, cap)
@@ -2351,89 +2348,6 @@ end
 -- cut out as they are: nothing in them reaches into New but through the
 -- kit, and the words are looked up when the mouse comes, as
 -- UI/JourneyText.lua loads after this file.
-
--- The end of a long quest chain (JRN-28): a tailpiece, as an old book
--- ends a chapter. A swelled `rules` (`w` wide, `t` thick at its middle,
--- tapering to points, its middle `y` off the mark's), a shorter one under
--- it, and a full stop (`dot`: size, y). Where corners cannot move, each
--- rule a flat bar `bar` of its size. Rules lie across, so never the tally
--- or a cross; narrowing to a point, so never a pin or the ring of time
--- together. Ranked with a level's pin on the plate, so it keeps a halo as
--- big as the pin's.
-local FINALE = { rules = { { w = 14, t = 2.5, y = -3.2 }, { w = 7.5, t = 2.1, y = 0.5 } }, dot = { 2.8, 4.0 },
-    bar = 0.75, halo = 17, h = 10 }
--- Drawn first of the registered marks: it ranks with the level's pin, so
--- it keeps its place and the crosses and tallies step round it.
-Plate.RegisterMark("finale", {
-    order = 10, cap = 10, count = "finales",
-    radius = FINALE.rules[1].w / 2, halo = FINALE.halo, hover = FINALE.halo,
-    tip = function(m, now) return ns.UI.JourneyText.FinaleTip(m.finale, now) end,
-    -- Two swelled rules and a full stop.
-    draw = function(kit, x, y)
-        local F = FINALE
-        local light = kit.Light(x, y)
-        local c = kit.INK_STRONG
-        for _, rule in ipairs(F.rules) do
-            local ry, hw, ht = y + rule.y, rule.w / 2, rule.t / 2
-            local texture = kit.ink:Next()
-            kit.Fill(texture, c[1] * light, c[2] * light, c[3] * light, 1)
-            if not kit.Quad(texture, x - hw, ry, x, ry - ht, x + hw, ry, x, ry + ht) then
-                kit.Place(texture, x - hw * F.bar, ry - ht * F.bar, rule.w * F.bar, rule.t * F.bar)
-            end
-        end
-        kit.Dot(kit.ink, x, y + F.dot[2], F.dot[1], kit.INK_STRONG, 1)
-    end,
-})
-
--- A profession brought to its cap (JRN-29): a flight of `steps` stairs
--- rising to the right, one for each rank a trainer teaches (Apprentice,
--- Journeyman, Expert, Artisan), each `w` px wide and `rise` px higher than
--- the one before, standing on one line. The steps climbed, up to the rank
--- reached (its cap over `per`: 75 one, 300 all four), are solid ink; the
--- ones still to climb are drawn in outline, `line` px of ink round their
--- paper, so the flight is always whole and the tooltip says what it means
--- (no key on the plates). A cap past the last rank, or none kept, is the
--- whole flight. Stepped, so never the tally's strokes, a cross, the pouch
--- or the tailpiece's rules; boxes only, so it draws the same where corners
--- cannot move. Ranked with a level's pin, so it keeps a halo as big as
--- the tailpiece's. (12 Oct, a rasterised render: as a stepped line the
--- unclimbed steps blurred into a slash at the book's size; closed, they
--- read as stairs.)
-local SKILL = { steps = 4, w = 3.2, rise = 2.9, line = 1.0, per = 75, halo = 17 }
--- Ranked with the tailpiece, right after it: its steps climbed by the
--- best cap on the spot (`arg`).
-Plate.RegisterMark("skill", {
-    order = 20, cap = 10, count = "skills",
-    radius = SKILL.steps * SKILL.w / 2 + 1, halo = SKILL.halo, hover = SKILL.halo,
-    tip = function(m, now) return ns.UI.JourneyText.SkillTip(m.cap, now) end,
-    arg = function(list)
-        local rank
-        for _, m in ipairs(list) do
-            if type(m.cap.rank) == "number" and (not rank or m.cap.rank > rank) then rank = m.cap.rank end
-        end
-        return rank
-    end,
-    -- The whole flight in ink, a column to each step (each a hair wider,
-    -- under the taller one beside it, so no seam shows between them), then
-    -- the paper inside the steps above the rank reached. The paper of each
-    -- such step reaches on under the next, so the outline runs round them
-    -- as one, with no wall between.
-    draw = function(kit, x, y, rank)
-        local S = SKILL
-        local n, w, t = S.steps, S.w, S.line
-        local climbed = type(rank) == "number" and kit.Clamp(math.floor(rank / S.per), 1, n) or n
-        local x0, base = x - n * w / 2, y + n * S.rise / 2
-        for i = 1, n do
-            local h, wide = i * S.rise, i < n and w + 0.3 or w
-            kit.Box(kit.ink, x0 + (i - 1) * w + wide / 2, base - h / 2, wide, h, kit.INK_STRONG, 1)
-        end
-        for i = climbed + 1, n do
-            local h = i * S.rise
-            local left, right = x0 + (i - 1) * w + t, x0 + i * w + (i < n and t or -t)
-            kit.Box(kit.inner, (left + right) / 2, base - h / 2, right - left, h - 2 * t, kit.P, 1)
-        end
-    end,
-})
 
 -- A close call (JRN-25): the death's cross drawn in outline and never
 -- filled in, the cross you nearly got. Ink round paper, as the hollow

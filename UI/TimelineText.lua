@@ -38,11 +38,6 @@ local ROW_TEXT = {
         if #parts == 0 then return "Traded" end
         return "Traded: " .. table.concat(parts, "; ")
     end,
-    whisper_in = function(row) return Quote(row.excerpt, "They whispered") end,
-    whisper_out = function(row) return Quote(row.excerpt, "You whispered") end,
-    say = function(row) return Quote(row.excerpt, "Said") end,
-    yell = function(row) return Quote(row.excerpt, "Yelled") end,
-    party = function(row) return Quote(row.excerpt, "Said in party") end,
     group_join = function(row)
         return (row.context and row.context.raid) and "Raided together" or "Grouped"
     end,
@@ -121,11 +116,6 @@ end
 -- Each kind's icon, a Style.ART key.
 local ROW_ICON = {
     trade = "trade",
-    whisper_in = "whisper",
-    whisper_out = "whisper",
-    say = "talk",
-    yell = "talk",
-    party = "party",
     group_join = "together",
     level_up = "levelup",
     pvp_kill = "hostile",

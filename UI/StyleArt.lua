@@ -26,10 +26,8 @@ Style.ART = {
     map = { "Interface\\Icons\\INV_Misc_Map_01" },
     search = { "Interface\\Common\\UI-Searchbox-Icon" },
     together = { "Interface\\GossipFrame\\TabardGossipIcon" },
+    -- A word said: the timeline's chat activity, and a /say.
     talk = { "Interface\\GossipFrame\\GossipGossipIcon" },
-    -- The same bubble, in the chat's whisper or party colour (ART_TINT).
-    whisper = { "Interface\\GossipFrame\\GossipGossipIcon" },
-    party = { "Interface\\GossipFrame\\GossipGossipIcon" },
     trade = { "Interface\\GossipFrame\\VendorGossipIcon" },
     -- An instance visit on the timeline (TLN-4).
     dungeon = { "Interface\\Icons\\INV_Misc_Key_03", "Interface\\Icons\\INV_Sword_04" },
@@ -84,11 +82,18 @@ function Style.Art(key)
     return resolved[key] or nil
 end
 
+-- Art drawn in a colour (Style.ArtTint): each a function returning r, g, b,
+-- asked each time it is drawn, so a colour read off the client's settings
+-- follows them. Only a feature's own art is tinted (Style.AddArt).
+local ART_TINT = {}
+
 -- Art of a feature's own (Features/<Name>/), under `key`: its candidate
--- files, the first the client has winning. Asked again from scratch, in case
--- it was asked for before it was told.
-function Style.AddArt(key, paths)
+-- files, the first the client has winning, and optionally `tint`, a
+-- function returning the r, g, b to draw it in. Asked again from scratch,
+-- in case it was asked for before it was told.
+function Style.AddArt(key, paths, tint)
     Style.ART[key] = paths
+    ART_TINT[key] = tint
     resolved[key] = nil
 end
 
@@ -116,22 +121,6 @@ function Style.IsInventoryIcon(key)
     local path = Style.Art(key)
     return path ~= nil and path:find("^Interface\\Icons\\") ~= nil
 end
-
--- Art drawn in a colour: each a function returning r, g, b. Whispers and
--- party lines take the chat's own colour for them, so a player who changed
--- it sees theirs; the fallback is the client's default.
-local function ChatColour(chatType, r, g, b)
-    return function()
-        local info = ChatTypeInfo and ChatTypeInfo[chatType]
-        if info and info.r then return info.r, info.g, info.b end
-        return r, g, b
-    end
-end
-
-local ART_TINT = {
-    whisper = ChatColour("WHISPER", 1, 0.5, 1),
-    party = ChatColour("PARTY", 0.667, 0.667, 1),
-}
 
 -- The colour to draw art `key` in: white (as drawn) unless it is tinted.
 function Style.ArtTint(key)

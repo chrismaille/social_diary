@@ -1,13 +1,18 @@
--- Whisper capture (INT-1, Must).
+-- Chat capture (INT-1, Must): whispers, /say, /yell and party lines, each
+-- written as a row of its kind (Kind.lua) on the person who said it.
 --
 -- Whispers are the interaction most likely to hold the reason you wanted to
 -- remember somebody, so INT-3 keeps their text -- capped, and only while the
--- character is in the buffer.
+-- character is in the buffer. The cap, and whether text is kept at all, are
+-- the core's (a kind's `chat`, Core/Interactions.lua).
 --
 -- INT-4 is the hard rule here: under chat lockdown, Session 1 saw text, sender
 -- *and* guid all come back secret, and all three persisted as nil. So a
 -- restricted whisper is not stored at all. The one thing that survives is
 -- lineID, which stays plain, and that is what INT-3's fallback counts.
+--
+-- Who said what in /say and /yell, whoever they are, is also a sighting:
+-- that is the Nearby engine's, Capture/Sightings.lua's FromChat, not this.
 
 local addonName, ns = ...
 

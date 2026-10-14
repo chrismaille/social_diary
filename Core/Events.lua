@@ -22,6 +22,26 @@
 --   SD_PAPER_CHANGED ()        the paper or its grain changed (/sd art).
 --                              Fired by UI/StyleArt.lua and UI/StyleBook.lua;
 --                              the journal's book repaints.
+--   SD_WORLD_SETTLED ()        a few seconds after entering the world (a
+--                              login, a /reload, a loading screen), when the
+--                              client has loaded what the character holds
+--                              (its bags, its skills). Fired by Capture/
+--                              Journey.lua right after its first reading of
+--                              the bags (the firsts). A feature's capture
+--                              that holds what the character has against
+--                              its last reading takes its first one here,
+--                              which only sets the mark: what is had then
+--                              was had out of sight. Whether the route is
+--                              kept is the feature's to ask (ns.Journey.Kept).
+--   SD_QUEST_ACCEPTED (questID)   a quest taken, its id a plain number.
+--   SD_QUEST_TURNED_IN (questID)  a quest turned in, likewise. Both fired
+--                              by Capture/Journey.lua straight after the
+--                              route has counted the quest (Journey.Act),
+--                              whether or not the route is kept: a
+--                              feature asks that itself (ns.Journey.Kept).
+--                              The turn-in comes through Capture/
+--                              Together.lua's QUEST_TURNED_IN handler,
+--                              after the session's count.
 --
 -- Dispatch is synchronous: SD_REUNION's toast has read "last met" before
 -- ns.Fire returns, which is what lets Group fire it ahead of Sessions.

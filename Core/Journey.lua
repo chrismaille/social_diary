@@ -20,9 +20,10 @@
 -- buffer (JRN-18).
 --
 -- db.journey[charGUID] = { startedAt, startLevel, startMapID, levels,
--- segments, marks, deaths, firsts, closeCalls, hunts, hunting, finales,
--- chainStarts, skillCaps, open } (prd.md section 7), and a list of its own
--- for each feature that registered one (Journey.RegisterList). `open` is
+-- segments, marks, deaths, firsts, closeCalls, hunts, hunting, open }
+-- (prd.md section 7), and a list of its own for each feature that
+-- registered one (Journey.RegisterList), or what else a feature keeps on
+-- the route (its Features/<Name>/Kind.lua says). `open` is
 -- the working state: the stop or road being built, saved so that a /reload
 -- carries on where it was (JRN-20), and never read by the UI.
 --
@@ -69,8 +70,8 @@ local T = {
     fortune = 8,        -- good luck: an eighth of the kills expected, or fewer (EXT-3)
     rateDoubt = 1e-4,   -- a drop rate under which a hunt this slow had less than this
                         -- chance is taken for wrong, and the next source tried
-    finales = 200,      -- chain finales kept a character, the oldest first (JRN-28)
-    skillCaps = 100,    -- profession caps kept a character, the oldest first (JRN-29)
+    -- (a feature's list adds its own cap here as it registers:
+    -- Journey.RegisterList)
 }
 Journey.T = T
 
@@ -1131,7 +1132,12 @@ local function Spot(where)
 end
 Journey.Spot = Spot
 
--- The logged-in character's route, while it is being kept.
+-- The logged-in character's route, while it is being kept: "Keep my own
+-- route" on (the setting Capture/Journey.lua's timer runs by), and not
+-- /sd testdata's made-up one; else nil. A feature's capture
+-- (Features/<Name>/Capture.lua) writes only while this gives a route, and
+-- forgets what it was holding while it does not, as the route's own
+-- capture does.
 local function Kept()
     if ns.Setting("keepRoute") ~= true then return nil end
     local j = Journey.Mine()
@@ -1546,44 +1552,6 @@ function Journey.Firsts(j)
 end
 
 --------------------------------------------------------------------------
--- Profession caps: as far as the training goes (JRN-29)
---------------------------------------------------------------------------
---
--- A profession's skill climbs to the most its training allows (75, 150,
--- 225, 300 on Forever: probe 12 Oct) and stops there until the next
--- trainer. Reaching it is the moment kept; training, and learning the
--- profession, are not (the user's choice, 12 Oct).
---
--- j.skillCaps holds each, oldest first: { t, mapID, x, y, level, skillLine,
--- name, rank }. `skillLine` is the client's id for the profession (the
--- same in every language), `name` how the client called it then, `rank`
--- the cap reached.
-
--- Whether a profession went from below its cap to it between two
--- readings, each { rank, max }. Only a rank that climbed under a max that
--- stayed put: a max that moved is training, or a reading not loaded yet.
-function Journey.IsSkillCap(before, now)
-    if not (before and now) then return false end
-    return type(now.max) == "number" and now.max > 0 and now.max == before.max
-        and type(now.rank) == "number" and type(before.rank) == "number"
-        and before.rank < now.rank and now.rank >= now.max
-end
-
--- A cap reached, here and now unless `where` says otherwise (in
--- ns.Where's shape; nowhere inside an instance, where the recap places it
--- by time). `rec` is { t, level, skillLine, name, rank }.
-function Journey.SkillCap(j, rec, where)
-    if not (j and rec and rec.skillLine and rec.rank) then return nil end
-    return Journey.Append(j, "skillCaps", { t = rec.t, level = rec.level, skillLine = rec.skillLine,
-        name = rec.name, rank = rec.rank }, where)
-end
-
--- A character's profession caps, oldest first.
-function Journey.SkillCaps(j)
-    return Journey.List(j, "skillCaps")
-end
-
---------------------------------------------------------------------------
 -- Close calls: out of a fight alive, and only just
 --------------------------------------------------------------------------
 --
@@ -1911,84 +1879,6 @@ end
 -- eighth of the kills expected or fewer (T.fortune). Never without them.
 function Journey.GoodLuck(hunt)
     return hunt ~= nil and hunt.expected ~= nil and hunt.kills * T.fortune <= hunt.expected
-end
-
---------------------------------------------------------------------------
--- Quest chain finales (JRN-28)
---------------------------------------------------------------------------
---
--- Turning in the last quest of a chain the user chose (Data/Finales.lua):
--- "The end of “Crown of the Earth”, a chain of nine begun in Shadowglen
--- five days before." The server will not hand in a quest whose chain is
--- not done, so the turn-in is the whole proof; the quests of the chain the
--- client says are done give its length, as far as it can tell. Where it
--- began is known only when the diary saw its first quest taken.
---
--- j.chainStarts[questID] = { t, mapID, x, y, level }: a chain's first
--- quest taken, kept by that quest (one first quest may open several
--- chains). j.finales holds each finale, oldest first: { t, mapID, x, y,
--- level, questID, title, n, started }, `n` the quests of the chain done,
--- the finale with them, `started` the chain's start as kept, if it was.
-
-local firstOf
-
--- [first quest] = true, for every chain chosen.
-local function Firsts()
-    if firstOf then return firstOf end
-    firstOf = {}
-    for _, chain in pairs(ns.Finales or {}) do
-        for _, route in ipairs(chain.routes or {}) do
-            if route[1] then firstOf[route[1]] = true end
-        end
-    end
-    return firstOf
-end
-
--- Quest `questID` taken: kept where it opens a chain, the first time.
--- `rec` is { t, level }; here unless `where` says otherwise.
-function Journey.ChainBegun(j, questID, rec, where)
-    if not (j and type(questID) == "number" and Firsts()[questID]) then return nil end
-    j.chainStarts = j.chainStarts or {}
-    if j.chainStarts[questID] then return j.chainStarts[questID] end
-    local spot = Spot(where)
-    local start = { t = rec and rec.t or ns.Now(), mapID = spot.mapID, x = spot.x, y = spot.y,
-        level = rec and rec.level }
-    j.chainStarts[questID] = start
-    Touch()
-    return start
-end
-
--- Quest `questID` turned in: a finale where it ends a chosen chain. `rec`
--- is { t, level, title, Done }: `title` the client's name for the quest,
--- Done(questID) whether the client has a quest down as done (nil where it
--- cannot say: the chain is then taken as done in full). The route counted
--- is the one most done. Returns the record kept, or nil.
-function Journey.Finale(j, questID, rec, where)
-    local chain = j and ns.Finales and ns.Finales[questID]
-    if not chain then return nil end
-    for _, f in ipairs(j.finales or {}) do
-        if f.questID == questID then return nil end
-    end
-    rec = rec or {}
-    local best, n = nil, -1
-    for _, route in ipairs(chain.routes or {}) do
-        local done = 1
-        for i = 1, #route - 1 do
-            if not rec.Done or rec.Done(route[i]) then done = done + 1 end
-        end
-        if done > n then best, n = route, done end
-    end
-    if not best then return nil end
-    local started = j.chainStarts and j.chainStarts[best[1]]
-    return Journey.Append(j, "finales", { t = rec.t, level = rec.level, questID = questID,
-        title = rec.title or chain.title, n = n,
-        started = started and { t = started.t, mapID = started.mapID, x = started.x, y = started.y,
-            level = started.level } or nil }, where)
-end
-
--- A character's finales, oldest first.
-function Journey.Finales(j)
-    return Journey.List(j, "finales")
 end
 
 -- At login: a mark kept with a GUID whose person has left the diary is a

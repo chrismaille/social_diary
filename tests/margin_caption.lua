@@ -33,6 +33,42 @@ Eq(Margin.PEOPLE.seen, 80, "the people only seen")
 for _, key in ipairs({ "find", "finale", "skill", "death", "close", "luck", "fortune", "witness", "campfire" }) do
     Check(Text.CAPTIONS[key] ~= nil, "no caption words for " .. key)
 end
+local function Paragraphs()
+    local list = {}
+    for _, p in ipairs(Text.Paragraphs()) do list[#list + 1] = p.key .. " " .. p.at end
+    return table.concat(list, ", ")
+end
+Eq(Paragraphs(), "opening 10, time 20, people 30, find 40, finale 50, skill 60, combat 70", "the prose's paragraphs")
+
+--------------------------------------------------------------------------
+Section("a paragraph registered by a later file")
+
+-- A scrap's paragraph goes between the chains finished (50) and the
+-- professions' caps (60); taken out, the prose is as it was.
+do
+    local now = mock.now
+    local e = { kind = "level", level = 11, seconds = 0, from = now - 86400, to = now, places = {}, stops = {},
+        flights = {}, people = {}, fights = {}, finds = {}, closeCalls = {}, hunts = {}, fortunes = {},
+        finales = { { title = "The Demon Seed", n = 7, t = now } },
+        skillCaps = { { t = now, name = "First Aid", rank = 75 } } }
+    local before = Text.Lines(e, now, {})
+    Text.RegisterLines("scrap", { at = 55, lines = function(entry) return entry.scrap and "A scrap." or nil end })
+    Eq(table.concat(Text.Lines(e, now, {}), " / "), table.concat(before, " / "), "a scrap with nothing to say")
+    e.scrap = true
+    local lines = Text.Lines(e, now, {})
+    local at = {}
+    for i, line in ipairs(lines) do
+        if line:find("The end of", 1, true) then at.finale = i end
+        if line == "A scrap." then at.scrap = i end
+        if line:find("First Aid reached 75", 1, true) then at.skill = i end
+    end
+    Check(at.finale and at.scrap and at.skill and at.finale < at.scrap and at.scrap < at.skill,
+        "the scrap's paragraph is out of place: " .. table.concat(lines, " / "))
+    Text.RemoveLines("scrap")
+    Eq(table.concat(Text.Lines(e, now, {}), " / "), table.concat(before, " / "), "the scrap's paragraph stayed")
+    Eq(Paragraphs(), "opening 10, time 20, people 30, find 40, finale 50, skill 60, combat 70",
+        "the paragraphs after the scrap left")
+end
 
 --------------------------------------------------------------------------
 Section("caption words registered by a later file")

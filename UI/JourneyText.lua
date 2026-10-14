@@ -384,24 +384,86 @@ local function Quiet(e)
     return nil
 end
 
--- The entry's paragraphs in the diary's voice, in order: the opening
--- (where and when it began), where the time went (the stops, the
--- flights), who was there (people, fights), the firsts found, the chains
--- finished (JRN-28), the professions brought to their cap (JRN-29), the
--- close calls and luck (JRN-25, JRN-26, EXT-3). The player's own note is not
--- among them: Text.Note gives it, to be set in their hand. `index` is
--- Journey.FightIndex's, built once per page.
+-- The entry's paragraphs in the diary's voice (Text.Lines), in order: the
+-- opening (where and when it began), where the time went (the stops, the
+-- flights), who was there (people, fights), then each kind's paragraph in
+-- its place, and a word for a quiet stretch where there is no more than
+-- the opening. The player's own note is not among them: Text.Note gives
+-- it, to be set in their hand. `index` is Journey.FightIndex's, built
+-- once per page.
+--
+-- What is the diary's own is written here (PARAGRAPHS, numbered by hand).
+-- Every other kind with a paragraph of its own registers it
+-- (Text.RegisterLines), so a feature's file (Features/<Name>/, loaded
+-- after UI/) adds to every entry's prose without this file knowing of it
+-- (.claude/registry-refactor.md, "A feature's folder"). Today's: the
+-- diary's opening 10, time 20, people 30; then, registered at the foot of
+-- this file, the firsts found 40, the close calls
+-- and luck 70; a kind registered from Features/<Name>/ says its number
+-- there. Leave gaps. At equal numbers the diary's paragraph goes first,
+-- then the kinds in the order they registered.
+--
+-- `spec` (Text.RegisterLines(key, spec)), `key` the kind's name, never one
+-- of PARAGRAPHS' keys; registering a key again replaces it:
+--   at      its place among the paragraphs
+--   lines   function(e, now, index) → its paragraph (its sentences joined
+--           by a space), or nil where it has nothing to say: e the entry
+--           (its gathered lists, by the recap moment's `entry`), now and
+--           index as Text.Lines has them
+local PARAGRAPHS = {
+    { at = 10, key = "opening", lines = function(e, now) return Opening(e, now) end },
+    { at = 20, key = "time", lines = function(e) return Join(Stops(e), Flights(e)) end },
+    { at = 30, key = "people", lines = function(e, now, index) return Join(People(e), Fights(e, index)) end },
+}
+local LINES, linesSeq = {}, 0
+-- The paragraphs sorted into their places, built when first asked after a
+-- kind registered or left.
+local paragraphs
+
+function Text.RegisterLines(key, spec)
+    assert(type(key) == "string" and type(spec) == "table" and type(spec.at) == "number"
+        and type(spec.lines) == "function", "Text.RegisterLines(key, { at, lines = function(e, now, index) ... })")
+    for _, p in ipairs(PARAGRAPHS) do assert(p.key ~= key, "Text.RegisterLines: a kind may not be called " .. key) end
+    linesSeq = linesSeq + 1
+    spec.key, spec.seq = key, linesSeq
+    LINES[key] = spec
+    paragraphs = nil
+    return spec
+end
+
+-- Takes a kind's paragraph out of every entry's prose again (a test's own
+-- kind).
+function Text.RemoveLines(key)
+    LINES[key] = nil
+    paragraphs = nil
+end
+
+-- Every paragraph in its order, the diary's and the kinds': { at, key,
+-- lines }. For the tests too.
+function Text.Paragraphs()
+    if paragraphs then return paragraphs end
+    paragraphs = {}
+    for i, p in ipairs(PARAGRAPHS) do
+        paragraphs[#paragraphs + 1] = { at = p.at, seq = i - #PARAGRAPHS, key = p.key, lines = p.lines }
+    end
+    for _, spec in pairs(LINES) do paragraphs[#paragraphs + 1] = spec end
+    table.sort(paragraphs, function(a, b)
+        if a.at ~= b.at then return a.at < b.at end
+        return a.seq < b.seq
+    end)
+    return paragraphs
+end
+
 function Text.Lines(e, now, index)
     local lines = {}
-    local function Add(text) if text then lines[#lines + 1] = text end end
-    Add(Opening(e, now))
-    Add(Join(Stops(e), Flights(e)))
-    Add(Join(People(e), Fights(e, index)))
-    Add(Finds(e))
-    Add(Text.FinaleLines(e))
-    Add(Text.SkillLines(e))
-    Add(Text.CombatLines(e))
-    if #lines <= 1 then Add(Quiet(e)) end
+    for _, p in ipairs(Text.Paragraphs()) do
+        local text = p.lines(e, now, index)
+        if text then lines[#lines + 1] = text end
+    end
+    if #lines <= 1 then
+        local quiet = Quiet(e)
+        if quiet then lines[#lines + 1] = quiet end
+    end
     return lines
 end
 
@@ -676,15 +738,15 @@ end
 --
 -- The lead is the first in the order of `at` that has something to say;
 -- the diary's leads are numbered by hand here and a kind's slot in
--- between by its number. Today's chain: people 10, find 20, finale 30,
--- skill 40, fights 45 (strangers), death 50, close 60, luck 70, fortune
--- 80, arrive 100, dungeon 110, stay 120, company 130, level 150, and "On
+-- between by its number. Today's chain: people 10, find 20,
+-- fights 45 (strangers), death 50, close 60, luck 70, fortune 80, arrive
+-- 100, dungeon 110, stay 120, company 130, level 150, and "On
 -- the road" after all; a kind registered from Features/<Name>/ says its
 -- number there. At equal numbers the diary's lead goes
 -- first, then the kinds in the order they registered. A kind is asked
 -- for its lead only when it gathered something.
 -- The tail is every kind's words in the order of its tail's `at` (today
--- find 10, finale 20, skill 30, death 40, close 50, luck 60, fortune 70,
+-- find 10, death 40, close 50, luck 60, fortune 70,
 -- and the features' own), less the lead's own kind, which has said itself. A kind
 -- ahead of the lead in the chain had nothing to say (or it would have
 -- led), so nothing more is left out: a lead that passes has no tail words
@@ -1569,143 +1631,6 @@ function Text.CombatLines(e)
     return table.concat(parts, " ")
 end
 
---------------------------------------------------------------------------
--- Quest chain finales (JRN-28)
---------------------------------------------------------------------------
-
--- A quest's title as the diary quotes it: “Crown of the Earth”.
-local function Quoted(title)
-    return "\226\128\156" .. (title or "a quest") .. "\226\128\157"
-end
-
--- A number of quests in words: "nine", "29".
-local function Many(n)
-    return WORDS[n] or tostring(n)
-end
-
--- How long a chain took, as the prose says it: "three hours", "five
--- days", "three weeks", "two months".
-local function Span(seconds)
-    local days = seconds / ns.DAY
-    if days < 1 then return Spoken(seconds) end
-    local function Of(n, one, many)
-        n = math.max(1, math.floor(n + 0.5))
-        return n == 1 and one or (Many(n) .. " " .. many)
-    end
-    if days < 13.5 then return Of(days, "a day", "days") end
-    if days < 60 then return Of(days / 7, "a week", "weeks") end
-    return Of(days / 30, "a month", "months")
-end
-
--- A finale in a few words, for a plate's caption: "the end of “Crown of
--- the Earth”".
-function Text.FinaleWords(f)
-    return "the end of " .. Quoted(f.title)
-end
-
--- A finale in a sentence: "The end of “Crown of the Earth”, a chain of
--- nine begun in Shadowglen five days before." Where it began is said only
--- where the diary saw it begin.
-function Text.Finale(f)
-    local text = "The end of " .. Quoted(f.title)
-    local n = f.n or 0
-    if n > 1 then text = text .. ", a chain of " .. Many(n) end
-    local start = f.started
-    if start and start.t and f.t and n > 1 then
-        local zone = MapName(start.mapID)
-        text = text .. " begun" .. (zone and (" in " .. zone) or "") .. " " .. Span(f.t - start.t) .. " before"
-    end
-    return text .. "."
-end
-
--- The level's finales in its prose, one sentence each.
-function Text.FinaleLines(e)
-    local parts = {}
-    for _, f in ipairs(e.finales or {}) do parts[#parts + 1] = Text.Finale(f) end
-    if #parts == 0 then return nil end
-    return table.concat(parts, " ")
-end
-
--- Its mark's tooltip: "The end of “Crown of the Earth”", then how long the
--- chain was, where and when it began, when it ended.
-function Text.FinaleTip(f, now)
-    local lines = {}
-    if (f.n or 0) > 1 then lines[#lines + 1] = "A chain of " .. f.n .. " quests" end
-    local start = f.started
-    if start and start.t then
-        local zone = MapName(start.mapID)
-        lines[#lines + 1] = "Begun " .. (zone and ("in " .. zone .. ", ") or "") .. ns.UI.At(start.t, now)
-    end
-    lines[#lines + 1] = When(f.t, f.level, now)
-    return Capital(Text.FinaleWords(f)), lines
-end
-
---------------------------------------------------------------------------
--- Profession caps (JRN-29)
---------------------------------------------------------------------------
-
--- Who a cap is as far as the training goes: each rank's trainer's title,
--- with its article. Any other number (a cap the client adds later) is
--- told bare, without the clause.
-local SKILL_RANK = { [75] = "an Apprentice", [150] = "a Journeyman", [225] = "an Expert", [300] = "an Artisan" }
-
--- The profession as the client called it, or "a profession" where it gave
--- no name.
-local function Trade(cap)
-    return cap.name and cap.name ~= "" and cap.name or "a profession"
-end
-
--- The cap reached, as a number to say after "at": "75"; "its cap" where
--- the record has none.
-local function Rank(cap)
-    return cap.rank and tostring(cap.rank) or "its cap"
-end
-
--- A cap in a few words, for a plate's caption: "First Aid at 75", "a
--- profession at 75".
-function Text.SkillWords(cap)
-    return Trade(cap) .. " at " .. Rank(cap)
-end
-
--- How far the training goes, after a comma: "as far as an Apprentice
--- goes"; nil for a rank with no trainer's title.
-local function AsFar(cap)
-    local who = SKILL_RANK[cap.rank]
-    return who and ("as far as " .. who .. " goes") or nil
-end
-
--- A cap in a sentence: "First Aid reached 75, as far as an Apprentice
--- goes." The same profession again straight after only counts on: "Then
--- 150, as far as a Journeyman goes."
-function Text.Skill(cap, before)
-    local again = before and (before.skillLine or before.name) == (cap.skillLine or cap.name)
-        and (cap.skillLine or cap.name) ~= nil
-    local text = again and ("Then " .. Rank(cap)) or (Capital(Trade(cap)) .. " reached " .. Rank(cap))
-    local far = AsFar(cap)
-    return text .. (far and (", " .. far) or "") .. "."
-end
-
--- The level's caps in its prose, one sentence each.
-function Text.SkillLines(e)
-    local parts, before = {}, nil
-    for _, cap in ipairs(e.skillCaps or {}) do
-        parts[#parts + 1] = Text.Skill(cap, before)
-        before = cap
-    end
-    if #parts == 0 then return nil end
-    return table.concat(parts, " ")
-end
-
--- Its mark's tooltip: "First Aid at 75", then how far the training goes
--- ("As far as an Apprentice goes"), then when.
-function Text.SkillTip(cap, now)
-    local lines = {}
-    local far = AsFar(cap)
-    if far then lines[#lines + 1] = Capital(far) end
-    lines[#lines + 1] = When(cap.t, cap.level, now)
-    return Capital(Text.SkillWords(cap)), lines
-end
-
 -- The name a margin note is headed by, so the note reads as who you were
 -- with: "with Koko", or "with someone" for a stranger whose name the
 -- buffer no longer has.
@@ -1816,6 +1741,21 @@ Text.Health, Text.Foes, Text.Kinds, Text.SortedKinds = Health, Foes, Kinds, Sort
 Text.Giver, Text.Cut, Text.Join, Text.List = Giver, Cut, Join, List
 
 --------------------------------------------------------------------------
+-- The entry's paragraphs registered by kind (Text.RegisterLines)
+--------------------------------------------------------------------------
+
+-- Each line below is one kind's paragraph in the level's prose, in its
+-- place after who was there (the diary's people, 30). They live here until
+-- their features move to Features/<Name>/ (.claude/registry-refactor.md),
+-- each to go with its kind's words.
+
+-- The firsts found (JRN-24), a sentence each (Finds, above).
+Text.RegisterLines("find", { at = 40, lines = function(e) return Finds(e) end })
+-- The close calls, then bad luck, then good luck with a quest's drops
+-- (JRN-25, JRN-26, EXT-3).
+Text.RegisterLines("combat", { at = 70, lines = function(e) return Text.CombatLines(e) end })
+
+--------------------------------------------------------------------------
 -- The caption words registered by kind (Text.RegisterCaption)
 --------------------------------------------------------------------------
 
@@ -1868,47 +1808,6 @@ do
             for _, m in ipairs(finds) do words[#words + 1] = (Found(m, c)) end
             return words
         end },
-    })
-end
-
--- A chain's end (JRN-28): after the finds, or leading where nothing above
--- it does ("The end of “Crown of the Earth”."); "two chains finished".
-do
-    local Capital, NUMBER = Text.Capital, Text.NUMBER
-    local function Ended(finales)
-        return #finales == 1 and Text.FinaleWords(finales[1])
-            or ((NUMBER[#finales] or tostring(#finales)) .. " chains finished")
-    end
-    Text.RegisterCaption("finale", {
-        moment = "finale",
-        take = function(m) return m.finale end,
-        lead = { at = 30, say = function(finales) return Capital(Ended(finales)) end },
-        tail = { at = 20, say = Ended },
-    })
-end
-
--- The professions brought to their cap (JRN-29), after the chains' ends,
--- or leading where neither finds nor finales do: "First Aid at 75"; one
--- profession twice, "First Aid at 75, then 150"; several, "two
--- professions at their cap".
-do
-    local Capital, NUMBER = Text.Capital, Text.NUMBER
-    local function Capped(caps)
-        local trades, seen = 0, {}
-        for _, cap in ipairs(caps) do
-            local key = cap.skillLine or cap.name or cap
-            if not seen[key] then seen[key], trades = true, trades + 1 end
-        end
-        if trades > 1 then return (NUMBER[trades] or tostring(trades)) .. " professions at their cap" end
-        local text = Text.SkillWords(caps[1])
-        for k = 2, #caps do text = text .. ", then " .. (caps[k].rank or "its cap") end
-        return text
-    end
-    Text.RegisterCaption("skill", {
-        moment = "skill",
-        take = function(m) return m.cap end,
-        lead = { at = 40, say = function(caps) return Capital(Capped(caps)) end },
-        tail = { at = 30, say = Capped },
     })
 end
 

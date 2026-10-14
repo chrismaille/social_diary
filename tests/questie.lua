@@ -325,8 +325,10 @@ Eq(lines[2], "For Break Sharptusk!", "the quest")
 --------------------------------------------------------------------------
 Section("chain finales (JRN-28)")
 
+local Finales = ns.QuestFinales
+
 -- Samophlange Manual (3924): 894, 900, 901, 902, 3921, 3922, 3923, 3924.
-Check(ns.Finales[3924], "setup: Samophlange Manual is not a chosen finale")
+Check(Finales.CHAINS[3924], "setup: Samophlange Manual is not a chosen finale")
 local done = {}
 local titles = { [3924] = "Samophlange Manual" }
 local log = _G.C_QuestLog
@@ -349,22 +351,22 @@ Eq(j.chainStarts[894].t, began, "taken again: the first time kept")
 for _, id in ipairs({ 894, 900, 901, 902, 3921, 3922, 3923 }) do done[id] = true end
 mock.now = began + 5 * ns.DAY
 mock.fire("QUEST_TURNED_IN", 3924, 1000, 0)
-local finale = J.Finales(j)[1]
+local finale = Finales.List(j)[1]
 Check(finale, "the finale was not kept")
 Eq(finale.questID, 3924, "the quest")
 Eq(finale.title, "Samophlange Manual", "the client's title")
 Eq(finale.n, 8, "the whole chain")
 Eq(finale.started.t, began, "where it began")
 mock.fire("QUEST_TURNED_IN", 3924, 1000, 0)
-Eq(#J.Finales(j), 1, "the same finale twice")
+Eq(#Finales.List(j), 1, "the same finale twice")
 mock.fire("QUEST_TURNED_IN", 783, 100, 0)
-Eq(#J.Finales(j), 1, "a quest that ends no chosen chain")
+Eq(#Finales.List(j), 1, "a quest that ends no chosen chain")
 
 local zone = ns.MapName(mock.mapID)
-Eq(Text.Finale(finale), "The end of " .. OPEN .. "Samophlange Manual" .. CLOSE .. ", a chain of eight begun in "
+Eq(Finales.Sentence(finale), "The end of " .. OPEN .. "Samophlange Manual" .. CLOSE .. ", a chain of eight begun in "
     .. zone .. " five days before.", "the prose")
-Eq(Text.FinaleWords(finale), "the end of " .. OPEN .. "Samophlange Manual" .. CLOSE, "the caption's words")
-tip, lines = Text.FinaleTip(finale, mock.now)
+Eq(Finales.Words(finale), "the end of " .. OPEN .. "Samophlange Manual" .. CLOSE, "the caption's words")
+tip, lines = Finales.Tip(finale, mock.now)
 Eq(tip, "The end of " .. OPEN .. "Samophlange Manual" .. CLOSE, "the tooltip's heading")
 Eq(lines[1], "A chain of 8 quests", "the tooltip's length")
 
@@ -373,34 +375,34 @@ Eq(lines[1], "A chain of 8 quests", "the tooltip's length")
 done = { [7] = true }
 for _, id in ipairs({ 6, 11, 12, 13 }) do done[id] = true end
 log.IsQuestFlaggedCompleted = function(id) return done[id] == true end
-local chain = ns.Finales[46]
+local chain = Finales.CHAINS[46]
 for i = 1, #chain.routes[1] - 2 do done[chain.routes[1][i]] = true end
 titles[46] = nil
 mock.fire("QUEST_TURNED_IN", 46, 500, 0)
-finale = J.Finales(j)[2]
+finale = Finales.List(j)[2]
 Eq(finale.title, "Bounty on Murlocs", "the data's title, where the client has none")
 Eq(finale.n, #chain.routes[1] - 1, "the quests done")
 Eq(finale.started, nil, "no start")
-Eq(Text.Finale(finale), "The end of " .. OPEN .. "Bounty on Murlocs" .. CLOSE .. ", a chain of six.",
+Eq(Finales.Sentence(finale), "The end of " .. OPEN .. "Bounty on Murlocs" .. CLOSE .. ", a chain of six.",
     "the prose without a start")
 
 -- Two routes to one end: the one most done counts.
-local two = ns.Finales[93949]
+local two = Finales.CHAINS[93949]
 Check(two and #two.routes == 2, "setup: no finale with two routes")
 done = {}
 for i = 1, #two.routes[2] - 1 do done[two.routes[2][i]] = true end
 log.IsQuestFlaggedCompleted = function(id) return done[id] == true end
 mock.fire("QUEST_TURNED_IN", 93949, 500, 0)
-Eq(J.Finales(j)[3].n, #two.routes[2], "the other faction's route, done in full")
+Eq(Finales.List(j)[3].n, #two.routes[2], "the other faction's route, done in full")
 
 -- A client that cannot say what is done: the chain is taken whole.
 log.IsQuestFlaggedCompleted = nil
-local quiet = ns.Finales[166]
+local quiet = Finales.CHAINS[166]
 mock.fire("QUEST_TURNED_IN", 166, 500, 0)
-Eq(J.Finales(j)[4].n, #quiet.routes[1], "the whole chain, unasked")
+Eq(Finales.List(j)[4].n, #quiet.routes[1], "the whole chain, unasked")
 
 local function Spans(seconds)
-    return Text.Finale({ title = "X", n = 7, t = 1000 + seconds, started = { t = 1000 } })
+    return Finales.Sentence({ title = "X", n = 7, t = 1000 + seconds, started = { t = 1000 } })
 end
 Check(Spans(3 * 3600):find("three hours before", 1, true), "three hours")
 Check(Spans(ns.DAY):find("a day before", 1, true), "a day")

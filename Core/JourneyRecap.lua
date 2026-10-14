@@ -44,9 +44,9 @@ local HINDSIGHT = { slack = 120, encounter = 30 * 60 }
 -- they span no more than `inset` of it, so no mark sits on the plate's
 -- edge (`window` stands in when a map's art gives none). Rank decides
 -- which places win (Decision 10): people and a first given by one, a
--- first found (JRN-24), a chain's finale (JRN-28) and a profession's cap
--- (JRN-29), deaths, close calls and bad or good luck with a quest's drops
--- (JRN-25, JRN-26, EXT-3), a zone new to the road, a dungeon's door, the
+-- first found (JRN-24), deaths, close calls
+-- and bad or good luck with a quest's drops (JRN-25, JRN-26, EXT-3), the
+-- features' own kinds where they rank themselves, a zone new to the road, a dungeon's door, the
 -- longest stays (one a zone), the longest road when there was nothing
 -- else, and last the level-up spot: a level is reached anyway, so a place
 -- is worth a plate for what happened there, not for the ding (12 Oct).
@@ -54,8 +54,8 @@ local HINDSIGHT = { slack = 120, encounter = 30 * 60 }
 -- slot in between two with a fraction, moving nothing else.
 local PLATES = { max = 3, inset = 0.8, window = 0.3 }
 -- The features' kinds are ranked as they register (RegisterMoment below):
--- find, finale and skill 2; close, luck and fortune 3; those registered
--- from Features/<Name>/ say theirs there.
+-- find 2; close, luck and fortune 3; those registered from
+-- Features/<Name>/ say theirs there.
 local RANK = { session = 1, fight = 1, note = 1, first = 1, gift = 1, death = 3, arrive = 4,
     dungeon = 5, stay = 6, road = 7, level = 8 }
 Recap.RANK = RANK
@@ -63,9 +63,9 @@ Recap.RANK = RANK
 -- holds is a place, nothing for the margin and a line of words at most, and
 -- the right page gives it a small print instead of a full slot
 -- (UI/JournalJourney.lua's LAYOUT). A first visit, a dungeon's door, a
--- stay, the road, a level's pin; and a chain's finale, a profession's cap
--- and good luck with a quest's drops, which are words only, with no card
--- in the margin (the user's choice, 13 Oct). Anything else is full: a
+-- stay, the road, a level's pin; and good luck with
+-- a quest's drops, which are words only, with no card in the margin (the
+-- user's choice, 13 Oct). Anything else is full: a
 -- kind that puts a note in the margin (people, a first found, a death with
 -- its killer, a close call, bad luck) or one no one has weighed yet, so a
 -- new kind of moment is given a full plate until someone says otherwise.
@@ -88,7 +88,7 @@ Recap.LIGHT = LIGHT
 --           RegisterList): those within the entry's time are gathered
 --   gather  function(j, a, b, e, ctx), instead of `list`: fills e[entry]
 --           (and any other entry it shares a list with) itself
---   field   the moment's field that holds its record (m.call, m.cap)
+--   field   the moment's field that holds its record (m.call, m.hunt)
 --   rank    its RANK (see above); `light` true makes it a light kind
 --   rankAs  function(m): the RANK key a moment of it ranks as, where it is
 --           not its kind (a find that was a gift ranks with the people)
@@ -980,7 +980,3 @@ Recap.RegisterMoment("luck", { order = 30, entry = "hunts", field = "hunt", rank
     end })
 Recap.RegisterMoment("fortune", { order = 40, entry = "fortunes", field = "hunt", rank = 3, light = true,
     gather = function() end })
--- JRN-28: a chain's finale, where it was turned in.
-Recap.RegisterMoment("finale", { order = 50, list = "finales", field = "finale", rank = 2, light = true })
--- JRN-29: a profession at its cap, where the last skill-up came.
-Recap.RegisterMoment("skill", { order = 60, list = "skillCaps", field = "cap", rank = 2, light = true })

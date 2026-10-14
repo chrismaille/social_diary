@@ -90,11 +90,6 @@ end
 
 local function Always() return true end
 
-Rows.Register("whisper_in", { chat = true, dealt = "talk", matters = true, activity = "chat" })
-Rows.Register("whisper_out", { chat = true, dealt = "talk", matters = true, activity = "chat" })
-Rows.Register("say", { chat = true, proximity = true, opens = true, dealt = "talk", matters = true, activity = "chat" })
-Rows.Register("yell", { chat = true, proximity = true, opens = true, dealt = "talk", activity = "chat" })
-Rows.Register("party", { chat = true, dealt = "talk", activity = "chat" })
 Rows.Register("group_join", { structural = true, meeting = true, dealt = "together", matters = true,
     activity = "group" })
 -- Implied by the session's end, so never a line.

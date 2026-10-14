@@ -14,7 +14,6 @@
 Core/Addon.lua
 Core/DB.lua
 Core/Bridges/Questie.lua
-Data/Finales.lua
 Core/Identity.lua
 Core/Location.lua
 Core/Characters.lua
@@ -79,16 +78,29 @@ UI/SocialTab.lua
 
 # Features: each detection in a folder of its own (Features/<Name>/), which
 # registers itself into the registries of Core/ and UI/ above, so it loads
-# after them: Kind, Text, Mark, Slip or Card, then Capture. Its Dev.lua
-# goes in the block at the foot (.claude/registry-refactor.md).
+# after them: Kind, Data (its static tables), Text, Mark, Slip or Card,
+# then Capture. Its Dev.lua
+# goes in the block at the foot (.claude/registry-refactor.md). Chat is
+# first: its Dev.lua writes Tester's first session's whispers before the
+# campfire's row.
+Features/Chat/Kind.lua
+Features/Chat/Capture.lua
 Features/Campfire/Kind.lua
 Features/Campfire/Text.lua
 Features/Campfire/Mark.lua
 Features/Campfire/Slip.lua
 Features/Campfire/Capture.lua
+Features/ProfessionCaps/Kind.lua
+Features/ProfessionCaps/Text.lua
+Features/ProfessionCaps/Mark.lua
+Features/ProfessionCaps/Capture.lua
+Features/QuestFinales/Kind.lua
+Features/QuestFinales/Data.lua
+Features/QuestFinales/Text.lua
+Features/QuestFinales/Mark.lua
+Features/QuestFinales/Capture.lua
 
 Capture/Trade.lua
-Capture/Whisper.lua
 Capture/Menus.lua
 Capture/Group.lua
 Capture/Together.lua
@@ -111,5 +123,8 @@ Dev/Diagnostics.lua
 Dev/SightingsDebug.lua
 Dev/JourneyDebug.lua
 Dev/TestData.lua
+Features/Chat/Dev.lua
 Features/Campfire/Dev.lua
+Features/ProfessionCaps/Dev.lua
+Features/QuestFinales/Dev.lua
 #@end-do-not-package@

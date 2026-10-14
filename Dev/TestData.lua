@@ -99,13 +99,6 @@ local function Row(kind, time, zone, data, session)
     return ns.Interactions.Add(GUID, kind, data)
 end
 
-local function Chat(start, zone, session, lines)
-    for i, line in ipairs(lines) do
-        Row(line[1] == ">" and "whisper_out" or "whisper_in", start + i * 20, zone,
-            { excerpt = line[2] }, session)
-    end
-end
-
 -- A level-up as UNIT_LEVEL would have stored it (Characters.Observe).
 local function LevelUp(time, zone, level, session)
     Row("level_up", time, zone, { context = { from = level - 1, level = level } }, session)
@@ -139,14 +132,26 @@ end
 --             at that level there, { from, to, level, subZone, mapID, x,
 --             y }, to time a record by (an error where there is none, so
 --             a changed route is noticed rather than silently missed)
+--   "beat"    TestData.Write, at Tester's other moments, for rows that
+--             fall between the script's own rather than after a
+--             session's: c.at says which, c.t when it is
+--               "met"     six days ago, Tester still a stranger, before
+--                         the trade (c.t: the evening's first moment)
+--               "traded"  after that trade, before the add (c.t: the
+--                         trade's time)
+--               "began"   session c.n (1 to 4) just made, before its
+--                         rows (c.session, c.t its start)
+--               "now"     the end, after the notes and the pulses seen
+--                         around (c.t: c.now)
+--             with c.now, c.GUID and c.Row as at "tester"
 --
 -- What is written on the route or on Tester goes again with /sd testdata
 -- remove, so a feature needs no remove of its own.
 
-local points = { tester = {}, route = {} }
+local points = { tester = {}, route = {}, beat = {} }
 
 function TestData.Register(point, fn)
-    assert(points[point] and type(fn) == "function", "TestData.Register(\"tester\" or \"route\", fn)")
+    assert(points[point] and type(fn) == "function", "TestData.Register(\"tester\", \"beat\" or \"route\", fn)")
     local list = points[point]
     list[#list + 1] = fn
 end
@@ -254,20 +259,6 @@ function TestData.WriteJourney(now)
         for key, value in pairs(extra or {}) do hunt[key] = value end
         j.hunts[#j.hunts + 1] = hunt
     end
-    -- Chain finales (JRN-28), as capture keeps them (Journey.Finale): the
-    -- quest turned in, how many of the chain were done, and where it began
-    -- when the diary saw its first quest taken.
-    j.finales, j.chainStarts = {}, {}
-    local function Finale(at, map, x, y, questID, title, n, started)
-        j.finales[#j.finales + 1] = { t = at, mapID = map, x = x, y = y, level = level, questID = questID,
-            title = title, n = n, started = started }
-    end
-    -- Profession caps (JRN-29), as capture keeps them (Journey.SkillCap).
-    j.skillCaps = {}
-    local function SkillCap(at, map, x, y, skillLine, name, rank)
-        j.skillCaps[#j.skillCaps + 1] = { t = at, mapID = map, x = x, y = y, level = level, skillLine = skillLine,
-            name = name, rank = rank }
-    end
 
     -- The deaths with what killed them (Journey.Died, Journey.Killer), at
     -- the stops that count them; and who was there (Capture/Witnesses.lua's
@@ -299,9 +290,6 @@ function TestData.WriteJourney(now)
     Find("bag", t - 400, DUROTAR, 0.47, 0.54, POUCH, "loot")
     Hunt(t - 300, DUROTAR, 0.46, 0.55, { 817, "Practical Prey", "Durotar Tiger Fur" }, 4, 7, 3121, "Durotar Tiger",
         { itemID = 4892 })
-    -- A finale whose chain began before the diary: "a chain of seven", no
-    -- more.
-    Finale(t - 200, DUROTAR, 0.45, 0.57, 924, "The Demon Seed", 7)
     Road(480, DUROTAR, { 0.45, 0.56, 0.40, 0.60, 0.36, 0.62, 0.34, 0.66 })
     Stop(420, DUROTAR, 0.34, 0.66, 25, { questsOut = 3, questsIn = 2 }, "Sen'jin Village")
     Road(540, DUROTAR, { 0.34, 0.66, 0.25, 0.60, 0.12, 0.55, 0.03, 0.52 })
@@ -329,15 +317,10 @@ function TestData.WriteJourney(now)
     Road(420, BARRENS, { 0.45, 0.45, 0.50, 0.48, 0.56, 0.50, 0.60, 0.52 })
     t = t + 30
     Stop(900, ORGRIMMAR, 0.54, 0.68, 150, { resting = 900 }, "Valley of Strength")
-    -- First Aid at its first cap, bandaging in the city.
-    SkillCap(t - 300, ORGRIMMAR, 0.55, 0.67, 129, "First Aid", 75)
     Flight(240, ORGRIMMAR, 0.45, 0.64, BARRENS, 0.51, 0.30)
     Road(500, BARRENS, { 0.51, 0.30, 0.55, 0.25, 0.58, 0.20, 0.60, 0.16 })
     Stop(1500, BARRENS, 0.60, 0.15, 50, { combat = 800, questsOut = 2 }, "The Sludge Fen")
     Find("uncommon", t - 200, BARRENS, 0.61, 0.14, BRACERS, "quest")
-    -- Where the Samophlange chain began, for its finale at level 13.
-    local samophlange = { t = t - 900, mapID = BARRENS, x = 0.60, y = 0.16, level = level }
-    j.chainStarts[894] = samophlange
     Ding(BARRENS, 0.60, 0.15, "The Sludge Fen")
 
     -- Level 12: west across The Barrens into Stonetalon.
@@ -358,8 +341,6 @@ function TestData.WriteJourney(now)
     -- tag): the remains off the first, where nine were expected.
     Hunt(t - 250, STONETALON, 0.72, 0.62, { 6283, "Bloodfury Bloodline", "Bloodfury Ripper's Remains" }, 1, 1,
         4024, "Bloodfury Ripper", { expected = 9 })
-    -- Mining at its second cap, off the crag's veins.
-    SkillCap(t - 700, STONETALON, 0.73, 0.59, 186, "Mining", 150)
     Ding(STONETALON, 0.72, 0.60, "Windshear Crag")
 
     -- Level 13: back to The Barrens and into the Wailing Caverns.
@@ -376,8 +357,6 @@ function TestData.WriteJourney(now)
     Witness(WITNESSES.corvin, "watched_death", t - 450, "The Barrens", BARRENS,
         { watched = 3.2, name = "Kolkar Pack Runner", npcID = 3274, subZone = "The Crossroads" })
     Hunt(t - 2000, BARRENS, 0.50, 0.40, { 867, "Harpy Raiders", "Harpy Talon" }, 8, 13, 3276, "Witchwing Harpy")
-    -- A chain of eight brought to its end, begun at the Sludge Fen.
-    Finale(t - 150, BARRENS, 0.52, 0.31, 3924, "Samophlange Manual", 8, samophlange)
     -- Then good luck out west, an hour the route did not keep: a light
     -- plate after the full one. Its print would be tucked into the full
     -- plate's row (F+L), but the lucky card's S will not go on the smaller
@@ -524,14 +503,14 @@ function TestData.Write(now)
 
     -- Six days ago: chat and a trade with a stranger, then the add, then a
     -- first questing session (TLN-8: the add sits above the exchange).
+    local function Beat(at, t, n, session)
+        Point("beat", { at = at, t = t, n = n, session = session, now = now, GUID = GUID, Row = Row })
+    end
+
     local t1 = now - 6 * DAY
-    Chat(t1, "The Barrens", nil, {
-        { "<", "hey, you doing the Kolkar quests too?" },
-        { ">", "yeah, want to group?" },
-        { "<", "sure, but got any spare linen first?" },
-    })
+    Beat("met", t1)
     Row("trade", t1 + 90, "The Barrens", { context = { given = { { link = LINEN, count = 10 } } } })
-    Row("whisper_in", t1 + 110, "The Barrens", { excerpt = "ty! inviting" })
+    Beat("traded", t1 + 90)
 
     local entry = ns.Diary.Add(GUID, { source = "test" })
     if not entry then
@@ -550,11 +529,8 @@ function TestData.Write(now)
             { guid = ns.ownGUID, time = t1 + 300 + 20 * MIN, zone = "The Barrens", subZone = "Lushwater Oasis",
                 killer = { source = "recap", name = "Kolkar Pack Runner", npcID = 3274, attackers = 2 } },
         } })
+    Beat("began", s1.startedAt, 1, s1)
     LevelUp(t1 + 300 + 32 * MIN, "The Barrens", 18, s1)
-    Chat(t1 + 600, "The Barrens", s1, {
-        { "<", "centaur over there" }, { ">", "got it" }, { "<", "nice pull" },
-        { ">", "need water?" }, { "<", "all good" }, { ">", "next camp" },
-    })
     Point("tester", { n = 1, session = s1, now = now, GUID = GUID, Row = Row })
 
     -- Yesterday: three hours of questing with a dungeon in the middle, a rare
@@ -572,10 +548,7 @@ function TestData.Write(now)
             { guid = GUID, time = t2 + 2 * HOUR + 50 * MIN, zone = "Stonetalon Mountains",
                 killer = { source = "target", name = "Venture Co. Logger", npcID = 3989 } },
         } })
-    Chat(t2 + 5 * MIN, "The Barrens", s2, {
-        { ">", "WC after these?" }, { "<", "yes! finding a tank" }, { "<", "Brom is in" },
-        { ">", "omw" }, { "<", "summoning stone is south" },
-    })
+    Beat("began", s2.startedAt, 2, s2)
     Visit({
         instanceID = 43, name = "Wailing Caverns", instanceType = "party", difficulty = "Normal",
         startedAt = t2 + 60 * MIN, endedAt = t2 + 112 * MIN,
@@ -588,9 +561,6 @@ function TestData.Write(now)
     LevelUp(t2 + 140 * MIN, "Stonetalon Mountains", 21, s2)
     Row("trade", t2 + 150 * MIN, "Stonetalon Mountains",
         { context = { given = { { link = STAFF, count = 1 } } } }, s2)
-    Chat(t2 + 160 * MIN, "Stonetalon Mountains", s2, {
-        { "<", "omg thank you" }, { ">", "it's an upgrade for you" }, { "<", "gn!" },
-    })
     Point("tester", { n = 2, session = s2, now = now, GUID = GUID, Row = Row })
 
     -- Today: a session that was only a dungeon run (it gives way to the
@@ -599,6 +569,7 @@ function TestData.Write(now)
     local t3 = now - 4 * HOUR
     local s3 = Session(t3, 40 * MIN, { "Razorfen Kraul" },
         { levelStart = 21, levelEnd = 22 }, { others = 3 })
+    Beat("began", s3.startedAt, 3, s3)
     Visit({
         instanceID = 47, name = "Razorfen Kraul", instanceType = "party", difficulty = "Normal",
         startedAt = t3 + 3 * MIN, endedAt = t3 + 38 * MIN,
@@ -607,15 +578,13 @@ function TestData.Write(now)
         bossTotal = 6, deaths = 2, sessionIds = { s3.id },
     })
     LevelUp(t3 + 25 * MIN, "Razorfen Kraul", 22, s3)
-    Chat(t3 + 10 * MIN, "Razorfen Kraul", s3, {
-        { "<", "careful, patrol" }, { ">", "oom" }, { "<", "drinking" },
-    })
     Point("tester", { n = 3, session = s3, now = now, GUID = GUID, Row = Row })
 
     local t4 = now - 90 * MIN
     local s4 = Session(t4, 15 * MIN, { "The Barrens" },
         { quests = Quests(2, 950), levelStart = 22, levelEnd = 22,
             rares = { { name = "Rocklance", npcID = 3270, kind = "rare", time = t4 + 5 * MIN } } })
+    Beat("began", s4.startedAt, 4, s4)
     -- With a blue in it: the made-up route's first blue (Your Diary, JRN-24).
     Row("trade", now - GIFT_AGO, "The Barrens",
         { context = { received = { { link = JERKY, count = 5 }, { link = CLOAK, count = 1 } } } }, s4)
@@ -630,12 +599,12 @@ function TestData.Write(now)
     Note(t2 + 100 * MIN, "Wailing Caverns", "Skum took three tries. Tester never gave up.")
     Note(now - 60 * MIN, "Orgrimmar", "Promised to help with Sludge Fen tomorrow.")
 
-    -- Seen around since, six pulses five minutes apart, and a whisper just
+    -- Seen around since, six pulses five minutes apart, and a word just
     -- now. Every row above is written oldest first, the order capture keeps.
     for i = 0, 5 do
         ns.Sessions.Around(GUID, now - 40 * MIN + i * 5 * MIN, "Durotar")
     end
-    Row("whisper_in", now - 5 * MIN, "Durotar", { excerpt = "same time tomorrow?" })
+    Beat("now", now)
 
     -- Your Diary's made-up route, under all of the above.
     TestData.WriteJourney(now)

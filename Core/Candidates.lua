@@ -76,7 +76,7 @@ end
 -- this" picker is built out of this: "last whisperer", "last trade partner",
 -- "last resurrector". Deliberately volatile -- it is a shortcut for the
 -- current play session, and the buffer already holds the durable answer.
--- Capture (Trade, Whisper) sets it.
+-- Capture sets it (ns.Recent.Set), under one of RECENT_KINDS below.
 local recentByKind = {}
 ns.Recent = {}
 

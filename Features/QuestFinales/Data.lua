@@ -2,7 +2,9 @@
 -- chains the user chose, every one of seven quests or more in QuestieDB
 -- 1.0.5 (Forever), approved 12 Oct 2026 from .claude/questie/
 -- chain-candidates.md. Generated from chain-candidates.json; the diary
--- needs no other addon to read it.
+-- needs no other addon to read it. The feature's static data, read only
+-- at call time (Kind.lua's Add and Begun), so it loads after Kind.lua,
+-- which makes the namespace it hangs on.
 --
 -- [finale questID] = { title, routes = { { first, ..., finale }, ... } }:
 -- the title in English, for when the client cannot name the quest; a
@@ -10,7 +12,7 @@
 
 local addonName, ns = ...
 
-ns.Finales = {
+ns.QuestFinales.CHAINS = {
     [46] = { title = "Bounty on Murlocs", routes = { { 40, 35, 37, 45, 71, 39, 46 } } },
     [55] = { title = "Morbent Fel", routes = { { 95, 230, 262, 265, 266, 453, 268, 323, 269, 270, 321, 324, 526, 322, 325, 55 } } },
     [59] = { title = "Cloth and Leather Armor", routes = { { 40, 35, 37, 45, 71, 39, 59 } } },

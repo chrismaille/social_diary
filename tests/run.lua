@@ -14,7 +14,7 @@ local FILES = {
     "identity",
     "interactions",
     "trade",
-    "whisper",
+    "chat",
     "diary",
     "notes",
     "menus",

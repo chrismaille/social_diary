@@ -22,9 +22,14 @@
 --
 -- Quests turned in and level-ups already have handlers (Capture/
 -- Together.lua); those call in here rather than adding a second one.
+-- Quests taken and turned in are passed on to the features, after the
+-- route has counted them (SD_QUEST_ACCEPTED, SD_QUEST_TURNED_IN).
 --
 -- Apart from the timer, the firsts (JRN-24) are read off the bags as they
--- change, and the professions' caps (JRN-29) off their skill as it does.
+-- change. A few seconds after entering the world, when the bags are first
+-- read, this file fires SD_WORLD_SETTLED (Core/Events.lua), for a
+-- feature's capture (Features/<Name>/Capture.lua) that holds what the
+-- character has against its last reading to take its first one then.
 
 local addonName, ns = ...
 
@@ -187,27 +192,14 @@ local function Live()
     return j
 end
 
--- Whether the client has quest `questID` down as done; nil where it
--- cannot say.
-local function Completed()
-    local Q = C_QuestLog
-    local Is = Q and Q.IsQuestFlaggedCompleted or IsQuestFlaggedCompleted
-    if not Is then return nil end
-    return function(questID) return ns.Plain(Is(questID)) == true end
-end
-
 -- Capture/Together.lua's QUEST_TURNED_IN handler calls this: counted on
--- the road, and a chain's finale where it ends one (JRN-28).
+-- the road, then passed on to the features (SD_QUEST_TURNED_IN, Core/
+-- Events.lua) with the quest's id, whether or not the route is kept: a
+-- feature asks that itself (ns.Journey.Kept).
 function Capture.QuestTurnedIn(questID)
-    local j = Live()
-    Journey.Act(j, "questsOut", 1)
+    Journey.Act(Live(), "questsOut", 1)
     questID = ns.Plain(questID)
-    if not j or type(questID) ~= "number" or not (ns.Finales and ns.Finales[questID]) then return end
-    local Q = C_QuestLog
-    local title = Q and Q.GetTitleForQuestID and ns.Plain(Q.GetTitleForQuestID(questID))
-    local finale = Journey.Finale(j, questID, { t = ns.Now(), level = Level(),
-        title = type(title) == "string" and title ~= "" and title or nil, Done = Completed() })
-    if finale then ns.Debug("chain finale: %s, %d quests", tostring(finale.title), finale.n) end
+    if type(questID) == "number" then ns.Fire("SD_QUEST_TURNED_IN", questID) end
 end
 
 --------------------------------------------------------------------------
@@ -333,73 +325,6 @@ for kind, events in pairs({ mail = { "MAIL_SHOW", "MAIL_CLOSED" }, vendor = { "M
     ns.On(events[2], function() Window(kind) end)
 end
 
---------------------------------------------------------------------------
--- Profession caps (JRN-29): a profession's skill as far as it can go
---------------------------------------------------------------------------
---
--- Forever has the modern profession API, not the classic skill lines
--- (probe 12 Oct: GetNumSkillLines is nil; GetProfessionInfo gives "First
--- Aid", 1, 75, 129). Each change reads every profession and holds it
--- against the last reading, by the profession's id; the first reading
--- after the diary was not watching only sets the mark, as the bags' does.
--- CHAT_MSG_SKILL's words can be secret, so it is a cue to read and never
--- read itself; a burst of skill-ups (a mining run) is one reading.
-
-local SKILLS = {
-    settle = 1,    -- seconds a burst of skill changes is gathered into one reading
-}
-
--- The last reading, { [skillLine] = { rank, max, name } }; nil while there
--- is none since the diary last watched.
-local skills
-local skillsDue = false
-
--- Every profession the character has, by its id; nil where the client
--- has no such API.
-local function Professions()
-    if not (GetProfessions and GetProfessionInfo) then return nil end
-    local list = {}
-    -- pairs: an empty slot (no second profession, no fishing) is a nil.
-    for _, index in pairs({ GetProfessions() }) do
-        local name, _, rank, max, _, _, line = GetProfessionInfo(index)
-        name, rank, max, line = ns.Plain(name), ns.Plain(rank), ns.Plain(max), ns.Plain(line)
-        if type(line) == "number" and type(rank) == "number" and type(max) == "number" then
-            list[line] = { rank = rank, max = max, name = type(name) == "string" and name ~= "" and name or nil }
-        end
-    end
-    return list
-end
-
-local function ReadSkills()
-    skillsDue = false
-    local j = Live()
-    local now = j and Professions()
-    if not now then
-        skills = nil
-        return
-    end
-    if skills then
-        for line, s in pairs(now) do
-            if Journey.IsSkillCap(skills[line], s) then
-                local cap = Journey.SkillCap(j, { t = ns.Now(), level = Level(), skillLine = line, name = s.name,
-                    rank = s.rank })
-                if cap then ns.Debug("profession cap: %s %d", tostring(cap.name), cap.rank) end
-            end
-        end
-    end
-    skills = now
-end
-Capture.ReadSkills = ReadSkills
-
-local function SkillsChanged()
-    if skillsDue then return end
-    skillsDue = true
-    ns.After(SKILLS.settle, ReadSkills)
-end
-
-ns.On("SKILL_LINES_CHANGED", SkillsChanged)
-ns.On("CHAT_MSG_SKILL", SkillsChanged)
-
 -- Capture/Together.lua's PLAYER_LEVEL_UP handler calls this. Where the
 -- level was reached: on the zone map outdoors, nowhere in an instance (the
 -- recap finds the dungeon by time).
@@ -411,14 +336,14 @@ function Capture.LevelUp(level)
     Journey.Level(j, level, ns.Now(), { mapID = mapID, x = x, y = y, subZone = mapID and SubZone() or nil })
 end
 
--- The quest's id is the last argument (older clients give the log index
--- first). A chain's first quest is kept, for where it began (JRN-28).
+-- Counted on the road, then passed on to the features (SD_QUEST_ACCEPTED,
+-- Core/Events.lua) with the quest's id, the last argument (older clients
+-- give the log index first), whether or not the route is kept.
 ns.On("QUEST_ACCEPTED", function(_, ...)
-    local j = Live()
-    Journey.Act(j, "questsIn", 1)
+    Journey.Act(Live(), "questsIn", 1)
     local n = select("#", ...)
     local questID = n > 0 and ns.Plain((select(n, ...))) or nil
-    if j and type(questID) == "number" then Journey.ChainBegun(j, questID, { t = ns.Now(), level = Level() }) end
+    if type(questID) == "number" then ns.Fire("SD_QUEST_ACCEPTED", questID) end
 end)
 
 ns.On("PLAYER_DEAD", function()
@@ -448,8 +373,10 @@ ns.On("PLAYER_LOGIN", function()
     Journey.Prune()
 end)
 
+-- The bags' first reading, then the features' (SD_WORLD_SETTLED), in
+-- that order, FIRSTS.settle seconds after entering the world.
 ns.On("PLAYER_ENTERING_WORLD", function()
     Start()
     ns.After(FIRSTS.settle, ReadFirsts)
-    ns.After(FIRSTS.settle, ReadSkills)
+    ns.After(FIRSTS.settle, function() ns.Fire("SD_WORLD_SETTLED") end)
 end)

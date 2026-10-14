@@ -1,4 +1,5 @@
--- Whisper, /say and party capture, and what chat lockdown leaves of a line.
+-- Chat capture (Features/Chat/): whispers, /say and party lines, and what
+-- chat lockdown leaves of a line.
 
 local T = ...
 local mock, F = T.mock, T.F

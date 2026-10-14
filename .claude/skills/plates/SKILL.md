@@ -138,7 +138,9 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   `campfire` true when the slip is left off).
 - **Caption registry** (`Text.RegisterCaption(key, spec)`, spec comment above
   `PlateCaption`; today's kinds registered at the foot of JourneyText.lua,
-  each a self-contained block, campfire's in `Features/Campfire/Text.lua`): the words are a **lead** (first in `at`
+  each a self-contained block, campfire's in `Features/Campfire/Text.lua`,
+  skill's in `Features/ProfessionCaps/Text.lua`, finale's in
+  `Features/QuestFinales/Text.lua`): the words are a **lead** (first in `at`
   order with something to say), a **tail** (", a, b, and c": every kind's
   words in tail `at` order, less the lead's own kind) and **codas**
   (sentences after the full stop). `spec`: `moment` (the plate.moments kind
@@ -157,6 +159,15 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   `Cut`, `Join`, `List`, `Glue`, plus the older `Short`, `Plural`, ...; list
   above the exports), the timeline's row helpers on `ns.UI.TimelineText`
   (`Items`, `Quote`, `Place`, `Foe`).
+- **Entry prose registry** (`Text.RegisterLines(key, { at, lines =
+  function(e, now, index) → paragraph or nil })`, spec comment above
+  `Text.Lines`; `Text.Paragraphs()` / `Text.RemoveLines(key)`): the left
+  page's paragraphs for a level. Core (hand-written `PARAGRAPHS`): opening
+  10, time (stops + flights) 20, people (+ fights) 30; kinds: find 40,
+  combat (close calls, bad and good luck) 70 at the foot of
+  JourneyText.lua, finale 50 in `Features/QuestFinales/Text.lua`, skill 60
+  in `Features/ProfessionCaps/Text.lua`; the
+  quiet line after all, where there is only the opening.
 - **Margin registry** (`ns.UI.JourneyMargin.Register(kind, spec)`, spec
   comment above `MarginOrder` in JournalJourney.lua; today's kinds at the
   foot of that file, each self-contained, campfire's in
@@ -215,7 +226,9 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
 - Copy lives in `UI/JourneyText.lua` (`PlateHeading`, `PlateCaption`,
   `MarginWhat`, `MarginQuote`, `KillerName`, `FoeTag`, `Hunt*`, `Find*`,
   `ZoneFoot`, tooltips), and a moved feature's in its own
-  `Features/<Name>/Text.lua` (campfire: `ns.Campfire.WORDS`, `At`, `Tip`).
+  `Features/<Name>/Text.lua` (campfire: `ns.Campfire.WORDS`, `At`, `Tip`;
+  profession caps: `ns.ProfessionCaps.Words`, `Sentence`, `Lines`, `Tip`;
+  quest chain finales: `ns.QuestFinales.Words`, `Sentence`, `Lines`, `Tip`).
   Changes there go through the copywriter skill.
 
 ## 4. The plate itself (`UI/JourneyPlate.lua`, header comment = spec)
@@ -238,12 +251,14 @@ y, arg)` → hover with `tip` → kept in `plate[keep]` → `plate.counts[count]
 → `plate[chosen] = choose(marks)`), with the deaths on the road in a fixed
 slot (`ROAD_DEATHS` = 60). Today's, registered at the foot of
 JourneyPlate.lua (each block self-contained, look table included, ready to
-move to `Features/<Name>/`): `finale` 10 (`FINALE`, tailpiece), `skill` 20
-(`SKILL` stairs, `arg` = best rank), `close` 30 (`CLOSE`, no halo: lays its
+move to `Features/<Name>/`): `close` 30 (`CLOSE`, no halo: lays its
 own dot on `kit.halo`; `plate.closeMarks`, its card chosen in
 `DrawKillers`), `luck` 40 (`TALLY`; `plate.huntMarks` → `plate.hunt`),
 `fortune` 50 (`FORTUNE` star; `plate.fortuneMarks` → `plate.lucky`),
-and, from its feature's folder (`Features/Campfire/Mark.lua`), `campfire`
+and, from their features' folders, `finale` 10
+(`Features/QuestFinales/Mark.lua`, `ns.QuestFinales.MARK` tailpiece), `skill` 20
+(`Features/ProfessionCaps/Mark.lua`, `ns.ProfessionCaps.MARK` stairs, `arg` =
+best rank) and (`Features/Campfire/Mark.lua`) `campfire`
 70 (`ns.Campfire.MARK`, ink only: a flame with a paper tongue on two
 crossed logs, filler, last, so it steps aside with a tether;
 `plate.campfireMarks` → `plate.campfire`). `cap` fills `Plate.CAP[count]`.
@@ -290,8 +305,12 @@ turn, shadow, lift, glue, vignette). Drawing is pooled, deterministic
   testdata pages), `tests/hunt_card.lua`, `tests/lucky_card.lua`,
   `tests/firsts.lua`, `tests/campfire_ui.lua` (the People row, the
   caption's campfire words, the slip and its testdata pages),
-  `tests/margin_caption.lua` (the margin and caption registries: today's
-  orders, a throwaway kind registered, placed, counted, told, removed).
+  `tests/margin_caption.lua` (the margin, caption and prose registries:
+  today's orders, a throwaway kind registered, placed, counted, told,
+  removed), `tests/skills.lua` / `tests/skills_ui.lua` (profession caps:
+  capture, moments, words, stairs), `tests/questie.lua` (section "chain
+  finales (JRN-28)": capture through the quest events, words, tooltip;
+  then finales as moments).
 - Useful handles: `ns.UI.JourneyPage()` (page: `.plates`, `.links`,
   `.recap.entries`, `.layout`, `.pattern`, pools), `ns.UI.RedrawJourneyPage()`,
   `ns.UI.JourneyLook` (LAYOUT, CAPTION, LEADER, ROW, FOOT, SNAPSHOT,

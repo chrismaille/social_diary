@@ -9,6 +9,7 @@ local DAY = T.DAY
 local ns = T.Boot()
 local SELF = F.SELF
 local Text = ns.UI.JourneyText
+local P = ns.ProfessionCaps
 local OPEN, CLOSE = "\226\128\156", "\226\128\157"
 
 mock.now = 1791000000
@@ -32,32 +33,32 @@ local ORE = { t = now - 1800, mapID = 1442, x = 0.73, y = 0.59, level = 12, skil
 --------------------------------------------------------------------------
 Section("the words")
 
-Eq(Text.SkillWords(AID), "First Aid at 75", "a cap in a few words")
-Eq(Text.SkillWords({ rank = 75 }), "a profession at 75", "a cap with no name")
-Eq(Text.SkillWords({ name = "Mining" }), "Mining at its cap", "a cap with no rank")
+Eq(P.Words(AID), "First Aid at 75", "a cap in a few words")
+Eq(P.Words({ rank = 75 }), "a profession at 75", "a cap with no name")
+Eq(P.Words({ name = "Mining" }), "Mining at its cap", "a cap with no rank")
 
-Eq(Text.Skill(AID), "First Aid reached 75, as far as an Apprentice goes.", "an Apprentice's cap")
-Eq(Text.Skill(ORE), "Mining reached 150, as far as a Journeyman goes.", "a Journeyman's cap")
-Eq(Text.Skill({ name = "Tailoring", rank = 225 }), "Tailoring reached 225, as far as an Expert goes.",
+Eq(P.Sentence(AID), "First Aid reached 75, as far as an Apprentice goes.", "an Apprentice's cap")
+Eq(P.Sentence(ORE), "Mining reached 150, as far as a Journeyman goes.", "a Journeyman's cap")
+Eq(P.Sentence({ name = "Tailoring", rank = 225 }), "Tailoring reached 225, as far as an Expert goes.",
     "an Expert's cap")
-Eq(Text.Skill({ name = "Herbalism", rank = 300 }), "Herbalism reached 300, as far as an Artisan goes.",
+Eq(P.Sentence({ name = "Herbalism", rank = 300 }), "Herbalism reached 300, as far as an Artisan goes.",
     "an Artisan's cap")
-Eq(Text.Skill({ name = "Mining", rank = 375 }), "Mining reached 375.", "a cap with no trainer's title")
-Eq(Text.Skill({ rank = 75 }), "A profession reached 75, as far as an Apprentice goes.", "a cap with no name")
-Eq(Text.Skill({ name = "", rank = 150 }), "A profession reached 150, as far as a Journeyman goes.",
+Eq(P.Sentence({ name = "Mining", rank = 375 }), "Mining reached 375.", "a cap with no trainer's title")
+Eq(P.Sentence({ rank = 75 }), "A profession reached 75, as far as an Apprentice goes.", "a cap with no name")
+Eq(P.Sentence({ name = "", rank = 150 }), "A profession reached 150, as far as a Journeyman goes.",
     "a cap with an empty name")
 
 -- The level's prose: one sentence each; the same profession again
 -- straight after only counts on.
 local AID2 = { t = AID.t + 600, skillLine = FIRST_AID, name = "First Aid", rank = 150 }
-Eq(Text.SkillLines({ skillCaps = { AID } }), "First Aid reached 75, as far as an Apprentice goes.", "one cap")
-Eq(Text.SkillLines({ skillCaps = { AID, ORE } }), "First Aid reached 75, as far as an Apprentice goes. Mining "
+Eq(P.Lines({ skillCaps = { AID } }), "First Aid reached 75, as far as an Apprentice goes.", "one cap")
+Eq(P.Lines({ skillCaps = { AID, ORE } }), "First Aid reached 75, as far as an Apprentice goes. Mining "
     .. "reached 150, as far as a Journeyman goes.", "two professions")
-Eq(Text.SkillLines({ skillCaps = { AID, AID2 } }), "First Aid reached 75, as far as an Apprentice goes. Then 150, "
+Eq(P.Lines({ skillCaps = { AID, AID2 } }), "First Aid reached 75, as far as an Apprentice goes. Then 150, "
     .. "as far as a Journeyman goes.", "one profession twice")
-Eq(Text.SkillLines({ skillCaps = { { rank = 75 }, { rank = 150 } } }), "A profession reached 75, as far as an "
+Eq(P.Lines({ skillCaps = { { rank = 75 }, { rank = 150 } } }), "A profession reached 75, as far as an "
     .. "Apprentice goes. A profession reached 150, as far as a Journeyman goes.", "two caps with no names")
-Check(Text.SkillLines({ skillCaps = {} }) == nil and Text.SkillLines({}) == nil, "no caps says something")
+Check(P.Lines({ skillCaps = {} }) == nil and P.Lines({}) == nil, "no caps says something")
 
 -- In the level's paragraphs: after the chains finished, before the close
 -- calls.
@@ -78,11 +79,11 @@ do
 end
 
 -- The tooltip: the words, how far the training goes, when.
-local title, lines = Text.SkillTip(AID, now)
+local title, lines = P.Tip(AID, now)
 Eq(title, "First Aid at 75", "the tooltip's heading")
 Eq(lines[1], "As far as an Apprentice goes", "the tooltip's rank")
 Check(#lines == 2 and lines[2]:find("at level 11$"), "the tooltip's when, last: " .. tostring(lines[2]))
-title, lines = Text.SkillTip({ rank = 375, t = now, level = 60 }, now)
+title, lines = P.Tip({ rank = 375, t = now, level = 60 }, now)
 Eq(title, "A profession at 375", "a nameless cap's heading")
 Check(#lines == 1 and lines[1]:find("at level 60$"), "a cap with no title says only when")
 
