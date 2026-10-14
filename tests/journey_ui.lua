@@ -1212,8 +1212,8 @@ Check(not plate.pinMarks[1].start, "the level reached is drawn as where a level 
 Eq(plate.counts.labels, 0, "an area is labelled on the map")
 
 -- Looking closer (FULLZOOM): the wheel zooms toward the point under the
--- cursor, from the fitted view to the art's own size; the picture is only
--- scaled and shifted until the wheel is still, then drawn again once.
+-- cursor, from the fitted view to the art's own size; each notch draws the
+-- picture at once where it is going, and eases it in from where it was.
 do
     local FZ, DRAG = ns.UI.JourneyPlate.FULLZOOM, ns.UI.JourneyPlate.DRAG
     local pivot, content, clip = plate.pivot, plate.content, plate.clip
@@ -1225,26 +1225,28 @@ do
     local qx, qy = 80, -40
     local mx, my = look.cx + qx / (look.f * 1002), look.cy + qy / (look.f * 668)
     plate:Wheel(1, qx, qy)
+    look = plate.look
+    Eq(look.redraws, 1, "a notch did not draw the picture at once")
+    Check(math.abs(look.drawn.f - f0 * FZ.step) < 1e-9, "a notch was drawn at another zoom than its own")
+    Check(math.abs(content.recorded.calls.SetScale[1] - 1 / FZ.step) < 1e-9,
+        "drawn at the notch's zoom, the picture did not ease in from where it was")
+    -- The print's darkened edges stay at the neat line while it is scaled.
+    local band = plate.vignettes[1]
+    Check(band and band.home, "the full page has no darkened edges to keep")
+    Check(math.abs(band.recorded.width / FZ.step - band.home[3]) < 1e-6,
+        "the darkened edges were scaled with the picture")
+    Check(math.abs(band.recorded.points[1].args[3] / FZ.step - band.home[1]) < 1e-6,
+        "the darkened edges moved with the picture's scale")
     Check(pivot.scripts.OnUpdate, "the wheel does not ease")
     pivot.scripts.OnUpdate(pivot, FZ.time)
     look = plate.look
     Check(math.abs(look.f - f0 * FZ.step) < 1e-9, "a notch is not a step closer: " .. look.f)
     Check(math.abs(look.cx + qx / (look.f * 1002) - mx) < 1e-9 and math.abs(look.cy + qy / (look.f * 668) - my) < 1e-9,
         "the point under the cursor moved")
-    Check(math.abs(content.recorded.calls.SetScale[1] - FZ.step) < 1e-9, "the picture was not scaled while easing")
-    -- The print's darkened edges stay at the neat line while it is scaled.
-    local band = plate.vignettes[1]
-    Check(band and band.home, "the full page has no darkened edges to keep")
-    Check(math.abs(band.recorded.width * FZ.step - band.home[3]) < 1e-6,
-        "the darkened edges were scaled with the picture")
-    Check(math.abs(band.recorded.points[1].args[3] * FZ.step - band.home[1]) < 1e-6,
-        "the darkened edges moved with the picture's scale")
-    Eq(look.redraws, nil, "the picture was drawn again while the wheel turned")
+    Eq(content.recorded.calls.SetScale[1], 1, "eased in, the picture kept a scale")
     pivot.scripts.OnUpdate(pivot, FZ.settle)
     look = plate.look
-    Eq(look.redraws, 1, "the picture was not drawn again once the wheel was still")
-    Check(math.abs(look.drawn.f - f0 * FZ.step) < 1e-9, "drawn again at another zoom")
-    Eq(content.recorded.calls.SetScale[1], 1, "drawn again, the picture kept its scale")
+    Eq(look.redraws, 1, "the picture was drawn again once the wheel was still")
     Check(pivot.scripts.OnUpdate == nil, "the wheel's OnUpdate did not stop itself")
     Check(plate.window[3] - plate.window[1] > (446 - 20) / (look.f * 1002), "the window was not drawn with room to pan")
     Check(plate.window[1] == 0 and plate.window[2] == 0 and plate.window[3] == 1 and plate.window[4] == 1,
@@ -1267,8 +1269,10 @@ do
     for _ = 1, 20 do plate:Wheel(-1, 0, 0) end
     Eq(plate.look.goal.f, f0, "the zoom passed the fitted view")
     Eq(plate.look.goal.cx, c0x, "zoomed out, the fitted framing did not come back")
+    Check(plate.window[1] == 0 and plate.window[3] == 1, "on the way out to the fit, the zone was not drawn whole")
     pivot.scripts.OnUpdate(pivot, FZ.time)
     pivot.scripts.OnUpdate(pivot, FZ.settle)
+    Check(plate.window[1] > 0 and not plate.look.drawn.whole, "back at the fit, it was not drawn as the fit is")
     -- Zoomed in, a drag pans (kept on the map) and does not go back.
     plate:Wheel(1, 0, 0)
     plate:Wheel(1, 0, 0)
@@ -1291,21 +1295,22 @@ do
     Eq(page.mode, "full", "a drag went back")
     Check(clip.scripts.OnUpdate == nil and pivot.scripts.OnUpdate, "the drag did not let go and wait to draw sharp")
     pivot.scripts.OnUpdate(pivot, FZ.settle)
-    -- Grabbed straight after the wheel: the new zoom is drawn while held,
-    -- and the drag goes on over it; only a new zoom, not the pan.
+    -- The wheel turned while the map is held: the new zoom is drawn at
+    -- once, and the drag goes on over it; only a new zoom, not the pan.
     local before = plate.look.redraws or 0
     at[1], at[2] = 0, 0
+    clip.scripts.OnMouseDown(clip, "LeftButton")
     plate:Wheel(-1, 0, 0)
     Check(plate.look.goal.f > plate.look.fit, "a notch out from the art's own size went back to fitted")
-    clip.scripts.OnMouseDown(clip, "LeftButton")
+    Eq(plate.look.redraws, before + 1, "a new zoom was not drawn while the map was held")
+    Check(plate.window[1] == 0 and plate.window[3] == 1, "drawn while held, the zone was not drawn whole")
+    Check(plate.look.pressed and clip.scripts.OnUpdate, "drawn while held, the drag was let go")
     pivot.scripts.OnUpdate(pivot, FZ.time)
     at[1] = -30
     clip.scripts.OnUpdate(clip, 0.016)
     local held = plate.look.cx
     pivot.scripts.OnUpdate(pivot, FZ.settle)
-    Eq(plate.look.redraws, before + 1, "a new zoom was not drawn while the map was held")
-    Check(plate.window[1] == 0 and plate.window[3] == 1, "drawn while held, the zone was not drawn whole")
-    Check(plate.look.pressed and clip.scripts.OnUpdate, "drawn while held, the drag was let go")
+    Eq(plate.look.redraws, before + 1, "held, a pan was drawn again")
     at[1] = -60
     clip.scripts.OnUpdate(clip, 0.016)
     Check(plate.look.cx > held, "after the drawing, the drag did not go on panning")

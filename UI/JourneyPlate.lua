@@ -181,10 +181,12 @@ local ZOOM = { scale = 1.16, time = 0.2 }
 -- `step` times as close, toward the point under the cursor, eased over
 -- `time` seconds, from the fitted view (the whole height of the zone) to
 -- the art's own size (`native`, 1 screen px a px of art: closer only
--- blurs). Moving it only scales and shifts the drawn picture; once the
--- wheel or the drag has been still `settle` seconds the picture is drawn
--- again for the new window, sharp, its marks and lines at their own size
--- again, with the rest of the zone drawn round it (under the card's
+-- blurs). Each notch draws the picture at once for where the wheel is
+-- going (it takes a few ms), its marks and lines at that zoom's size, and
+-- eases the drawing in from where it was shown, scaled and shifted, so
+-- the ink is right once it is there. A drag only shifts the picture;
+-- `settle` seconds after it lets go the picture is drawn again for the
+-- new window. Either way the rest of the zone is drawn round it (under the card's
 -- margin, clipped) so a drag never runs off the art. No closer than
 -- `native`, the whole zone is no more than its art's own size (a zone's
 -- 1002 by 668 px), not much more than a window and a margin round it.
@@ -2236,11 +2238,20 @@ local function New(parent, slot)
     end
 
     -- The wheel's easing, then the wait to draw sharp again: one short
-    -- OnUpdate on the pivot, stopping itself once it has drawn. A new zoom
-    -- is drawn (the whole zone round it) even while the map is held, so a
-    -- drag begun straight after the wheel has art to pan into; the press
-    -- is carried on over the drawing.
+    -- OnUpdate on the pivot, stopping itself once it has drawn. Held, only
+    -- a new zoom is drawn (a drag draws again once let go); the press is
+    -- carried on over the drawing.
     local Drag
+    local function Redraw(whole)
+        local pressed = look.pressed
+        look.redraws = (look.redraws or 0) + 1
+        local g = look.goal
+        look.onSettle(g.f, g.cx, g.cy, whole)
+        if pressed and look then
+            look.pressed = pressed
+            clip:SetScript("OnUpdate", Drag)
+        end
+    end
     local function Tick(_, elapsed)
         local m = look.move
         if m then
@@ -2250,22 +2261,22 @@ local function New(parent, slot)
             look.f = m.f + (look.goal.f - m.f) * e
             look.cx = m.cx + (look.goal.cx - m.cx) * e
             look.cy = m.cy + (look.goal.cy - m.cy) * e
+            if p >= 1 then
+                look.f, look.cx, look.cy, look.move = look.goal.f, look.goal.cx, look.goal.cy, nil
+            end
             Show()
-            if p >= 1 then look.move = nil end
             return
         end
         look.still = look.still + (elapsed or 0)
         if look.still >= FULLZOOM.settle then
             pivot:SetScript("OnUpdate", nil)
             local d, pressed = look.drawn, look.pressed
-            -- Held, only a new zoom: a drag draws again once let go.
-            if d.f ~= look.f or (not pressed and (d.cx ~= look.cx or d.cy ~= look.cy)) then
-                look.redraws = (look.redraws or 0) + 1
-                look.onSettle(look.f, look.cx, look.cy)
-                if pressed and look then
-                    look.pressed = pressed
-                    clip:SetScript("OnUpdate", Drag)
-                end
+            look.goal = { f = look.f, cx = look.cx, cy = look.cy }
+            -- Back out to the fit, drawn whole for the way there: drawn
+            -- again as the fit is, at the same size, so nothing shifts.
+            local whole = d.whole and look.f <= look.fit + 1e-9
+            if d.f ~= look.f or (not pressed and (whole or d.cx ~= look.cx or d.cy ~= look.cy)) then
+                Redraw()
             end
         end
     end
@@ -2300,8 +2311,15 @@ local function New(parent, slot)
         local f = Clamp(g.f * FULLZOOM.step ^ (delta or 0), look.fit, FULLZOOM.native)
         local cx, cy = mx - qx / (f * look.LW), my - qy / (f * look.LH)
         f, cx, cy = Hold(f, cx, cy)
+        local shown = { f = look.f, cx = look.cx, cy = look.cy }
         look.goal = { f = f, cx = cx, cy = cy }
-        look.move = { t = 0, f = look.f, cx = look.cx, cy = look.cy }
+        -- Drawn now for where it is going, the whole zone round it (the
+        -- fit too, so the way out has art), and eased in from where it was.
+        local d = look.drawn
+        if d.f ~= f or d.cx ~= cx or d.cy ~= cy then Redraw(true) end
+        look.f, look.cx, look.cy = shown.f, shown.cx, shown.cy
+        look.move = { t = 0, f = shown.f, cx = shown.cx, cy = shown.cy }
+        Show()
         Wait()
     end
     clip:SetScript("OnMouseWheel", function(_, delta) plate:Wheel(delta) end)
@@ -2362,7 +2380,7 @@ local function New(parent, slot)
     function plate:Look(o)
         pivot:SetScript("OnUpdate", nil)
         look = o and { f = o.f, cx = o.cx, cy = o.cy, fit = o.fit, c0 = o.c0, LW = o.LW, LH = o.LH,
-            onSettle = o.onSettle, drawn = { f = o.f, cx = o.cx, cy = o.cy },
+            onSettle = o.onSettle, drawn = { f = o.f, cx = o.cx, cy = o.cy, whole = o.whole },
             goal = { f = o.f, cx = o.cx, cy = o.cy }, still = 0, redraws = o.redraws } or nil
         self.look = look
         clip:EnableMouseWheel(look ~= nil)

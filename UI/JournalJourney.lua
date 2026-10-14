@@ -1739,7 +1739,8 @@ end
 -- The full page's plate drawn at a view (FULLZOOM, UI/JourneyPlate.lua):
 -- `f` px on the screen a px of the map's art, round cx, cy; nil for the
 -- fitted view (the zone's whole height, centred on the road). Looked at
--- closer, the window is drawn with room round it to pan.
+-- closer, or with `whole` (the wheel on its way out to the fit), the
+-- window is drawn with the whole zone round it.
 local function DrawFullPlate(e, view)
     local mapID = page.fullMap
     local plate = PlateAt(1)
@@ -1752,17 +1753,19 @@ local function DrawFullPlate(e, view)
     local f0, c0 = ah / ((fit[4] - fit[2]) * LH), { (fit[1] + fit[3]) / 2, (fit[2] + fit[4]) / 2 }
     local f, cx, cy = f0, c0[1], c0[2]
     if view then f, cx, cy = view.f, view.cx, view.cy end
+    local whole = view and view.whole
     local window, box = Plate.Frame(mapID, f, cx, cy, aw, ah, FULL.pad,
-        f > f0 + 1e-9 and Plate.FULLZOOM.overscan or nil)
+        (whole or f > f0 + 1e-9) and Plate.FULLZOOM.overscan or nil)
     plate:Draw(sheet, e, window, { moments = MomentsOf(e), cap = 1, fights = page.fights,
         witnesses = page.witnesses, now = page.now,
         box = box, deaths = ns.Journey.Deaths(ns.Journey.For(ns.ownGUID)) })
     plate.share, plate.plan = 1, nil
     plate:SetClick(Back, false)
     plate:Look({ f = f, cx = cx, cy = cy, fit = f0, c0 = c0, LW = LW, LH = LH,
-        redraws = view and view.redraws,
-        onSettle = function(nf, ncx, ncy)
-            DrawFullPlate(e, { f = nf, cx = ncx, cy = ncy, redraws = plate.look and plate.look.redraws })
+        redraws = view and view.redraws, whole = whole,
+        onSettle = function(nf, ncx, ncy, nwhole)
+            DrawFullPlate(e, { f = nf, cx = ncx, cy = ncy, whole = nwhole,
+                redraws = plate.look and plate.look.redraws })
         end })
     plate:Show()
     return plate, sheet
