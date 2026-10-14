@@ -31,14 +31,20 @@ local QUIET = 5     -- a day with fewer people than this reads as quiet
 local BAR_MAX = 60  -- the busiest day's bar, in pixels
 
 -- Table columns, in row coordinates. A row stops short of the scrollbar, and
--- the headings use the same numbers so they line up.
+-- the headings use the same numbers so they line up. Left to right: class,
+-- level, the name and its marks, zone, subzone, and + Add / Open / Added.
 local ROW_W = L.RIGHT_W - ns.UI.SCROLLBAR_WIDTH - 2
-local NAME_X = 27
-local ACTION_W = 60
-local ZONE_W = 146
-local ZONE_X = ROW_W - 4 - ACTION_W - 6 - ZONE_W
-local LEVEL_RIGHT = ZONE_X - 8
-local NAME_RIGHT = LEVEL_RIGHT - 24 - 8
+local GAP = 8
+local LEVEL_RIGHT = 40  -- two figures, after the 16 px class icon
+local NAME_X = 48
+local NAME_W = 128      -- a name and surname with a mark and ×N beside it
+local NAME_RIGHT = NAME_X + NAME_W
+local ACTION_W = 54     -- "Added" and its feather
+-- Zone and subzone share the rest evenly, about 14 letters each: enough for
+-- "Elwynn Forest" or "The Crossroads"; "Hillsbrad Foothills" trails off.
+local ZONE_X = NAME_RIGHT + GAP
+local PLACE_W = math.floor((ROW_W - 4 - ACTION_W - GAP - ZONE_X - GAP) / 2)
+local SUBZONE_X = ZONE_X + PLACE_W + GAP
 local MARK = 12
 
 local page
@@ -65,7 +71,7 @@ local DEALT_TEXT = { together = "Grouped with you", trade = "Traded with you", t
 
 -- The first click on a heading sorts the way people expect for that column;
 -- the second reverses it; the third goes back to the latest seen first.
-local FIRST_DIR = { name = 1, zone = 1, level = -1 }
+local FIRST_DIR = { name = 1, zone = 1, subzone = 1, level = -1 }
 
 --------------------------------------------------------------------------
 -- Days
@@ -151,6 +157,15 @@ local function UpdateDayRow(row, item)
     row.selected:SetShown(isSelected)
 end
 
+-- Where they were seen, in full for the tooltip: "Goldshire, Elwynn Forest",
+-- as Your Diary and the profile write a place. DayEntries has already
+-- dropped a subzone named like its zone; "?" is a zone it could not name.
+local function Place(e)
+    if not e.subZone then return e.zone end
+    if e.zone == "?" then return e.subZone end
+    return e.subZone .. ", " .. e.zone
+end
+
 -- The tooltip's lines: all the detail a stranger gets.
 local function TooltipLines(row)
     local e = row.item
@@ -182,7 +197,10 @@ local function TooltipLines(row)
     if e.dealt then
         lines[#lines + 1] = { ("%s at %s"):format(DEALT_TEXT[e.dealt], date("%H:%M", e.dealtAt)), 1, 0.82, 0 }
     end
-    lines[#lines + 1] = { "Last seen " .. ns.UI.At(e.last, now), 0.66, 0.66, 0.66 }
+    -- Worded as the profile's line will be once they are added.
+    local place = Place(e)
+    lines[#lines + 1] = { "Last seen " .. ns.UI.At(e.last, now) .. (place ~= "?" and (" in " .. place) or ""),
+        0.66, 0.66, 0.66 }
     if ns.Diary.IsDiary(e.guid) then lines[#lines + 1] = { "In your diary", 1, 0.82, 0 } end
     return lines
 end
@@ -194,7 +212,7 @@ local function AddFromRow(row)
     -- Where they were seen, not where the user is now.
     local entry, added = ns.Diary.Add(e.guid, {
         source = "nearby",
-        where = { zone = e.zone, mapID = e.row.mapID, x = e.row.x, y = e.row.y },
+        where = { zone = e.zone, subZone = e.subZone, mapID = e.row.mapID, x = e.row.x, y = e.row.y },
     })
     if not entry then
         ns.Print("could not identify that character.")
@@ -235,10 +253,16 @@ local function BuildEntryRow(list)
     row.level:SetPoint("RIGHT", row, "LEFT", LEVEL_RIGHT, 0)
     row.level:SetJustifyH("RIGHT")
 
+    -- A fixed width without wrapping: a long name ends in an ellipsis.
     row.zone = Style.Text(row, FONT.body)
     row.zone:SetPoint("LEFT", ZONE_X, 0)
-    row.zone:SetWidth(ZONE_W)
+    row.zone:SetWidth(PLACE_W)
     row.zone:SetWordWrap(false)
+
+    row.subZone = Style.Text(row, FONT.body)
+    row.subZone:SetPoint("LEFT", SUBZONE_X, 0)
+    row.subZone:SetWidth(PLACE_W)
+    row.subZone:SetWordWrap(false)
 
     row.add = Style.Link(row, FONT.small, function() AddFromRow(row) end)
     row.add:SetText("+ Add")
@@ -303,6 +327,8 @@ local function UpdateEntryRow(row, e)
 
     row.level:SetText(e.level or "")
     row.zone:SetText(e.zone)
+    -- Blank without one: the zone beside it already says where.
+    row.subZone:SetText(e.subZone or "")
 
     local inDiary = ns.Diary.IsDiary(e.guid)
     local justAdded = inDiary and addedHere[e.guid]
@@ -352,7 +378,12 @@ local function PaintHeadings()
         return
     end
     arrow:ClearAllPoints()
-    arrow:SetPoint("LEFT", current, "RIGHT", 2, 0)
+    -- Outside a right-aligned heading would be over the next column.
+    if current.alignRight then
+        arrow:SetPoint("RIGHT", current, "LEFT", -2, 0)
+    else
+        arrow:SetPoint("LEFT", current, "RIGHT", 2, 0)
+    end
     -- The texture points down; flipped for ascending.
     if query.dir > 0 then arrow:SetTexCoord(0, 0.5625, 1, 0) else arrow:SetTexCoord(0, 0.5625, 0, 1) end
     arrow:SetVertexColor(INK_STRONG[1], INK_STRONG[2], INK_STRONG[3], 1)
@@ -483,7 +514,7 @@ function ns.UI.BuildNearbyPage(parent)
     page.count:SetPoint("TOPRIGHT", 0, -10)
     page.count:SetJustifyH("RIGHT")
 
-    page.search = Style.PageSearch(r, 0, -40, 236, "Search names, zones", function(text)
+    page.search = Style.PageSearch(r, 0, -40, 260, "Search names, zones, subzones", function(text)
         if text ~= query.search then
             query.search = text
             RefreshTable()
@@ -501,9 +532,11 @@ function ns.UI.BuildNearbyPage(parent)
         page.headings[key] = link
         return link
     end
-    Heading("name", "Name"):SetPoint("LEFT", r, "TOPLEFT", NAME_X, -86)
     Heading("level", "Lvl"):SetPoint("RIGHT", r, "TOPLEFT", LEVEL_RIGHT, -86)
+    page.headings.level.alignRight = true
+    Heading("name", "Name"):SetPoint("LEFT", r, "TOPLEFT", NAME_X, -86)
     Heading("zone", "Zone"):SetPoint("LEFT", r, "TOPLEFT", ZONE_X, -86)
+    Heading("subzone", "Subzone"):SetPoint("LEFT", r, "TOPLEFT", SUBZONE_X, -86)
 
     page.arrow = r:CreateTexture(nil, "ARTWORK")
     page.arrow:SetSize(9, 8)

@@ -295,7 +295,7 @@ local function SightingsOf(text)
         DEFAULT_CHAT_FRAME:AddMessage(("   %s%s  %s%s  lvl %s  %s%s"):format(
             date("%d %b %H:%M", row.time),
             row.last and date("-%H:%M", row.last) or "      ",
-            RowZone(row),
+            (row.subZone and (row.subZone .. ", ") or "") .. RowZone(row),
             row.x and (" (you at %.1f, %.1f)"):format(row.x * 100, row.y * 100) or "",
             tostring(row.level or "?"), row.src or "",
             row.hostile and "  |cffc04040hostile|r" or ""))

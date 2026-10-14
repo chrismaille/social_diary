@@ -490,6 +490,76 @@ Eq(Q({ search = "RESTRICTED", filter = "everyone", sort = "last", dir = -1 }), "
 Eq(Q({ search = "(", filter = "everyone", sort = "last", dir = -1 }), "", "a pattern character in the search")
 
 --------------------------------------------------------------------------
+Section("the subzone on a sighting row")
+
+-- A row keeps the subzone the user was in when its zone-hour began, like
+-- its x and y; later sightings in the same hour do not move it.
+mock.mapID, mock.zone, mock.subZone = 1412, "Mulgore", "Bloodhoof Village"
+local where = ns.Where()
+Eq(where.subZone, "Bloodhoof Village", "setup: Where() has no subzone")
+local S1, S2 = "Player-4620-00D00011", "Player-4620-00D00012"
+ns.Characters.Observe(S1, { first = "Dora", surname = "Wick" })
+ns.Characters.Observe(S2, { first = "Emil", surname = "Vane" })
+local _, srow = ns.Sightings.Record(S1, { source = "plate" }, where, day + 3600)
+Eq(srow.subZone, "Bloodhoof Village", "a new row did not keep the subzone")
+ns.Sightings.Record(S1, { source = "plate" },
+    { mapID = 1412, x = 0.5, y = 0.5, subZone = "Red Cloud Mesa" }, day + 3700)
+Eq(srow.subZone, "Bloodhoof Village", "a later sighting in the same hour moved the subzone")
+Eq(ns.Sightings.Latest(S1).subZone, "Bloodhoof Village", "Latest drops the subzone")
+
+mock.subZone = ""
+Eq(ns.Where().subZone, nil, "an unnamed subzone is stored as an empty string")
+local _, bare = ns.Sightings.Record(S2, { source = "plate" }, ns.Where(), day + 3600)
+Eq(bare.subZone, nil, "a row with no subzone got one")
+
+local sentries = ns.Sightings.DayEntries(day)
+local sby = {}
+for _, e in ipairs(sentries) do sby[e.guid] = e end
+Eq(sby[S1].subZone, "Bloodhoof Village", "the day's entry has no subzone")
+Eq(sby[S1].zone, "Mulgore", "the subzone replaced the zone")
+Eq(sby[S2].subZone, nil, "an entry without a subzone got one")
+
+local function SQ(q)
+    local names = {}
+    for i, e in ipairs(ns.Sightings.QueryDay(sentries, q)) do names[i] = e.name end
+    return table.concat(names, ",")
+end
+Eq(SQ({ search = "bloodhoof", filter = "everyone", sort = "last", dir = -1 }), "Dora Wick", "search the subzone")
+-- By zone, a row with no subzone comes first in its zone; by subzone, a row
+-- with none comes last, whichever way round.
+local function Sorted(sort, dir)
+    local names = {}
+    for i, e in ipairs(ns.Sightings.QueryDay({ sby[S1], sby[S2] }, { search = "", filter = "everyone", sort = sort, dir = dir })) do
+        names[i] = e.name
+    end
+    return table.concat(names, ",")
+end
+Eq(Sorted("zone", 1), "Emil Vane,Dora Wick", "by zone, then subzone")
+Eq(Sorted("subzone", 1), "Dora Wick,Emil Vane", "by subzone, none last")
+Eq(Sorted("subzone", -1), "Dora Wick,Emil Vane", "by subzone reversed, none still last")
+
+-- Added off the page: the profile's "last seen" names the subzone too.
+ns.Diary.Add(S1, { source = "nearby",
+    where = { zone = "Mulgore", subZone = sby[S1].subZone, mapID = 1412, x = 0.1, y = 0.2 } })
+Eq(ns.Characters.Get(S1).seen.subZone, "Bloodhoof Village", "last seen lost the subzone on add")
+Eq(ns.UI.SeenText(ns.Characters.Get(S1).seen):match(" in (.+)$"), "Bloodhoof Village, Mulgore",
+    "the profile line does not name the subzone")
+ns.Characters.Forget(S1)
+ns.Characters.Forget(S2)
+
+-- A subzone named like its zone says nothing more, so the entry has none.
+local S3 = "Player-4620-00D00013"
+ns.Characters.Observe(S3, { first = "Fern", surname = "Ashby" })
+ns.Sightings.Record(S3, { source = "plate" }, { mapID = 1412, x = 0.3, y = 0.3, subZone = "Mulgore" }, day + 3600)
+local fern
+for _, e in ipairs(ns.Sightings.DayEntries(day)) do
+    if e.guid == S3 then fern = e end
+end
+Check(fern, "setup: Fern Ashby not seen that day")
+Eq(fern and fern.subZone, nil, "a subzone named like its zone was kept")
+ns.Characters.Forget(S3)
+
+--------------------------------------------------------------------------
 Section("a diary entry's level-up, seen on a nameplate")
 
 -- The sighting path reads the level off the unit (ObserveUnit), so a diary

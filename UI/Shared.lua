@@ -488,9 +488,10 @@ end
 function ns.UI.SeenText(seen, now)
     if not seen then return "Not seen nearby yet." end
 
+    -- Subzone first, as every place is written: "Goldshire, Elwynn Forest".
     local place = seen.zone
     if place and seen.subZone and seen.subZone ~= seen.zone then
-        place = place .. ", " .. seen.subZone
+        place = seen.subZone .. ", " .. place
     end
 
     return "Last seen " .. ns.UI.At(seen.time, now) .. (place and (" in " .. place) or "")

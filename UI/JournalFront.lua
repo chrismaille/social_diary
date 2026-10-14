@@ -89,8 +89,9 @@ local CARD = {
 -- start, the tags' line, the day's heading and its line.
 local PERSON = { pad = 12, portrait = 44, indent = 68, who = 26, tags = 50, day = 82, line = 98, time = 44 }
 -- The Recently nearby cut-out: its heading, the first row and the step to
--- the next; the columns (class circle, name, level's right edge, zone, Add).
-local NEARBY = { pad = 12, first = 32, row = 22, circle = 12, name = 18, level = 168, zone = 176 }
+-- the next; the columns in the page's order (class circle, level's right
+-- edge, name, zone, Add). A 300 px card has no room for the subzone too.
+local NEARBY = { pad = 12, first = 32, row = 22, circle = 12, level = 42, name = 50, zone = 168 }
 -- The page's lifted corner: how far it lifts, and further under the mouse;
 -- the next page seen where it lifts, and the back of this one folded up.
 local CORNER = { size = 32, hover = 40, under = { 0.74, 0.62, 0.41 },
@@ -377,10 +378,10 @@ local function BuildNearbyCut(parent, cut)
         circle:SetSize(N.circle, N.circle)
         circle:SetPoint("TOPLEFT", N.pad, -y - 3)
         Style.ClassIconOrInk(circle, r[4])
-        local name = Print(card, FONT.body, N.pad + N.name, y, r[1])
         local level = Style.Text(card, FONT.small)
         level:SetPoint("TOPRIGHT", card, "TOPLEFT", N.level, -y - 2)
         level:SetText(tostring(r[2]))
+        local name = Print(card, FONT.body, N.name, y, r[1])
         Print(card, FONT.small, N.zone, y + 2, r[3])
         local add = Style.Link(card, FONT.body, function() TurnTo("nearby") end)
         add:SetText("+ Add")

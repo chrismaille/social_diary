@@ -16,6 +16,7 @@
 --   level     their level, last read
 --   mapID, x, y   the *user's* position at `time` (Core/Location.lua says why)
 --   zone      the zone name, only when there was no mapID to store
+--   subZone   the subzone the user was in at `time`, when it had a name
 --   hostile   true when they were attackable at some point in it
 --   src       which source saw them first ("plate", "target", "say", ...)
 
@@ -123,6 +124,7 @@ function Sightings.Record(guid, data, where, now)
         x = where.x,
         y = where.y,
         zone = not where.mapID and where.zone or nil,
+        subZone = where.subZone,
         hostile = data.hostile or nil,
         src = data.source,
     }
@@ -239,8 +241,9 @@ function Sightings.For(guid)
 end
 
 -- When and where they were last sighted, in the shape of a character
--- record's `seen` (Characters.Seen), or nil. No subZone: rows keep none. The
--- place is where the zone-hour's row began, as everywhere rows are read.
+-- record's `seen` (Characters.Seen), or nil. The place is where the
+-- zone-hour's row began, as everywhere rows are read; rows from before the
+-- subzone was kept have none.
 function Sightings.Latest(guid)
     local rows = Sightings.For(guid)
     if #rows == 0 then return nil end
@@ -251,6 +254,7 @@ function Sightings.Latest(guid)
         mapID = row.mapID,
         x = row.x,
         y = row.y,
+        subZone = row.subZone,
     }
 end
 
@@ -428,9 +432,10 @@ local function Dealt(guid, from, to)
 end
 
 -- Everyone seen on the day starting at `dayStart`, but the user's own
--- characters: { guid, record, row, name, zone, level, last, hostile, days,
--- first, firstLevel, dealt ("together", "trade", "talk" or nil), dealtAt,
--- haystack }. Unsorted; QueryDay filters and sorts.
+-- characters: { guid, record, row, name, zone, subZone (nil when it is the
+-- zone's own name), level, last, hostile, days, first, firstLevel, dealt
+-- ("together", "trade", "talk" or nil), dealtAt, haystack }. Unsorted;
+-- QueryDay filters and sorts.
 function Sightings.DayEntries(dayStart)
     local list = {}
     for _, seen in ipairs(Sightings.OnDay(dayStart)) do
@@ -440,12 +445,15 @@ function Sightings.DayEntries(dayStart)
             local kind, at = Dealt(seen.guid, dayStart, dayStart + DAY)
             local name = ns.Characters.FullName(seen.guid) or "?"
             local zone = ZoneName(seen.row)
+            -- The subzone only when it says more than the zone does.
+            local subZone = seen.row.subZone ~= zone and seen.row.subZone or nil
             list[#list + 1] = {
                 guid = seen.guid,
                 record = record,
                 row = seen.row,
                 name = name,
                 zone = zone,
+                subZone = subZone,
                 level = seen.row.level or record.level,
                 last = seen.last,
                 hostile = seen.hostile,
@@ -454,7 +462,7 @@ function Sightings.DayEntries(dayStart)
                 firstLevel = summary and summary.levelMin,
                 dealt = kind,
                 dealtAt = at,
-                haystack = (name .. " " .. zone):lower(),
+                haystack = (name .. " " .. zone .. " " .. (subZone or "")):lower(),
             }
         end
     end
@@ -470,14 +478,18 @@ local KEEP = {
 
 local SORT_KEY = {
     name = function(e) return e.name:lower() end,
-    zone = function(e) return e.zone:lower() end,
+    -- By zone, then subzone: a row with none comes first in its zone.
+    zone = function(e) return (e.zone .. "\0" .. (e.subZone or "")):lower() end,
+    -- By subzone, then zone; nil, so last, for a row with none.
+    subzone = function(e) return e.subZone and (e.subZone .. "\0" .. e.zone):lower() end,
     level = function(e) return e.level or 0 end,
     last = function(e) return e.last end,
 }
 
 -- DayEntries' list, searched, filtered and sorted. `q` is { search, filter
--- ("everyone", "dealt", "before", "hostile"), sort ("name", "zone", "level",
--- "last"), dir (1 ascending, -1 descending) }. Ties go to the latest seen.
+-- ("everyone", "dealt", "before", "hostile"), sort ("name", "zone",
+-- "subzone", "level", "last"), dir (1 ascending, -1 descending) }. Rows with
+-- nothing to sort by go last either way round; ties go to the latest seen.
 function Sightings.QueryDay(entries, q)
     local search = q.search:lower()
     local keep = KEEP[q.filter] or KEEP.everyone
@@ -491,6 +503,7 @@ function Sightings.QueryDay(entries, q)
     table.sort(list, function(a, b)
         local x, y = key(a), key(b)
         if x ~= y then
+            if x == nil or y == nil then return y == nil end
             if dir > 0 then return x < y end
             return x > y
         end

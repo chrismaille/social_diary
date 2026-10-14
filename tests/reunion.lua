@@ -375,7 +375,7 @@ Eq(Seen(B), nil, "a nameplate outside the diary was recorded")
 -- The words.
 local at = Seen(A).time
 Eq(ns.UI.SeenText(Seen(A), at), "Last seen today at " .. date("%H:%M", at)
-    .. " in Mulgore, Red Cloud Mesa", "the last seen line")
+    .. " in Red Cloud Mesa, Mulgore", "the last seen line")
 Eq(ns.UI.At(at - DAY, at), "yesterday at " .. date("%H:%M", at - DAY), "yesterday")
 Check(ns.UI.At(at - 10 * DAY, at):find("^on %d%d %a+ at %d%d:%d%d$"), "this year: " .. ns.UI.At(at - 10 * DAY, at))
 Check(ns.UI.At(at - 400 * DAY, at):find("%d%d%d%d at"), "an older year shows the year")

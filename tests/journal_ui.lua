@@ -707,13 +707,14 @@ local KOKO = Person("Player-4620-00CCCC03", "Koko", "Skybluff", "DRUID", 7, "Hor
 local OLD = Person("Player-4620-00CCCC04", "Yesterday", "Only", "WARRIOR", 12, "Horde")
 local HIDDEN = Person("Player-4620-00CCCC05", "Restricted", "Map", "MAGE", 20, "Horde")
 
-local BARRENS = { mapID = 1413, x = 0.5, y = 0.5 }
+local BARRENS = { mapID = 1413, x = 0.5, y = 0.5, subZone = "The Crossroads" }
 local MULGORE = { mapID = 1412, x = 0.4, y = 0.6 }
 ns.Sightings.Record(BRAM, { level = 8, source = "plate" }, MULGORE, yesterday + 20 * 3600)
 ns.Sightings.Record(OLD, { level = 12, source = "plate" }, MULGORE, yesterday + 21 * 3600)
 ns.Sightings.Record(BRAM, { level = 9, source = "plate" }, BARRENS, today + 14 * 3600 + 600)
 ns.Sightings.Record(FENWICK, { level = 15, hostile = true, source = "target" }, MULGORE, today + 13 * 3600 + 44 * 60)
-ns.Sightings.Record(KOKO, { level = 7, source = "plate" }, MULGORE, today + 13 * 3600)
+ns.Sightings.Record(KOKO, { level = 7, source = "plate" },
+    { mapID = 1412, x = 0.4, y = 0.6, subZone = "Bloodhoof Village" }, today + 13 * 3600)
 ns.Sightings.Record(HIDDEN, { level = 20, source = "say" }, { zone = "Restricted Place" }, today + 9 * 3600)
 ns.Interactions.Add(BRAM, "trade", { time = today + 14 * 3600 })
 ns.Diary.Add(KOKO, { source = "test" })
@@ -756,12 +757,15 @@ local function RowFor(guid)
 end
 local bram = RowFor(BRAM)
 Eq(bram.zone:GetText(), "The Barrens", "zone from the map id")
+Eq(bram.subZone:GetText(), "The Crossroads", "the subzone column")
 Eq(bram.level:GetText(), 9, "level that day")
 Eq(bram.times:GetText(), "×2", "seen on two days")
 Check(bram.dealt:IsShown(), "no trade mark")
 Check(not bram.hostile:IsShown(), "a friendly marked hostile")
 Check(bram.add:IsShown() and not bram.open:IsShown(), "a stranger without + Add")
 Check(RowFor(FENWICK).hostile:IsShown(), "no hostile mark")
+Eq(RowFor(FENWICK).zone:GetText(), "Mulgore", "the zone without a subzone")
+Eq(RowFor(FENWICK).subZone:GetText(), "", "the subzone column is not blank without one")
 Eq(RowFor(HIDDEN).zone:GetText(), "Restricted Place", "the zone name when there is no map id")
 local koko = RowFor(KOKO)
 Check(koko.open:IsShown() and not koko.add:IsShown() and koko.feather:IsShown(), "a diary entry without Open")
@@ -769,7 +773,20 @@ Check(koko.open:IsShown() and not koko.add:IsShown() and koko.feather:IsShown(),
 -- The tooltip is all a stranger gets.
 bram.scripts.OnEnter(bram)
 Eq(GameTooltip.text, "Bram Redfen", "row tooltip")
+-- The place in full there, subzone first; the zone alone without one.
+local function SeenLine()
+    for _, line in ipairs(GameTooltip.lines) do
+        if line[1]:find("^Last seen") then return line[1] end
+    end
+end
+Eq(SeenLine(), "Last seen today at 14:10 in The Crossroads, The Barrens", "the tooltip's place")
 bram.scripts.OnLeave(bram)
+local hidden = RowFor(HIDDEN)
+hidden.scripts.OnEnter(hidden)
+Eq(SeenLine(), "Last seen today at 09:00 in Restricted Place", "the tooltip's place without a subzone")
+hidden.scripts.OnLeave(hidden)
+Eq(NP.headings.zone:GetText(), "ZONE", "the zone column's heading")
+Eq(NP.headings.subzone:GetText(), "SUBZONE", "the subzone column's heading")
 
 -- Filters, search and sorting only re-query the day.
 NP.filter:Click()
@@ -789,6 +806,9 @@ Eq(NP.filter:GetText(), "Everyone", "filter label")
 NP.search:SetText("barrens")
 NP.search.scripts.OnTextChanged(NP.search)
 Eq(Names(), "Bram Redfen", "search by zone")
+NP.search:SetText("crossroads")
+NP.search.scripts.OnTextChanged(NP.search)
+Eq(Names(), "Bram Redfen", "search by subzone")
 NP.search:SetText("zzz")
 NP.search.scripts.OnTextChanged(NP.search)
 Eq(NP.empty:GetText(), "Nobody matches.", "empty search")
@@ -804,9 +824,13 @@ Eq(Names(), "Bram Redfen, Fenwick Hale, Koko Skybluff, Restricted Map", "third c
 NP.headings.level:Click()
 Eq(NP.table.data[1].name, "Restricted Map", "level, highest first")
 NP.headings.zone:Click()
-Eq(NP.table.data[1].zone, "Mulgore", "zone A-Z")
-NP.headings.zone:Click()
-NP.headings.zone:Click()
+Eq(Names(), "Fenwick Hale, Koko Skybluff, Restricted Map, Bram Redfen", "zone A-Z, then subzone")
+NP.headings.subzone:Click()
+Eq(Names(), "Koko Skybluff, Bram Redfen, Fenwick Hale, Restricted Map", "subzone A-Z, none last")
+NP.headings.subzone:Click()
+Eq(Names(), "Bram Redfen, Koko Skybluff, Fenwick Hale, Restricted Map", "subzone Z-A, none still last")
+NP.headings.subzone:Click()
+Eq(Names(), "Bram Redfen, Fenwick Hale, Koko Skybluff, Restricted Map", "subzone's third click")
 
 -- + Add stays on the page and files them where they were seen.
 local fenwick = RowFor(FENWICK)

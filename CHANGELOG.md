@@ -5,6 +5,11 @@ All notable changes to Social Diary. Versions follow the `## Version` line in
 
 ## [Unreleased]
 
+### Changes
+
+- _Recently nearby_ now has a _Subzone_ column next to the zone, and the level moved in front of the name
+- Places now read subzone first everywhere, as in "Goldshire, Elwynn Forest"
+
 ### Fixes
 
 - People added from _Recently nearby_ now show where they were last seen
