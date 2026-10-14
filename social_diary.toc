@@ -86,6 +86,7 @@ Capture/Nearby.lua
 Capture/Sightings.lua
 Capture/Journey.lua
 Capture/Combat.lua
+Capture/Witnesses.lua
 
 #@do-not-package@
 # Development tooling: diagnostics, /sd art, /sd journey and /sd testdata. They

@@ -244,6 +244,11 @@ local function Judge(f, now, tries)
     ns.Debug("close call: %d damage taken, %d healing received", taken, healed)
     taken = math.max(0, taken - healed)
     local npcID, kind = Main(f.kinds)
+    -- Who pulled them through it, if anyone did (Capture/Witnesses.lua).
+    if ns.Witnesses then
+        ns.Witnesses.Survived(f.started, now, taken, max,
+            npcID and { npcID = npcID, name = kind.name, rank = kind.rank })
+    end
     ns.Debug("close call: fight over, took %d of %d health, %d foe(s), most %s", taken, max, f.foes,
         tostring(kind and kind.name))
     local call = Journey.CloseCall({ t = now, level = Level(), taken = taken, max = max,

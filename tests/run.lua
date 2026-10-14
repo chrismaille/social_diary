@@ -45,6 +45,7 @@ local FILES = {
     "slash",
     "helpers",
     "sounds",
+    "witnesses",
 }
 
 dofile(here .. "/harness.lua").Run(here, FILES, arg)

@@ -76,6 +76,48 @@ ROW_TEXT.pvp_death = function(row, guid)
     return them .. (c.probable and " probably killed you" or " killed you") .. with .. Place(row)
 end
 
+-- Witnesses to the user's fights (Capture/Witnesses.lua). "Bram watched
+-- you die to a Sunscale Lashtail", "Bram tried to save you from a
+-- Sunscale Lashtail", "Bram saved you at 6% health", each "in Hillsbrad
+-- Foothills". The creature as Your Diary names a killer.
+local function Foe(row)
+    local c = row.context or {}
+    return ns.UI.JourneyText.KillerName({ name = c.name, rank = c.rank })
+end
+
+-- "Bram mercilessly watched you die to a Kobold Vermin in Coldridge
+-- Valley": by how long they watched (Witnesses.WATCHING), under 1.5 s only
+-- "saw you die", from 5 s on "mercilessly". In the subzone where there is
+-- one; a row kept before the watching was timed is plain "watched".
+ROW_TEXT.watched_death = function(row, guid)
+    local them = guid and ns.Characters.Name(guid) or "They"
+    local c = row.context or {}
+    local watching = ns.Witnesses.WATCHING
+    local verb = " watched you die"
+    if c.watched and c.watched < watching.saw then
+        verb = " saw you die"
+    elseif c.watched and c.watched >= watching.merciless then
+        verb = " mercilessly watched you die"
+    end
+    local foe = Foe(row)
+    local place = c.subZone or row.zone
+    return them .. verb .. (foe and (" to " .. foe) or "") .. (place and (" in " .. place) or "")
+end
+
+ROW_TEXT.tried_to_help = function(row, guid)
+    local them = guid and ns.Characters.Name(guid) or "They"
+    local foe = Foe(row)
+    return them .. " tried to save you" .. (foe and (" from " .. foe) or "") .. Place(row)
+end
+
+ROW_TEXT.saved_you = function(row, guid)
+    local them = guid and ns.Characters.Name(guid) or "They"
+    local foe = Foe(row)
+    local pct = row.context and row.context.pct
+    local health = pct and (" at " .. pct .. "%\194\160health") or ""
+    return them .. " saved you" .. (foe and (" from " .. foe) or "") .. health .. Place(row)
+end
+
 local ROW_ICON = {
     trade = "trade",
     whisper_in = "whisper",
@@ -87,6 +129,9 @@ local ROW_ICON = {
     level_up = "levelup",
     pvp_kill = "hostile",
     pvp_death = "death",
+    watched_death = "around",
+    tried_to_help = "together",
+    saved_you = "together",
 }
 
 -- "You died to Plainstrider (3 attackers) near Red Cloud Mesa", "Gunther

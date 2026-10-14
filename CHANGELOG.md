@@ -5,6 +5,10 @@ All notable changes to Social Diary. Versions follow the `## Version` line in
 
 ## [Unreleased]
 
+### Shiny new Things
+
+- Profiles now remember who watched you die, tried to save you, or saved you
+
 ### Changes
 
 - _Recently nearby_ now has a _Subzone_ column next to the zone, and the level moved in front of the name

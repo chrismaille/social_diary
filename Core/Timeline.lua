@@ -68,6 +68,10 @@ local TYPES = {
     -- TLN-2 has it for PvP kills.
     pvp_kill = { moment = function() return true end },
     pvp_death = { moment = function() return true end },
+    -- Witnesses to the user's fights (Capture/Witnesses.lua): always a line.
+    watched_death = { moment = function() return true end },
+    tried_to_help = { moment = function() return true end },
+    saved_you = { moment = function() return true end },
 }
 local OTHER = { activity = "other" }
 
