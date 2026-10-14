@@ -5,20 +5,22 @@ All notable changes to Social Diary. Versions follow the `## Version` line in
 
 ## [Unreleased]
 
+## [1.6.0]
+
 ### Shiny new Things
 
-- Profiles now remember who watched you die, tried to save you, or saved you
-  - They also appear in your _Your Diary_
+- Profiles now remember who watched you die or tried to save you
+  - They also appear in _Your Diary_
 
 ### Changes
 
-- _Recently nearby_ now has a _Subzone_ column next to the zone, and the level moved in front of the name
-- Places now read subzone first everywhere, as in "Goldshire, Elwynn Forest"
+- _Recently nearby_ now has a _Subzone_ column
+- Places now name the subzone before the zone
 
 ### Fixes
 
 - People added from _Recently nearby_ now show where they were last seen
-- Dragging a zoomed zone map in _Your Diary_ does not result in lag anymore
+- Dragging a zoomed zone map in _Your Diary_ no longer lags
 - Zone maps in _Your Diary_ keep their darkened edges in place while zooming
 
 ## [1.5.0]
