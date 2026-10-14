@@ -5,6 +5,10 @@ All notable changes to Social Diary. Versions follow the `## Version` line in
 
 ## [Unreleased]
 
+### Fixes
+
+- People added from _Recently nearby_ now show where they were last seen
+
 ## [1.5.0]
 
 ### Shiny new Things

@@ -238,6 +238,22 @@ function Sightings.For(guid)
     return guid and ns.db.sightings[guid] or {}
 end
 
+-- When and where they were last sighted, in the shape of a character
+-- record's `seen` (Characters.Seen), or nil. No subZone: rows keep none. The
+-- place is where the zone-hour's row began, as everywhere rows are read.
+function Sightings.Latest(guid)
+    local rows = Sightings.For(guid)
+    if #rows == 0 then return nil end
+    local row = LatestRow(rows)
+    return {
+        time = Last(row),
+        zone = ns.RowZone(row),
+        mapID = row.mapID,
+        x = row.x,
+        y = row.y,
+    }
+end
+
 -- Rows and characters.
 function Sightings.Count()
     local rows, characters = 0, 0

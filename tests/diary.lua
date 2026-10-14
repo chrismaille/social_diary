@@ -163,3 +163,63 @@ for guid, e in ns.Diary.Each() do
     each = each + 1
 end
 Eq(each, ns.Diary.Count(), "Diary.Each missed an entry")
+
+--------------------------------------------------------------------------
+Section("added off a sighting, last seen comes along")
+
+-- Characters.Seen only keeps `seen` for diary entries, so someone added off
+-- the Recently nearby page has sighting rows and no `seen`. Insert takes it
+-- from the rows; nothing is on screen to read it from.
+local SIGHTED = "Player-4620-00EEEE06"
+ns.Characters.Observe(SIGHTED, { first = "Wren", surname = "Hollow", level = 18 })
+local MULGORE = { mapID = 1412, x = 0.3, y = 0.4 }
+ns.Sightings.Record(SIGHTED, { source = "plate" }, MULGORE, mock.now - 3 * 3600)
+ns.Sightings.Record(SIGHTED, { source = "plate" }, { mapID = 1413, x = 0.5, y = 0.6 }, mock.now - 3600)
+ns.Sightings.Record(SIGHTED, { source = "plate" }, { mapID = 1413, x = 0.7, y = 0.8 }, mock.now - 3000)
+Eq(ns.Characters.Get(SIGHTED).seen, nil, "setup: a stranger already has `seen`")
+
+ns.Diary.Add(SIGHTED, { source = "nearby", where = { zone = "The Barrens", mapID = 1413, x = 0.5, y = 0.6 } })
+local seen = ns.Characters.Get(SIGHTED).seen
+Check(seen, "added off a sighting, still not seen nearby")
+Eq(seen.time, mock.now - 3000, "last seen is not the latest sighting")
+Eq(seen.mapID, 1413, "last seen is not the latest sighting's map")
+Eq(seen.x, 0.5, "the place is not where the zone-hour's row began")
+Eq(ns.UI.SeenText(seen):match(" in (.+)$"), "The Barrens", "the profile line names no zone")
+
+-- A later `seen` (a trade, a nameplate once in the diary) is not overwritten.
+local LATER = "Player-4620-00EEEE07"
+ns.Characters.Observe(LATER, { first = "Ash", surname = "Vale" })
+ns.Sightings.Record(LATER, { source = "plate" }, MULGORE, mock.now - 7200)
+ns.Interactions.Add(LATER, "trade", {})
+local traded = ns.Characters.Get(LATER).seen
+Check(traded and traded.time == mock.now, "setup: the trade did not set `seen`")
+ns.Diary.Add(LATER, { source = "nearby" })
+Eq(ns.Characters.Get(LATER).seen.time, mock.now, "an older sighting replaced a newer `seen`")
+
+-- Entries added before the fix: filled at login, once, and not into the map.
+local BEFORE = "Player-4620-00EEEE08"
+ns.Characters.Observe(BEFORE, { first = "Moss", surname = "Brook" })
+ns.Sightings.Record(BEFORE, { source = "plate" }, MULGORE, mock.now - 7200)
+ns.Diary.Add(BEFORE, { source = "nearby" })
+local record = ns.Characters.Get(BEFORE)
+record.seen = nil
+local function HeatTotal(r)
+    local n = 0
+    for _, map in pairs(r.heat or {}) do
+        for _, count in pairs(map) do n = n + count end
+    end
+    return n
+end
+local heat = HeatTotal(record)
+local NEVER = "Player-4620-00EEEE09"
+ns.Characters.Observe(NEVER, { first = "Fern", surname = "Glade" })
+ns.Diary.Add(NEVER, { source = "chat" })
+
+ns.Diary.FillSeen()
+Check(record.seen, "login did not fill an older entry's `seen`")
+Eq(record.seen.time, mock.now - 7200, "login filled the wrong time")
+Eq(ns.Characters.Get(NEVER).seen, nil, "someone never sighted got a `seen`")
+Eq(HeatTotal(record), heat, "filling `seen` counted on the map")
+local filled = record.seen
+ns.Diary.FillSeen()
+Eq(record.seen, filled, "a second login changed `seen`")

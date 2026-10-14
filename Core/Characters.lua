@@ -226,6 +226,20 @@ function Characters.Seen(guid, where)
     return record.seen
 end
 
+-- `seen` from the sighting rows, when they are newer. Seen above only keeps
+-- it for diary entries, so someone sighted before they were added -- off the
+-- Recently nearby page, say -- has rows but no `seen`. Not into the map:
+-- Heat.Backfill counts those rows.
+function Characters.SeenFromSightings(guid)
+    local record = Characters.Get(guid)
+    local latest = record and ns.Sightings.Latest(guid)
+    if not latest then return record and record.seen end
+    if record.seen and record.seen.time >= latest.time then return record.seen end
+
+    record.seen = latest
+    return latest
+end
+
 --------------------------------------------------------------------------
 -- Retention
 --------------------------------------------------------------------------

@@ -144,6 +144,7 @@ local function Insert(entry, here)
     ns.Touch()
     -- Where they were seen before they were added, then where they are now.
     ns.Heat.Backfill(guid, entry.addedAt)
+    ns.Characters.SeenFromSightings(guid)
     if here then ns.Characters.Seen(guid) end
 
     ns.Print("added |cffffffff%s|r to the diary.", ns.Characters.FullName(guid) or guid)
@@ -176,6 +177,16 @@ function Diary.Add(guid, opts)
     end
 
     return entry, true
+end
+
+-- Entries added off a sighting before Insert filled `seen` (up to 1.5.0)
+-- still read "Not seen nearby yet.". Run at login, before the roll-up folds
+-- the rows away; only touches entries with no `seen`, so repeating is free.
+function Diary.FillSeen()
+    for guid in pairs(ns.db.diary) do
+        local record = ns.Characters.Get(guid)
+        if record and not record.seen then ns.Characters.SeenFromSightings(guid) end
+    end
 end
 
 --------------------------------------------------------------------------

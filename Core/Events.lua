@@ -210,6 +210,7 @@ ns.On("ZONE_CHANGED_NEW_AREA", function() ns.FillBegunZone() end)
 ns.On("PLAYER_LOGIN", function()
     ns.TouchOwnCharacter()
     ns.Interactions.Prune()
+    ns.Diary.FillSeen()
     ns.Sightings.Rollup()
     -- After both: a record goes once the rows that held on to it have.
     ns.Characters.Prune()
