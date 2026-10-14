@@ -173,13 +173,37 @@ local function Story(snap, place)
     return ("You've crossed paths %s, last %s%s."):format(Em(snap.timesMet .. " times"), Em(when), where)
 end
 
+-- The record without some of what it says.
+local function Without(record, ...)
+    local copy = {}
+    for key, value in pairs(record) do copy[key] = value end
+    for _, key in ipairs({ ... }) do copy[key] = nil end
+    return copy
+end
+
+-- Who they are, longest first: with the guild, without it, without the
+-- race (the portrait shows it), then the class alone. A foe's faction
+-- stays to the last: it matters more on a toast than any guild.
+local function Whos(record, guild)
+    record = record or {}
+    local W = ns.UI.WhoLine
+    return {
+        W(record, guild, true),
+        W(record, nil, true),
+        W(Without(record, "race", "raceID"), nil, true),
+        W(Without(record, "race", "raceID", "level"), nil, true),
+    }
+end
+
 -- What the card says, as a table:
 --   heading       why it came up
 --   name          who, or "and 3 more" at the end of a flood
 --   tags          the tags in small capitals, each in its own ink
 --   relationship  as the user wrote it
---   who           "Level 12 Tauren Druid  ·  Horde", for an entry with
---                 neither tags nor a relationship
+--   who           who they are, for an entry with neither tags nor a
+--                 relationship: "Level 12 Tauren Druid  <Guild>", the
+--                 faction only when it is not the player's; longest
+--                 first, for the card to take the first that fits
 --   stories       what to say under them, longest first, for the card to
 --                 take the first that fits: the last meeting with its
 --                 place and without, or for a foe the score
@@ -226,7 +250,7 @@ function ns.UI.ReunionText(snap)
         warning = warning,
     }
     if not text.tags and not text.relationship then
-        text.who = ns.UI.WhoLine(snap.record, snap.guild)
+        text.who = Whos(snap.record, snap.guild)
     end
     return text
 end
@@ -436,7 +460,11 @@ local function Build()
         self.relationship:SetText(text.relationship or "")
         local fits = text.relationship and x + K.Width(self.relationship) <= CARD.w - M
         if fits then Show(self.relationship, x, CARD.about) else Show(self.relationship) end
-        self.who:SetText(text.who or "")
+        -- Who they are: the longest that fits.
+        for _, who in ipairs(text.who or { "" }) do
+            self.who:SetText(who)
+            if K.Width(self.who) <= room then break end
+        end
         if text.who then Show(self.who, CARD.indent, CARD.about) else Show(self.who) end
 
         -- The story: the longest that fits. Being placed, it keeps its

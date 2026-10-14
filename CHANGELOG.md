@@ -18,6 +18,8 @@ All notable changes to Social Diary. Versions follow the `## Version` line in
 ### Fixes
 
 - People added from _Recently nearby_ now show where they were last seen
+- Dragging a zoomed zone map in _Your Diary_ does not result in lag anymore
+- Zone maps in _Your Diary_ keep their darkened edges in place while zooming
 
 ## [1.5.0]
 

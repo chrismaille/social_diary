@@ -184,9 +184,11 @@ local ZOOM = { scale = 1.16, time = 0.2 }
 -- blurs). Moving it only scales and shifts the drawn picture; once the
 -- wheel or the drag has been still `settle` seconds the picture is drawn
 -- again for the new window, sharp, its marks and lines at their own size
--- again, with `overscan` of the window more on every side drawn round
--- it (under the card's margin, clipped) so a drag has art to show.
-local FULLZOOM = { step = 1.25, time = 0.15, settle = 0.25, native = 1, overscan = 0.35 }
+-- again, with the rest of the zone drawn round it (under the card's
+-- margin, clipped) so a drag never runs off the art. No closer than
+-- `native`, the whole zone is no more than its art's own size (a zone's
+-- 1002 by 668 px), not much more than a window and a margin round it.
+local FULLZOOM = { step = 1.25, time = 0.15, settle = 0.25, native = 1, overscan = math.huge }
 -- Dragging a zoomed full page pans it; a press that moves less than
 -- `threshold` px is a click, which goes back.
 local DRAG = { threshold = 4 }
@@ -512,6 +514,7 @@ local function New(parent, slot)
     -- placed about the card's middle, not the picture's, so they stay at
     -- the neat line while a full page pans (VIGNETTE).
     local vignettePool = Pool("BORDER", 4, function(t) t.anchorTo = nil end, content)
+    plate.vignettes = vignettePool
     -- The trail: a pool of quads and one of discs for each of its layers
     -- (InkTrail's LAYER), quads and discs apart, so a texture is always the
     -- one thing.
@@ -1298,6 +1301,12 @@ local function New(parent, slot)
         local function A(side, n)
             return V.alpha[side] * (1 + (Style.Noise(seed * 0.71 + n) - 0.5) * 2 * V.uneven)
         end
+        -- Where each band went, for Unscale to keep it there.
+        local Place = function(t, x, y, w, h)
+            Place(t, x, y, w, h)
+            local sx, sy = K.Screen(x + w / 2, y + h / 2)
+            t.home = { sx, sy, w, h }
+        end
         -- VERTICAL runs from the bottom up.
         local top = vignettePool:Next()
         Style.Shade(top, "VERTICAL", T[1], T[2], T[3], 0, A("top", 1))
@@ -1338,7 +1347,7 @@ local function New(parent, slot)
             local texture = backgroundPool:Next()
             Fill(texture, B[1] * light, B[2] * light, B[3] * light, 1)
             Bend(texture, x0, y0, x1, y1, true)
-        end)
+        end, box ~= nil)
 
         local wx0, wy0, wx1, wy1 = window[1], window[2], window[3], window[4]
         local tiles, explored = 0, 0
@@ -1347,7 +1356,7 @@ local function New(parent, slot)
         local grey = plate.canDesaturate
         if layer then
             tiles, explored = ns.UI.MapArt.Print(layer, pieces, { wx0 * LW, wy0 * LH, wx1 * LW, wy1 * LH }, ax, ay, aw,
-                grey and PLATE.tint or PLATE.plain, K, tilePool, exploredPool)
+                grey and PLATE.tint or PLATE.plain, K, tilePool, exploredPool, box ~= nil)
             for _, pool in ipairs({ tilePool, exploredPool }) do
                 for i = 1, pool.used do
                     local piece = pool[i]
@@ -2184,6 +2193,21 @@ local function New(parent, slot)
     -- fitted view; LW, LH the art's size; onSettle(f, cx, cy) draws again.
     local look
 
+    -- The print's darkened edges are in the picture (under its ink) but
+    -- stay at the neat line: scaled with it by `scale`, each band is put
+    -- back where it was drawn, so the wheel does not take them with it.
+    local function Unscale(scale)
+        for i = 1, vignettePool.used do
+            local t = vignettePool[i]
+            local h = t.home
+            if h then
+                t:ClearAllPoints()
+                t:SetPoint("CENTER", S, "CENTER", h[1] / scale, h[2] / scale)
+                t:SetSize(h[3] / scale, h[4] / scale)
+            end
+        end
+    end
+
     -- The picture placed for the view shown against the view drawn: scaled
     -- by their ratio about the card's middle and shifted, in the card's own
     -- turn, so the map point at the middle is the one wanted.
@@ -2196,6 +2220,7 @@ local function New(parent, slot)
         pivot:SetPoint("CENTER", S, "CENTER", lx * c + ly * sn, lx * sn - ly * c)
         plate.scale = f / d.f
         content:SetScale(plate.scale)
+        Unscale(plate.scale)
     end
 
     -- A view kept on the map: zoomed out to the fit, the fitted framing;
@@ -2211,7 +2236,11 @@ local function New(parent, slot)
     end
 
     -- The wheel's easing, then the wait to draw sharp again: one short
-    -- OnUpdate on the pivot, stopping itself once it has drawn.
+    -- OnUpdate on the pivot, stopping itself once it has drawn. A new zoom
+    -- is drawn (the whole zone round it) even while the map is held, so a
+    -- drag begun straight after the wheel has art to pan into; the press
+    -- is carried on over the drawing.
+    local Drag
     local function Tick(_, elapsed)
         local m = look.move
         if m then
@@ -2225,14 +2254,18 @@ local function New(parent, slot)
             if p >= 1 then look.move = nil end
             return
         end
-        if look.pressed then return end
         look.still = look.still + (elapsed or 0)
         if look.still >= FULLZOOM.settle then
             pivot:SetScript("OnUpdate", nil)
-            local d = look.drawn
-            if d.f ~= look.f or d.cx ~= look.cx or d.cy ~= look.cy then
+            local d, pressed = look.drawn, look.pressed
+            -- Held, only a new zoom: a drag draws again once let go.
+            if d.f ~= look.f or (not pressed and (d.cx ~= look.cx or d.cy ~= look.cy)) then
                 look.redraws = (look.redraws or 0) + 1
                 look.onSettle(look.f, look.cx, look.cy)
+                if pressed and look then
+                    look.pressed = pressed
+                    clip:SetScript("OnUpdate", Drag)
+                end
             end
         end
     end
@@ -2274,7 +2307,7 @@ local function New(parent, slot)
     clip:SetScript("OnMouseWheel", function(_, delta) plate:Wheel(delta) end)
 
     -- A press on the picture: a click, or once zoomed a drag that pans.
-    local function Drag()
+    function Drag()
         local p = look and look.pressed
         if not p then
             clip:SetScript("OnUpdate", nil)
@@ -2347,6 +2380,7 @@ local function New(parent, slot)
         pivot:ClearAllPoints()
         pivot:SetPoint("CENTER", S, "CENTER")
         Apply()
+        if look then Unscale(plate.scale) end
     end
     plate.Settle = Settle
     clip:SetScript("OnEnter", function() plate:Lean() end)

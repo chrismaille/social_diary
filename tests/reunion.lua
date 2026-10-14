@@ -1047,3 +1047,57 @@ mock.now = mock.now + 60
 ns.Diary.Add(C, { source = "test" })
 _, _, total = ns.Heat.Cells(C, 1429)
 Eq(total, 3, "added again, the rows were counted twice or the new one not at all")
+
+--------------------------------------------------------------------------
+Section("the toast's who line with a guild stays on the card")
+
+Reset()
+mock.RunTimers()
+mock.now = mock.now + DAY
+Eq(UnitFactionGroup("player"), "Horde", "the player is not Horde")
+-- Guild names run to 24 characters in the client. Each case: the race and
+-- class, the guild, and the line the card should take. The mock counts
+-- "·" as two characters, so the whole Night Elf line is 234 px to the
+-- 230 there is: it loses the race, and keeps the faction.
+local WHO = {
+    { { race = "NightElf", class = "WARRIOR", faction = "Alliance" }, "Knights of the Ashen Vow",
+        "Level 60 Warrior  ·  Alliance" },
+    { { race = "NightElf", class = "WARRIOR", faction = "Alliance" }, nil,
+        "Level 60 Warrior  ·  Alliance" },
+    { { race = "Tauren", class = "WARRIOR", faction = "Horde" }, "Brotherhood of the Plain",
+        "Level 60 Tauren Warrior" },
+    { { race = "Troll", class = "SHAMAN", faction = "Horde" }, "Kin", "Level 60 Troll Shaman  <Kin>" },
+    { { race = "Scourge", class = "WARLOCK", faction = "Horde" }, nil, "Level 60 Undead Warlock" },
+}
+-- Where the line ends on the card: the sheet's middle plus its offset.
+local function Edge(fs)
+    local p = fs.recorded.points[1].args
+    return 160 + p[3] + fs.width / 2
+end
+for i, case in ipairs(WHO) do
+    local guid = ("Player-4395-0E0000%02d"):format(i)
+    local info = { first = "Probe" .. i, surname = "Tester", level = 60 }
+    for k, v in pairs(case[1]) do info[k] = v end
+    ns.Characters.Observe(guid, info)
+    ns.Diary.Add(guid, { source = "test" })
+    ns.db.diary[guid].guildAtAdd = case[2]
+    ns.UI.Reunion(guid, "nearby")
+    local who = Plain(toast.who:GetText())
+    Check(toast.who:IsShown(), "no who line for " .. case[3])
+    Eq(who, case[3], "the who line taken")
+    Check(Edge(toast.who) <= 300, ("%q runs off the card, to %d"):format(who, Edge(toast.who)))
+    Check(not who:find("Horde"), "the player's own faction on the toast: " .. who)
+    toast.button:Click("RightButton")
+end
+
+-- Shorter still, for a line that will not fit even so: without the race
+-- (the portrait shows it), then the class alone, a foe's faction kept to
+-- the last.
+local text = ns.UI.ReunionText({
+    name = "Probe Tester", reason = "nearby", timesMet = 0, guild = "Knights of the Ashen Vow",
+    record = { level = 60, race = "NightElf", class = "WARRIOR", faction = "Alliance" },
+})
+Eq(#text.who, 4, "who lines to choose from")
+Eq(Plain(text.who[1]), "Level 60 Night Elf Warrior  ·  Alliance  <Knights of the Ashen Vow>", "the whole who line")
+Eq(Plain(text.who[3]), "Level 60 Warrior  ·  Alliance", "the who line without the race")
+Eq(Plain(text.who[4]), "Warrior  ·  Alliance", "the shortest who line")

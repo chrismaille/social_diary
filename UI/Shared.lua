@@ -573,8 +573,10 @@ function ns.UI.ClassName(record)
     return token:sub(1, 1) .. token:sub(2):lower()
 end
 
--- "Level 6 Tauren Druid  ·  Horde  <Guild>", inked for the page.
-function ns.UI.WhoLine(record, guild)
+-- "Level 6 Tauren Druid  ·  Horde  <Guild>", inked for the page. With
+-- dropOwn the faction goes when it is the player's own, as it nearly
+-- always is out in the world.
+function ns.UI.WhoLine(record, guild, dropOwn)
     record = record or {}
     local parts = {}
     if record.level then parts[#parts + 1] = "Level " .. record.level end
@@ -582,7 +584,8 @@ function ns.UI.WhoLine(record, guild)
     parts[#parts + 1] = ns.UI.ClassName(record)
 
     local text = table.concat(parts, " ")
-    if record.faction == "Horde" or record.faction == "Alliance" then
+    local own = dropOwn and record.faction == UnitFactionGroup("player")
+    if not own and (record.faction == "Horde" or record.faction == "Alliance") then
         local hex = record.faction == "Horde" and ns.Style.HEX.horde or ns.Style.HEX.alliance
         text = text .. (text ~= "" and "  ·  " or "") .. "|cff" .. hex .. record.faction .. "|r"
     end

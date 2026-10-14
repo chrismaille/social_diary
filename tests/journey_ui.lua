@@ -1232,6 +1232,13 @@ do
     Check(math.abs(look.cx + qx / (look.f * 1002) - mx) < 1e-9 and math.abs(look.cy + qy / (look.f * 668) - my) < 1e-9,
         "the point under the cursor moved")
     Check(math.abs(content.recorded.calls.SetScale[1] - FZ.step) < 1e-9, "the picture was not scaled while easing")
+    -- The print's darkened edges stay at the neat line while it is scaled.
+    local band = plate.vignettes[1]
+    Check(band and band.home, "the full page has no darkened edges to keep")
+    Check(math.abs(band.recorded.width * FZ.step - band.home[3]) < 1e-6,
+        "the darkened edges were scaled with the picture")
+    Check(math.abs(band.recorded.points[1].args[3] * FZ.step - band.home[1]) < 1e-6,
+        "the darkened edges moved with the picture's scale")
     Eq(look.redraws, nil, "the picture was drawn again while the wheel turned")
     pivot.scripts.OnUpdate(pivot, FZ.settle)
     look = plate.look
@@ -1240,6 +1247,20 @@ do
     Eq(content.recorded.calls.SetScale[1], 1, "drawn again, the picture kept its scale")
     Check(pivot.scripts.OnUpdate == nil, "the wheel's OnUpdate did not stop itself")
     Check(plate.window[3] - plate.window[1] > (446 - 20) / (look.f * 1002), "the window was not drawn with room to pan")
+    Check(plate.window[1] == 0 and plate.window[2] == 0 and plate.window[3] == 1 and plate.window[4] == 1,
+        "zoomed in, the zone was not drawn whole round the window: a drag runs off the art")
+    -- ... and drawn there, past the card's edge, not cut to the card.
+    local sheet, K = ns.UI.LooseSheet(UIParent, 200, 100, { glued = true, shadows = {} })
+    K.Fall("split")
+    K.Lay()
+    local function Area(open)
+        local area = 0
+        K.Split(-300, -300, 500, 400, function(a, b, c, d) area = area + (c - a) * (d - b) end, open)
+        return area
+    end
+    Eq(Area(false), 200 * 100, "a split not open reached past the sheet")
+    Eq(Area(true), 800 * 700, "an open split was cut to the sheet: the picture round a zoomed window is lost")
+    sheet:Hide()
     -- Clamped: no closer than the art's own size, no further than fitted.
     for _ = 1, 12 do plate:Wheel(1, 0, 0) end
     Eq(plate.look.goal.f, FZ.native, "the zoom passed the art's own size")
@@ -1269,6 +1290,35 @@ do
     clip.scripts.OnMouseUp(clip, "LeftButton")
     Eq(page.mode, "full", "a drag went back")
     Check(clip.scripts.OnUpdate == nil and pivot.scripts.OnUpdate, "the drag did not let go and wait to draw sharp")
+    pivot.scripts.OnUpdate(pivot, FZ.settle)
+    -- Grabbed straight after the wheel: the new zoom is drawn while held,
+    -- and the drag goes on over it; only a new zoom, not the pan.
+    local before = plate.look.redraws or 0
+    at[1], at[2] = 0, 0
+    plate:Wheel(-1, 0, 0)
+    Check(plate.look.goal.f > plate.look.fit, "a notch out from the art's own size went back to fitted")
+    clip.scripts.OnMouseDown(clip, "LeftButton")
+    pivot.scripts.OnUpdate(pivot, FZ.time)
+    at[1] = -30
+    clip.scripts.OnUpdate(clip, 0.016)
+    local held = plate.look.cx
+    pivot.scripts.OnUpdate(pivot, FZ.settle)
+    Eq(plate.look.redraws, before + 1, "a new zoom was not drawn while the map was held")
+    Check(plate.window[1] == 0 and plate.window[3] == 1, "drawn while held, the zone was not drawn whole")
+    Check(plate.look.pressed and clip.scripts.OnUpdate, "drawn while held, the drag was let go")
+    at[1] = -60
+    clip.scripts.OnUpdate(clip, 0.016)
+    Check(plate.look.cx > held, "after the drawing, the drag did not go on panning")
+    clip.scripts.OnMouseUp(clip, "LeftButton")
+    Eq(page.mode, "full", "a drag over a drawing went back")
+    pivot.scripts.OnUpdate(pivot, FZ.settle)
+    Eq(plate.look.redraws, before + 2, "let go, the pan was not drawn again")
+    -- Held still after a pan's drawing: nothing drawn while held.
+    clip.scripts.OnMouseDown(clip, "LeftButton")
+    at[1] = -100
+    clip.scripts.OnUpdate(clip, 0.016)
+    Check(pivot.scripts.OnUpdate == nil, "a pan alone started a drawing while held")
+    clip.scripts.OnMouseUp(clip, "LeftButton")
     pivot.scripts.OnUpdate(pivot, FZ.settle)
     -- A press that hardly moves is a click: back.
     at[1], at[2] = 0, 0

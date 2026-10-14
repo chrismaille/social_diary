@@ -319,9 +319,12 @@ function ns.UI.LooseSheet(parent, W, H, opts)
 
     -- A point of the flat sheet onto the screen: drifted with the mesh while
     -- it bends, turned with the sheet; relative to the sheet's middle, y up.
+    -- Off the sheet (a plate's picture drawn past it, Split's `open`), it
+    -- drifts as the edge it is beyond does, not on and on.
     local function Screen(x, y)
         if mesh[1] and view.bends then
             local i, j, t, u = Facet(x, y)
+            t, u = math.max(0, math.min(1, t)), math.max(0, math.min(1, u))
             local a, b, c, d = mesh[i][j], mesh[i + 1][j], mesh[i][j + 1], mesh[i + 1][j + 1]
             x = x + (a.dx * (1 - t) + b.dx * t) * (1 - u) + (c.dx * (1 - t) + d.dx * t) * u
             y = y + (a.dy * (1 - t) + b.dy * t) * (1 - u) + (c.dy * (1 - t) + d.dy * t) * u
@@ -455,13 +458,18 @@ function ns.UI.LooseSheet(parent, W, H, opts)
     end
 
     -- Calls fn(x0, y0, x1, y1, light) for each piece of the rectangle
-    -- inside one facet.
-    local function Split(x0, y0, x1, y1, fn)
+    -- inside one facet. What is off the sheet is left out, unless `open`:
+    -- then the edge facets reach on past it (a plate's picture drawn round
+    -- its window, to pan into).
+    local function Split(x0, y0, x1, y1, fn, open)
+        local HUGE = math.huge
         for i = 1, NX - 1 do
-            local a, b = math.max(x0, X[i]), math.min(x1, X[i + 1])
+            local lo, hi = (open and i == 1) and -HUGE or X[i], (open and i == NX - 1) and HUGE or X[i + 1]
+            local a, b = math.max(x0, lo), math.min(x1, hi)
             if b > a then
                 for j = 1, NY - 1 do
-                    local c, d = math.max(y0, Y[j]), math.min(y1, Y[j + 1])
+                    local top, bottom = (open and j == 1) and -HUGE or Y[j], (open and j == NY - 1) and HUGE or Y[j + 1]
+                    local c, d = math.max(y0, top), math.min(y1, bottom)
                     if d > c then fn(a, c, b, d, FacetLight(i, j)) end
                 end
             end

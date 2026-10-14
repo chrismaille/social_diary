@@ -117,8 +117,10 @@ end
 -- (`Split`, `Bend`, UI/LooseSheet.lua), each piece taking its part of its
 -- file and its facet's light on the `tint`. The base's tiles come from
 -- `tiles`, the explored areas' from `explored`, a pool drawn over it.
--- Returns how many of each were printed.
-function MapArt.Print(layer, pieces, window, mx, my, mw, tint, K, tiles, explored)
+-- `open`: printed past the sheet's edge too (Split's `open`), where a
+-- plate's picture is drawn round its window. Returns how many of each
+-- were printed.
+function MapArt.Print(layer, pieces, window, mx, my, mw, tint, K, tiles, explored, open)
     local Split, Bend = K.Split, K.Bend
     -- The part of the art shown, in its pixels, and its scale.
     local x0, y0, x1, y1 = MapArt.Window(layer, window)
@@ -141,7 +143,7 @@ function MapArt.Print(layer, pieces, window, mx, my, mw, tint, K, tiles, explore
                 piece:SetTexCoord((px0 - p.x) / p.fw, (px1 - p.x) / p.fw, (py0 - p.y) / p.fh, (py1 - p.y) / p.fh)
                 piece:SetVertexColor(tint[1] * light, tint[2] * light, tint[3] * light)
                 Bend(piece, a, b, c, d, true)
-            end)
+            end, open)
         end
     end
     return counts.tiles, counts.explored
