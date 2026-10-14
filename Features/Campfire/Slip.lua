@@ -2,8 +2,8 @@
 -- the user's decisions of 14 Oct): a campfire sat by on a plate, told in the
 -- margin by one small cut slip of the strip family (UI/PaperStrip.lua) with
 -- one line in the diary's hand, exactly "sat by a campfire"
--- (Text.CAMPFIRE_SLIP, the user's words), and a pencil leader to the fire's
--- mark (UI/JourneyPlate.lua's SHAPES.campfire).
+-- (Campfire.WORDS, Text.lua: the user's words), and a pencil leader to the
+-- fire's mark (Mark.lua).
 --
 -- It is the lucky card's S size (UI/LuckyCard.lua's tag): the hand at
 -- 14 px, not a person's 16, so it fits the narrowest column (122 px); the
@@ -15,15 +15,17 @@
 -- It is filler ("kind of unimportant, just filler if we don't have
 -- anything better", the user, 14 Oct): last in the margin, so the first
 -- left off, and it never grows smaller. Either it fits or it is left off
--- and the caption's words say it (Text.PlateCaption's `camped`).
+-- and the caption's words say it (`said.campfire`, Text.lua), unless that
+-- would run them past their foot (plate.camped, below).
 --
 -- Laid flat ("Flat paper only") it lies square, without shadows, as every
 -- slip does.
 
 local addonName, ns = ...
 
-local CampfireSlip = {}
-ns.UI.CampfireSlip = CampfireSlip
+local Campfire = ns.Campfire
+local Slip = {}
+Campfire.Slip = Slip
 
 -- The slip: the hand's file and size (the lucky tag's 14 px, PRINT.hand),
 -- the most it turns (degrees, the strip's), and its tape (LuckyCard's TAG:
@@ -33,7 +35,7 @@ ns.UI.CampfireSlip = CampfireSlip
 -- words start clear of it.
 local SLIP = { file = "Interface\\AddOns\\" .. addonName .. "\\Fonts\\Neuton-Italic.ttf", size = 14, turn = 1.4,
     tape = { x = 1, y = 1, w = 22, h = 10, slant = { 39, 51 } } }
-CampfireSlip.SLIP = SLIP
+Slip.SLIP = SLIP
 
 -- A number from a string, the same every time (PaperStrip's).
 local function Seed(key)
@@ -49,7 +51,7 @@ end
 -- the page (`mark`, which stands in for the slip's place in the margin's
 -- order before it is laid), and every mark (`marks`, page points, for its
 -- leader to go to the nearest). Nil without a fire.
-function CampfireSlip.Choose(marks)
+function Slip.Choose(marks)
     local list, latest, at = {}, nil, nil
     for _, mark in ipairs(marks or {}) do
         for _, m in ipairs(mark.list or {}) do
@@ -66,7 +68,7 @@ end
 
 -- The mark its leader goes to: of the fires on the plate, the one nearest
 -- the slip as laid (the fires are equals, as a person's marks are).
-function CampfireSlip.Mark(chosen, slip)
+function Slip.Mark(chosen, slip)
     local best, gap
     for _, at in ipairs(chosen.marks or {}) do
         local sx, sy = slip:Nearest(at[1], at[2])
@@ -79,17 +81,16 @@ end
 -- A slip on `parent`. slip:SetCampfire(chosen, seed, now), then
 -- slip:Layout(x, y, width) as a strip's; `overfull` where its line is wider
 -- than `width` (it does not wrap or shrink, so the page leaves it off).
-function CampfireSlip.New(parent)
+function Slip.New(parent)
     local slip = ns.UI.PaperStrip(parent)
     slip.name:SetFont(SLIP.file, SLIP.size, "")
 
     function slip:SetCampfire(chosen, seed, now)
-        local Text = ns.UI.JourneyText
         self.chosen = chosen
         local function Tip()
             local tip = {}
             for _, m in ipairs(chosen.list) do
-                local title, lines = Text.CampfireTip(m.campfire or m, now)
+                local title, lines = Campfire.Tip(m.campfire or m, now)
                 tip[#tip + 1] = { title }
                 for _, line in ipairs(lines or {}) do tip[#tip + 1] = { line, 1, 1, 1, true } end
             end
@@ -97,7 +98,7 @@ function CampfireSlip.New(parent)
         end
         local rand = ns.UI.InkTrail.Random(Seed(seed .. ":tape"))
         local T = SLIP.tape
-        self:SetNote({ name = Text.CAMPFIRE_SLIP, strong = true, seed = seed, turn = SLIP.turn, tip = Tip,
+        self:SetNote({ name = Campfire.WORDS, strong = true, seed = seed, turn = SLIP.turn, tip = Tip,
             tapeAt = { x = T.x, y = T.y, w = T.w, h = T.h, slant = T.slant[1] + (T.slant[2] - T.slant[1]) * rand() } })
     end
 
@@ -116,3 +117,33 @@ function CampfireSlip.New(parent)
 
     return slip
 end
+
+-- The slip in the plates' margin (ns.UI.JourneyMargin.Register,
+-- UI/JournalJourney.lua): one, "sat by a campfire", order 90, last of all,
+-- after the people only seen (80), so it is the first left off: filler
+-- (the user, 14 Oct), and the caption's words say it then
+-- (`said.campfire`), unless that would cost the caption its place over
+-- the plate or run it past its foot (plate.camped false then: the mark
+-- alone tells it). It goes in a light plate's margin too (under its
+-- caption), never on the print: there is room under the print's caption
+-- in LF, LFF, LFL, FLF (and FFL with the route kept); under FL's print
+-- (its caption from y 474) and often F+L's tucked one there is none, so it
+-- is left off there and the words say it. The layouts stay as they are for
+-- it, never FL turned FF for a campfire (the user's choice, 14 Oct). Its
+-- leader goes to the fire nearest the slip.
+ns.UI.JourneyMargin.Register("campfire", {
+    order = 90, pool = "campfirePool", count = "campfiresWritten", filler = true, flag = "camped",
+    new = function(parent) return Slip.New(parent) end,
+    item = function(plate)
+        local f = plate.campfire
+        return f and { campfire = f, top = f.mark[2], x = f.mark[1] } or nil
+    end,
+    write = function(slip, it, c)
+        local first = it.campfire.list[1]
+        slip:SetCampfire(it.campfire, c.Seed("campfire", first and first.t or 0), c.now)
+    end,
+    mark = function(it, slip) return Slip.Mark(it.campfire, slip) end,
+    say = function(said, shown, plate)
+        if plate.campfire and not shown[1] then said.campfire = true end
+    end,
+})

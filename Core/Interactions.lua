@@ -32,33 +32,17 @@ Interactions.MAX_ROWS = MAX_ROWS
 -- settings.chatUnlimited). Each line is capped in length here.
 local MAX_EXCERPT_CHARS = 255
 
--- Which types carry chat text, and so answer to the excerpt cap and to the
--- "chat storage can be switched off" setting.
-local CHAT_TYPES = {
-    whisper_in = true,
-    whisper_out = true,
-    say = true,
-    yell = true,
-    party = true,
-}
+-- Which kinds carry chat text (`chat`), are about them rather than with
+-- them (`observed`), or mean they were near (`proximity`) is each kind's
+-- (Core/Rows.lua).
+local Rows = ns.Rows
 
 -- Rows about them rather than with them: something the user saw, not an
 -- exchange. They live in the buffer like any row, so they come along when
 -- the character is added (flow 2), but they do not make anyone "someone I
 -- just dealt with" (Since, the picker) or count as interactions on record.
-local OBSERVED = {
-    level_up = true,
-}
-Interactions.OBSERVED = OBSERVED
-
--- Types that mean they were within earshot or arm's reach, so a live one is
--- also "last seen" (Characters.Seen).
-local PROXIMITY = {
-    trade = true,
-    say = true,
-    yell = true,
-    campfire = true,
-}
+local function Observed(kind) return Rows.Get(kind).observed == true end
+Interactions.Observed = Observed
 
 --------------------------------------------------------------------------
 -- Reading
@@ -74,7 +58,7 @@ function Interactions.Count(guid)
     local rows = Interactions.For(guid) or {}
     local n = 0
     for i = 1, #rows do
-        if not OBSERVED[rows[i].type] then n = n + 1 end
+        if not Observed(rows[i].type) then n = n + 1 end
     end
     return n
 end
@@ -95,7 +79,7 @@ function Interactions.Since(since)
     for guid, rows in pairs(ns.db.interactions) do
         for i = #rows, 1, -1 do
             local row = rows[i]
-            if not OBSERVED[row.type] then
+            if not Observed(row.type) then
                 if row.time >= since then
                     list[#list + 1] = { guid = guid, time = row.time, type = row.type }
                 end
@@ -195,7 +179,7 @@ function Interactions.Add(guid, kind, data)
     data = data or {}
 
     local storeChat = ns.db.settings.storeChat
-    local isChat = CHAT_TYPES[kind] == true
+    local isChat = Rows.Get(kind).chat == true
 
     local row = {
         type = kind,
@@ -226,7 +210,7 @@ function Interactions.Add(guid, kind, data)
         row.session = ns.Sessions.Note(guid, kind, data.time == nil)
     end
 
-    if PROXIMITY[kind] and data.time == nil then
+    if Rows.Get(kind).proximity and data.time == nil then
         ns.Characters.Seen(guid, where)
     end
 

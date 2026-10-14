@@ -84,18 +84,18 @@ mock.mapNames[2665] = "Zephras Isle"
 local function Moment(kind, hunt) return { kind = kind, t = now - 100, hunt = hunt } end
 local plate = { mapID = 1413, moments = { Moment("death"), Moment("fortune", KOLKAR), Moment("fortune", HEZRUL) } }
 Eq(Text.PlateCaption(plate), "A death, and two lucky hunts.", "without a card, as before")
-Eq(Text.PlateCaption(plate, nil, nil, nil, nil, nil, nil, { hunt = KOLKAR }), "A death, and another lucky hunt.",
+Eq(Text.PlateCaption(plate, nil, { fortune = { hunt = KOLKAR } }), "A death, and another lucky hunt.",
     "the card's hunt leaves the words, the other is counted")
 plate.moments[#plate.moments + 1] = Moment("fortune", MANY)
-Eq(Text.PlateCaption(plate, nil, nil, nil, nil, nil, nil, { hunt = KOLKAR }), "A death, and two more lucky hunts.",
+Eq(Text.PlateCaption(plate, nil, { fortune = { hunt = KOLKAR } }), "A death, and two more lucky hunts.",
     "two more counted")
 local alone = { mapID = 2665, moments = { Moment("fortune", KOLKAR), { kind = "arrive", t = now - 50 } } }
-Eq(Text.PlateCaption(alone, nil, nil, nil, nil, nil, nil, { hunt = KOLKAR }),
+Eq(Text.PlateCaption(alone, nil, { fortune = { hunt = KOLKAR } }),
     "Into Zephras Isle for the first time.", "with its only luck on the card, the words go on to what else")
-Eq(Text.PlateCaption(alone, nil, nil, nil, nil, nil, nil, { hunt = KOLKAR, print = true }),
+Eq(Text.PlateCaption(alone, nil, { fortune = { hunt = KOLKAR, print = true } }),
     "7" .. NB .. "Kolkar Booty Keys from Kolkar Marauders.", "on the print: the item and who dropped it")
 alone.moments[#alone.moments + 1] = Moment("fortune", HEZRUL)
-Eq(Text.PlateCaption(alone, nil, nil, nil, nil, nil, nil, { hunt = KOLKAR, print = true }),
+Eq(Text.PlateCaption(alone, nil, { fortune = { hunt = KOLKAR, print = true } }),
     "7" .. NB .. "Kolkar Booty Keys from Kolkar Marauders, and another lucky hunt.", "and the rest counted")
 Eq(Text.PlateCaption(alone), "Two lucky hunts.", "nothing shown: as before")
 

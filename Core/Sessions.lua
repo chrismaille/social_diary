@@ -42,20 +42,11 @@ local MAX_QUESTS = 200
 local MAX_RARES = 100
 local MAX_DEATHS = 100
 
--- Interactions that put both players in the same place. They open a session;
--- anything else only joins one that is already open.
-local OPENS = {
-    trade = true,
-    say = true,
-    yell = true,
-}
-
--- The session's own skeleton. Stamped with the session id like any other row,
--- but not shown as highlights.
-local STRUCTURAL = {
-    group_join = true,
-    group_leave = true,
-}
+-- Interactions that put both players in the same place open a session
+-- (their kind's `opens`, Core/Rows.lua); anything else only joins one that
+-- is already open. The session's own skeleton (`structural`) is stamped
+-- with the session id like any other row, but not shown as highlights.
+local Rows = ns.Rows
 
 --------------------------------------------------------------------------
 -- Reading
@@ -152,7 +143,7 @@ function Sessions.Highlights(session)
         if rows then
             for i = 1, #rows do
                 local row = rows[i]
-                if row.session == session.id and not STRUCTURAL[row.type] then
+                if row.session == session.id and not Rows.Get(row.type).structural then
                     list[#list + 1] = row
                 end
             end
@@ -297,7 +288,7 @@ function Sessions.Note(guid, kind, live)
     guid = ns.SafeGUID(guid)
     if not guid or not ns.Diary.IsDiary(guid) then return nil end
 
-    if live and OPENS[kind] then
+    if live and Rows.Get(kind).opens then
         local session = Sessions.Together(guid, "nearby", true)
         return session and session.id
     end

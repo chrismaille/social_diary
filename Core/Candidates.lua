@@ -119,22 +119,15 @@ end
 -- Anyone else the buffer saw in the last hour, most recent first. This is what
 -- makes "trade first, decide later" reach past the current session's Recent
 -- entries.
--- Said in words where the row type would not be: a fight (Core/Fights.lua),
--- for flow 5's ganker; a witness to one of the user's (Capture/Witnesses.lua);
--- someone who sat by a campfire with the user (Capture/Campfire.lua).
-local BUFFER_REASONS = {
-    pvp_kill = "you killed them",
-    pvp_death = "they killed you",
-    watched_death = "they watched you die",
-    tried_to_help = "they tried to save you",
-    saved_you = "they saved you",
-    campfire = "sat by a campfire together",
-}
+-- Said in words where the row type would not be (its kind's `reason`,
+-- Core/Rows.lua): a fight (Core/Fights.lua), for flow 5's ganker; a witness
+-- to one of the user's (Capture/Witnesses.lua); whatever a feature's own
+-- kind says (Features/<Name>/).
 
 local function GatherBuffer(add, now)
     local recent = ns.Interactions.Since(now - RECENT_WINDOW)
     for i = 1, #recent do
-        add(recent[i].guid, BUFFER_REASONS[recent[i].type] or ("recent " .. recent[i].type))
+        add(recent[i].guid, ns.Rows.Get(recent[i].type).reason or ("recent " .. recent[i].type))
     end
 end
 

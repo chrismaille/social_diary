@@ -649,89 +649,215 @@ local function Health(call)
     return Glue((call.pct or 0) .. "% health")
 end
 
-local function Deaths(n)
-    if n == 1 then return "a death" end
-    return (NUMBER[n] or tostring(n)) .. " deaths"
-end
+--------------------------------------------------------------------------
+-- A plate's words (Text.PlateCaption) and the kinds that add to them
+-- (Text.RegisterCaption)
+--------------------------------------------------------------------------
 
 -- A few words under a plate (JRN-21): what put it there, never a list.
 -- The left page already tells the story; this only names the place.
--- The level reached there is said only when nothing else is ("Level
--- 9."): the rubric names the level already, and the words are for what
--- happened.
--- `began` (optional) is when the road began, so the very first
--- place reads as where the diary began. `named` (optional) is who the
--- margin notes beside the plate already name: [guid] = true for each,
--- and `someone`, how many strangers' notes there are. They are not named
--- again here ("With Tester." beside Tester's own note). `killer`
--- (optional) is what killed you there, as Text.KillerName writes it, when
--- its card found no room beside the plate: it goes with the deaths
--- ("Two deaths, to a Sunscale Lashtail."), so its name is
--- still written somewhere. `shown` (optional) is the firsts found whose
--- cards (UI/FindCard.lua) are drawn beside the plate, [moment] = true
--- (or [its record] = true, as a plate's marks and its moments are not the
--- same tables):
--- their card shows the item and says who gave it, so the words only name
--- the first ("A first green."); one with no card keeps its item's name
--- here ("A first green: Wolfskin Bracers."). A chain's end (JRN-28) goes
--- after the finds, or leads where nothing above it does ("The end of “Crown
--- of the Earth”."), and a profession brought to its cap (JRN-29) after
--- that, or leads where neither is ("First Aid at 75."; "Two professions
--- at their cap."). A close call (JRN-25) and bad or good
--- luck with a quest's drops (JRN-26, EXT-3) go after the deaths (", and a close
--- call", ", and 31 Plainstriders for 7 Plainstrider Meat"), or lead where
--- nothing else does ("Got away from a Plainstrider with 6% health."). `foe`
--- (optional): the card of the creature that nearly got you is beside the
--- plate, its health and fight charted on it, so a close call leading the
--- words only names it ("A close call."); without it the creature is named
--- after the deaths too (", and a close call with a Plainstrider"), as the
--- killer is. A killer's card and a close call's are two fights, so both
--- may be beside the plate, or either left off. `hunted` (optional): the
--- hunt whose card (UI/HuntCard.lua) is beside the plate; its words are on
--- the card, so the caption leaves them off, and says any
--- other slow hunt as before. `lucky` (optional): { hunt, print }, the good
--- luck told beside the plate (UI/LuckyCard.lua). On a margin card its
--- words leave the caption too, and any other lucky hunt is counted, not
--- told ("another lucky hunt", "two more lucky hunts"): told whole, the
--- second would make the words longer because a card showed. On a light
--- plate's print (`print`: the card's S, no heading) the caption names the
--- item and who dropped it, the print how it went (Text.LuckyCaption).
--- `witness` (optional): someone who was there at a death or a close call
--- on the plate (UI/KillerCard.lua's Witness) whose card
--- (UI/WitnessCard.lua) found no room beside it: told in a sentence of its
--- own after the rest, in the timeline's words ("Two deaths, to a Sunscale
--- Lashtail. Grisha mercilessly watched you die."). With the card beside
--- the plate the words say nothing of them; the creature the card names
--- is the caller's to leave out (`killer`, `foe`), as with the killer's.
--- `camped` (optional): the plate's campfire slip ("sat by a campfire",
--- UI/CampfireSlip.lua) found no room in the margin, so the words say it,
--- last of everything and as short as the rest of the list (", and a
--- campfire"), or lead where nothing else does ("By a campfire in Lushwater
--- Oasis."). With the slip beside the plate the words say nothing of it,
--- but where the fire is all there is they name its place ("Lushwater
--- Oasis.") for the slip to finish.
-function Text.PlateCaption(plate, began, named, killer, shown, foe, hunted, lucky, witness, camped)
-    named = named or {}
-    shown = shown or {}
-    local function Shown(m) return shown[m] or (m.find ~= nil and shown[m.find]) or false end
+-- They are three parts, in this order. The lead, the clause they open
+-- with: "With Koko", "A first green: Wolfskin Bracers", "Into Mulgore for
+-- the first time". The tail, what else happened there, after it and as
+-- short as it: ", a first bag, and two deaths". And a coda, a sentence of
+-- its own after the full stop: "Grisha mercilessly watched you die."
+--
+-- What is the diary's own is written here: the people you were with
+-- (who no margin note names), fights with strangers, the first visit to a
+-- zone, a dungeon's door, a long stay, the company a note names already,
+-- the level reached, and "On the road" when there is nothing else (LEADS,
+-- below). The level is said only when nothing else is ("Level 9."): the
+-- rubric names it already, and the words are for what happened. Every
+-- other kind of moment with words of its own registers them
+-- (Text.RegisterCaption), so a feature's file (Features/<Name>/, loaded
+-- after UI/) adds to every plate's words without this file knowing of it
+-- (.claude/registry-refactor.md, phase 4). Today's are registered at the
+-- foot of this file, each block whole, to be cut out as they are.
+--
+-- The lead is the first in the order of `at` that has something to say;
+-- the diary's leads are numbered by hand here and a kind's slot in
+-- between by its number. Today's chain: people 10, find 20, finale 30,
+-- skill 40, fights 45 (strangers), death 50, close 60, luck 70, fortune
+-- 80, arrive 100, dungeon 110, stay 120, company 130, level 150, and "On
+-- the road" after all; a kind registered from Features/<Name>/ says its
+-- number there. At equal numbers the diary's lead goes
+-- first, then the kinds in the order they registered. A kind is asked
+-- for its lead only when it gathered something.
+-- The tail is every kind's words in the order of its tail's `at` (today
+-- find 10, finale 20, skill 30, death 40, close 50, luck 60, fortune 70,
+-- and the features' own), less the lead's own kind, which has said itself. A kind
+-- ahead of the lead in the chain had nothing to say (or it would have
+-- led), so nothing more is left out: a lead that passes has no tail words
+-- either (good luck whose card shows it all). "X, and Y"; "X, Y, and Z".
+--
+-- `spec` (Text.RegisterCaption(key, spec)), `key` the kind's name, which
+-- is also its key in `said` and in `c.lists`, and what `c.lead` is while
+-- it leads; never one of the diary's own (LEADS' keys, "road"):
+--   moment   the kind of plate.moments it gathers, in the plate's order,
+--            for its lead and tail. None for a kind with a coda alone (a
+--            witness, which the margin tells it of).
+--   take     optional function(m, said) → what of the moment it keeps
+--            (m.call, m.hunt, ...); nil to leave it out (a hunt its card
+--            tells). The moment itself where not given.
+--   lead     optional { at, say = function(list, c) → text, rest }: its
+--            opening clause, capitalised, no full stop; nil to let the
+--            next lead have it. `rest` (optional, a list of words) goes in
+--            its own place in the tail: good luck's lead says the first
+--            hunt, its tail place the others.
+--   tail     optional { at, say = function(list, c) → words }: a phrase
+--            or a list of them, lower case, nil for none. Asked only when
+--            it gathered something, and never when its own lead led.
+--   coda     optional { at, say = function(c) → sentence }: a whole
+--            sentence after the words' full stop; nil for none.
+-- `c`, the words being written: plate, began, said, named (said.named or
+-- {}), of (the first moment of each kind there), lists (each kind's
+-- gathered list, by key) and, from the lead on, lead (the key of the one
+-- that led: a kind's, or "people", "fights", "arrive", "dungeon", "stay",
+-- "company", "level", "road").
+--
+-- `began` (optional) is when the road began, so the very first place
+-- reads as where the diary began. `said` (optional) is what the margin
+-- beside the plate tells already (UI/JournalJourney.lua, its kinds'
+-- JourneyMargin `assume` and `say`), for the words not to tell it again:
+-- `named` is who its notes name, [guid] = true for each, and `someone`,
+-- how many strangers' notes there are ("With Tester." is not written
+-- beside Tester's own note; "In good company." is). Every other key is a
+-- kind's, by its key, and means what that kind says it does (the blocks
+-- at the foot of this file, and the features' own): today find, death,
+-- close, luck, fortune, witness.
+local CAPTIONS, CAPTION_LIST, captionSeq = {}, {}, 0
+-- The kinds sorted into their places, built when first asked after a kind
+-- registered or left.
+local chain
+
+-- The diary's own leads, in their order (`at`), each say(c) → its clause
+-- or nil. Kinds slot in between by number (Text.RegisterCaption).
+local LEADS = {
+    -- Who you were with that no note beside the plate names.
+    { at = 10, key = "people", say = function(c)
+        if #c.people == 0 then return nil end
+        return "With " .. List(c.people, { max = 3, shown = 2, more = "others" })
+    end },
+    -- Fights with strangers no note tells: "A fight, won", "Two fights".
+    { at = 45, key = "fights", say = function(c)
+        local strangers = c.strangers
+        if #strangers == 0 then return nil end
+        if #strangers == 1 then return "A fight, " .. (strangers[1].outcome == "won" and "won" or "lost") end
+        return Capital(NUMBER[#strangers] or tostring(#strangers)) .. " fights"
+    end },
+    { at = 100, key = "arrive", say = function(c)
+        local arrive = c.of.arrive
+        if not arrive then return nil end
+        if c.began and arrive.t <= c.began then return "Where the diary began" end
+        return "Into " .. (MapName(c.plate.mapID) or "a new zone") .. " for the first time"
+    end },
+    { at = 110, key = "dungeon", say = function(c)
+        local dungeon = c.of.dungeon
+        return dungeon and ("The way into " .. (dungeon.name or "a dungeon")) or nil
+    end },
+    { at = 120, key = "stay", say = function(c)
+        local stay = c.of.stay
+        if not stay then return nil end
+        local seg = stay.seg
+        local text = seg.subZone and seg.subZone ~= MapName(seg.mapID) and seg.subZone or "A long stay"
+        return text .. ", " .. Duration(stay.seconds or seg.seconds or 0)
+    end },
+    -- Someone a note beside the plate names already: what you did together
+    -- is said, never who.
+    { at = 130, key = "company", say = function(c)
+        if c.company == "fight" then return "Where the fighting was" end
+        if c.company then return "In good company" end
+        return nil
+    end },
+    { at = 150, key = "level", say = function(c)
+        return c.of.level and ("Level " .. c.of.level.level) or nil
+    end },
+}
+local ROAD = "On the road"
+
+function Text.RegisterCaption(key, spec)
+    assert(type(key) == "string" and type(spec) == "table" and (spec.lead or spec.tail or spec.coda),
+        "Text.RegisterCaption(key, { moment, lead = { at, say }, tail = { at, say }, coda = { at, say } })")
+    assert(key ~= "road", "Text.RegisterCaption: a kind may not be called " .. key)
+    for _, lead in ipairs(LEADS) do assert(lead.key ~= key, "Text.RegisterCaption: a kind may not be called " .. key) end
+    Text.RemoveCaption(key)
+    captionSeq = captionSeq + 1
+    spec.key, spec.seq = key, captionSeq
+    CAPTIONS[key] = spec
+    CAPTION_LIST[#CAPTION_LIST + 1] = spec
+    chain = nil
+    return spec
+end
+
+-- Takes a kind's words off every plate again (a feature switched off, a
+-- test's own kind).
+function Text.RemoveCaption(key)
+    local old = CAPTIONS[key]
+    if not old then return end
+    CAPTIONS[key] = nil
+    for i = #CAPTION_LIST, 1, -1 do
+        if CAPTION_LIST[i] == old then table.remove(CAPTION_LIST, i) end
+    end
+    chain = nil
+end
+-- For the tests: the registered kinds.
+Text.CAPTIONS = CAPTIONS
+
+local function ByAt(a, b)
+    if a.at ~= b.at then return a.at < b.at end
+    return a.seq < b.seq
+end
+
+local function Chain()
+    if chain then return chain end
+    chain = { leads = {}, tails = {}, codas = {}, moments = {} }
+    for i, lead in ipairs(LEADS) do
+        chain.leads[#chain.leads + 1] = { at = lead.at, seq = i - #LEADS, key = lead.key, say = lead.say }
+    end
+    for _, spec in ipairs(CAPTION_LIST) do
+        if spec.lead then
+            chain.leads[#chain.leads + 1] = { at = spec.lead.at, seq = spec.seq, key = spec.key, spec = spec }
+        end
+        if spec.tail then chain.tails[#chain.tails + 1] = { at = spec.tail.at, seq = spec.seq, spec = spec } end
+        if spec.coda then chain.codas[#chain.codas + 1] = { at = spec.coda.at, seq = spec.seq, spec = spec } end
+        if spec.moment then
+            local list = chain.moments[spec.moment] or {}
+            chain.moments[spec.moment] = list
+            list[#list + 1] = spec
+        end
+    end
+    table.sort(chain.leads, ByAt)
+    table.sort(chain.tails, ByAt)
+    table.sort(chain.codas, ByAt)
+    return chain
+end
+
+local NONE = {}
+
+function Text.PlateCaption(plate, began, said)
+    said = said or {}
+    local named = said.named or {}
     local someone = named.someone or 0
-    local of, deaths, people, strangers, company, finds = {}, 0, {}, {}, nil, {}
-    local calls, hunts, fortunes, finales, caps, fires = {}, {}, {}, {}, {}, {}
+    local C = Chain()
+    local of, people, strangers, lists = {}, {}, {}, {}
+    local c = { plate = plate, began = began, said = said, named = named, of = of, people = people,
+        strangers = strangers, lists = lists }
+    for _, spec in ipairs(CAPTION_LIST) do lists[spec.key] = {} end
     for _, m in ipairs(plate.moments) do
-        if m.kind == "campfire" and m.campfire then fires[#fires + 1] = m.campfire end
+        for _, spec in ipairs(C.moments[m.kind] or NONE) do
+            local kept = m
+            if spec.take then kept = spec.take(m, said) end
+            if kept then
+                local list = lists[spec.key]
+                list[#list + 1] = kept
+            end
+        end
         of[m.kind] = of[m.kind] or m
-        if m.kind == "death" then deaths = deaths + 1 end
-        if m.kind == "find" then finds[#finds + 1] = m end
-        if m.kind == "close" and m.call then calls[#calls + 1] = m.call end
-        if m.kind == "luck" and m.hunt and m.hunt ~= hunted then hunts[#hunts + 1] = m.hunt end
-        if m.kind == "fortune" and m.hunt then fortunes[#fortunes + 1] = m.hunt end
-        if m.kind == "finale" and m.finale then finales[#finales + 1] = m.finale end
-        if m.kind == "skill" and m.cap then caps[#caps + 1] = m.cap end
         if (m.kind == "session" or m.kind == "note" or m.kind == "first" or m.kind == "fight") then
             if m.guid and ns.Diary.IsDiary(m.guid) then
                 local name = Short(m.guid)
                 if named[m.guid] then
-                    company = company or m.kind
+                    c.company = c.company or m.kind
                 elseif name and not people[name] then
                     people[name] = true
                     people[#people + 1] = name
@@ -739,7 +865,7 @@ function Text.PlateCaption(plate, began, named, killer, shown, foe, hunted, luck
             elseif m.kind == "fight" then
                 if (m.guid and named[m.guid]) or (not m.guid and someone > 0) then
                     if not m.guid then someone = someone - 1 end
-                    company = company or "fight"
+                    c.company = c.company or "fight"
                 else
                     strangers[#strangers + 1] = m
                 end
@@ -747,183 +873,52 @@ function Text.PlateCaption(plate, began, named, killer, shown, foe, hunted, luck
         end
     end
 
-    local function Died()
-        return Deaths(deaths) .. (killer and (", to " .. killer) or "")
-    end
-    -- A first in a few words: "a first bag", "a first bag from Koko" when
-    -- Koko gave it and no margin note of hers says so already. The second
-    -- value: whether who gave it is said, here or on her note.
-    local function Found(m)
-        local text = FindWords(m.what)
-        local giver = m.gift and Giver(m.find or m)
-        if m.gift and Shown(m) then return text, true end
-        if giver and named[giver] then return text, true end
-        if giver and ns.Diary.IsDiary(giver) then return text .. " from " .. Short(giver), true end
-        return text, false
-    end
-    -- The close calls and the hunts in a few words each: "a close call",
-    -- "a close call with a Plainstrider" (its creature's card is not beside
-    -- the plate, so its name is still written somewhere), "two close
-    -- calls"; "31 Plainstriders for 7 Plainstrider Meat", "two slow hunts".
-    local function Calls()
-        if #calls == 1 then
-            local name = not foe and Text.KillerName(calls[1])
-            return name and ("a close call with " .. name) or "a close call"
-        end
-        return (NUMBER[#calls] or tostring(#calls)) .. " close calls"
-    end
-    local function Hunted()
-        return #hunts == 1 and Text.HuntLine(hunts[1]) or ((NUMBER[#hunts] or tostring(#hunts)) .. " slow hunts")
-    end
-    -- The good luck in a few words each, a list: "4 Plainstriders for 7
-    -- Plainstrider Meat, 54 fewer than expected", "two lucky hunts"; with
-    -- its card beside the plate, the rest counted ("another lucky hunt"),
-    -- and on its print the item and who dropped it first.
-    local function Lucky()
-        local told = lucky and lucky.hunt
-        if not told then
-            if #fortunes == 0 then return {} end
-            return { #fortunes == 1 and Text.HuntLine(fortunes[1])
-                or ((NUMBER[#fortunes] or tostring(#fortunes)) .. " lucky hunts") }
-        end
-        local said, more = {}, 0
-        for _, hunt in ipairs(fortunes) do
-            if hunt ~= told then more = more + 1 end
-        end
-        if lucky.print then said[1] = Text.LuckyCaption(told) end
-        if more == 1 then
-            said[#said + 1] = "another lucky hunt"
-        elseif more > 1 then
-            said[#said + 1] = (NUMBER[more] or tostring(more)) .. " more lucky hunts"
-        end
-        return said
-    end
-    local luckyWords = Lucky()
-    -- The campfires, where their slip had no room: "a campfire", sat by
-    -- once or more at one place; "campfires" at several. As short as the
-    -- deaths and close calls beside them: FL's print has two lines for its
-    -- words (14 Oct, rasterised: "and a rest by a campfire" ran a third
-    -- line past the page's foot). Where they were: the subzone they share,
-    -- if it is not the zone's own name.
-    local camping, told = camped and #fires > 0, false
-    local function Camped()
-        told = true
-        if #fires == 1 or Text.CampfireAt(fires) then return "a campfire" end
-        return "campfires"
-    end
-    local spot = #fires > 0 and Text.CampfireAt(fires, MapName(plate.mapID)) or nil
-    -- A chain's end (JRN-28): "the end of “Crown of the Earth”"; "two
-    -- chains finished".
-    local function Ended()
-        return #finales == 1 and Text.FinaleWords(finales[1])
-            or ((NUMBER[#finales] or tostring(#finales)) .. " chains finished")
-    end
-    -- The professions brought to their cap (JRN-29): "First Aid at 75";
-    -- one profession twice, "First Aid at 75, then 150"; several, "two
-    -- professions at their cap".
-    local function Capped()
-        local trades, seen = 0, {}
-        for _, cap in ipairs(caps) do
-            local key = cap.skillLine or cap.name or cap
-            if not seen[key] then seen[key], trades = true, trades + 1 end
-        end
-        if trades > 1 then return (NUMBER[trades] or tostring(trades)) .. " professions at their cap" end
-        local text = Text.SkillWords(caps[1])
-        for k = 2, #caps do text = text .. ", then " .. (caps[k].rank or "its cap") end
-        return text
-    end
-    -- What else happened there, after the lead: ", and a death", ", a
-    -- first bag, and two deaths", ", a death, and a close call". `skip`
-    -- leaves off what the lead said: true (the finds), or { finds, finales,
-    -- skills, deaths, calls, hunts, fortunes }; a lead of good luck says the
-    -- rest of it last (`after`).
-    local function Also(text, skip, after)
-        skip = skip == true and { finds = true } or skip or {}
-        local tail = {}
-        if not skip.finds then
-            for _, m in ipairs(finds) do tail[#tail + 1] = Found(m) end
-        end
-        if #finales > 0 and not skip.finales then tail[#tail + 1] = Ended() end
-        if #caps > 0 and not skip.skills then tail[#tail + 1] = Capped() end
-        if deaths > 0 and not skip.deaths then tail[#tail + 1] = Died() end
-        if #calls > 0 and not skip.calls then tail[#tail + 1] = Calls() end
-        if #hunts > 0 and not skip.hunts then tail[#tail + 1] = Hunted() end
-        if not skip.fortunes then
-            for _, words in ipairs(luckyWords) do tail[#tail + 1] = words end
-        end
-        for _, words in ipairs(after or {}) do tail[#tail + 1] = words end
-        if camping and not told then tail[#tail + 1] = Camped() end
-        if #tail == 0 then return text end
-        if #tail == 1 then return text .. ", and " .. tail[1] end
-        return text .. ", " .. table.concat(tail, ", ", 1, #tail - 1) .. ", and " .. tail[#tail]
-    end
-    local text
-    if #people > 0 then
-        text = Also("With " .. List(people, { max = 3, shown = 2, more = "others" }))
-    elseif #finds > 0 then
-        local m = finds[1]
-        local name = #finds == 1 and deaths == 0 and not m.gift and not Shown(m) and ItemName((m.find or m).link)
-        local words = {}
-        for _, f in ipairs(finds) do words[#words + 1] = Found(f) end
-        text = Capital(List(words)) .. (name and (": " .. name) or "")
-        if #finds == 1 and m.gift and not select(2, Found(m)) then text = text .. ", a gift" end
-        text = Also(text, true)
-    elseif #finales > 0 then
-        text = Also(Capital(Ended()), { finales = true })
-    elseif #caps > 0 then
-        text = Also(Capital(Capped()), { finales = true, skills = true })
-    elseif #strangers > 0 then
-        text = #strangers == 1 and ("A fight, " .. (strangers[1].outcome == "won" and "won" or "lost"))
-            or (Capital(NUMBER[#strangers] or tostring(#strangers)) .. " fights")
-        text = Also(text, { finds = true, finales = true, skills = true, deaths = true })
-    elseif deaths > 0 then
-        text = Also(Capital(Died()), { finds = true, finales = true, skills = true, deaths = true })
-    elseif #calls > 0 then
-        -- A lone close call is told whole, its creature named unless its
-        -- card is beside the plate; more are counted.
-        if #calls == 1 then
-            text = foe and "A close call" or Text.CloseCall(calls[1]):sub(1, -2)
+    -- The lead: the first in the chain with something to say.
+    local text, rest
+    for _, lead in ipairs(C.leads) do
+        local clause, more
+        if lead.spec then
+            local list = lists[lead.key]
+            if #list > 0 then clause, more = lead.spec.lead.say(list, c) end
         else
-            text = Capital(Calls())
+            clause = lead.say(c)
         end
-        text = Also(text, { finds = true, finales = true, skills = true, deaths = true, calls = true })
-    elseif #hunts > 0 then
-        text = Also(Capital(Hunted()), { finds = true, finales = true, skills = true, deaths = true, calls = true,
-            hunts = true })
-    elseif #luckyWords > 0 then
-        local rest = {}
-        for k = 2, #luckyWords do rest[#rest + 1] = luckyWords[k] end
-        text = Also(Capital(luckyWords[1]), { finds = true, finales = true, skills = true, deaths = true, calls = true,
-            hunts = true, fortunes = true }, rest)
-    elseif of.arrive then
-        if began and of.arrive.t <= began then
-            text = "Where the diary began"
-        else
-            text = "Into " .. (MapName(plate.mapID) or "a new zone") .. " for the first time"
+        if clause then
+            text, rest, c.lead = clause, more, lead.key
+            break
         end
-    elseif of.dungeon then
-        text = "The way into " .. (of.dungeon.name or "a dungeon")
-    elseif of.stay then
-        local seg = of.stay.seg
-        text = seg.subZone and seg.subZone ~= MapName(seg.mapID) and seg.subZone or "A long stay"
-        text = text .. ", " .. Duration(of.stay.seconds or seg.seconds or 0)
-    elseif company == "fight" then
-        text = "Where the fighting was"
-    elseif company then
-        text = "In good company"
-    elseif of.campfire and camping then
-        text = "By " .. Camped() .. (spot and (" in " .. spot) or "")
-    elseif of.campfire and spot then
-        text = spot
-    elseif of.level then
-        text = "Level " .. of.level.level
-    else
-        text = "On the road"
     end
-    -- A lead with nothing after it (a first visit, a stay, ...) takes the
-    -- campfire on as the only thing more.
-    if camping and not told then text = text .. ", and " .. Camped() end
-    return text .. "." .. (witness and (" " .. Text.WitnessCaption(witness)) or "")
+    if not text then text, c.lead = ROAD, "road" end
+
+    -- What else happened there, each kind in its tail place.
+    local tail = {}
+    local function Put(words)
+        if type(words) == "table" then
+            for _, w in ipairs(words) do tail[#tail + 1] = w end
+        elseif words then
+            tail[#tail + 1] = words
+        end
+    end
+    for _, t in ipairs(C.tails) do
+        local spec = t.spec
+        if spec.key == c.lead then
+            Put(rest)
+        else
+            local list = lists[spec.key]
+            if #list > 0 then Put(spec.tail.say(list, c)) end
+        end
+    end
+    if #tail == 1 then
+        text = text .. ", and " .. tail[1]
+    elseif #tail > 1 then
+        text = text .. ", " .. table.concat(tail, ", ", 1, #tail - 1) .. ", and " .. tail[#tail]
+    end
+    text = text .. "."
+    for _, coda in ipairs(C.codas) do
+        local sentence = coda.spec.coda.say(c)
+        if sentence then text = text .. " " .. sentence end
+    end
+    return text
 end
 
 -- The player's own words on a person's margin note: their latest note
@@ -1779,37 +1774,278 @@ function Text.ZoneFoot(z, names, fights)
 end
 
 --------------------------------------------------------------------------
--- Campfires (WoW Forever's camps, Capture/Campfire.lua)
+-- The words every kind shares
 --------------------------------------------------------------------------
 
--- The margin's slip for a campfire on a plate (UI/CampfireSlip.lua): the
--- user's own words (14 Oct), exactly, lower case and all, however many
--- fires the plate has. Not to be reworded.
-Text.CAMPFIRE_SLIP = "sat by a campfire"
+-- What a kind's own words (its card's, its mark's tooltip, its caption
+-- words) are written with, on Text, so its section can move to its
+-- feature's file (Features/<Name>/, .claude/registry-refactor.md) as it
+-- is, its helpers taken from here (`local When, Capital = Text.When,
+-- Text.Capital`) instead of from this file's locals:
+--   Glue(text)            its spaces no-break (SPACE), so it never wraps
+--   Duration(seconds)     "1 h 33 min", glued
+--   Spoken(seconds)       "twenty minutes", "an hour and a half"
+--   Capital(text)         its first letter capitalised
+--   MapName(mapID)        a map's name, or nil
+--   Who(guid)             a character's full name, else their name
+--   Short(guid)           their first name (a margin note's)
+--   Day(t, now)           "6 October", the year once it is not this one's
+--   When(t, level, now)   "Yesterday, 21:40, at level 12": a tooltip's last line
+--   Place(mapID, subZone) "Lushwater Oasis, The Barrens"
+--   Times(n, one, many)   "Died here", "Died here twice", "... 3 times"
+--   NUMBER, WORDS         counts in words: NUMBER[n] "a", "two" ... "five";
+--                         WORDS[n] "two" ... "twelve", "fifteen", "twenty", ...
+--   Count(n, words)       a figure held to its noun ("31 Plainstriders")
+--   Plural(name)          a creature's name for more than one
+--   ItemWord(n, item)     an item's name for `n` of it ("Plainstrider Meat")
+--   Items(n, item)        "one Hezrul's Head", "7 Plainstrider Meat"
+--   Health(call)          "6% health", glued
+--   Foes(call)            "a Plainstrider and two others", nil for none
+--   Kinds(hunt)           how many kinds of creature a hunt's kills were
+--   SortedKinds(hunt)     those kinds, most killed first ({ id, n, name })
+--   FindWords(kind)       "a first bag", "your first bag"
+--   ItemName(link)        an item's name out of its link
+--   Giver(rec)            who gave a first, while the diary knows them
+--   Written(text)         the player's words, escapes taken out
+--   Cut(text, most)       words cut at a word with an ellipsis; whether cut
+--   Join(a, b)            two sentences as one paragraph, either missing
+--   List(items, opts)     "A, B and 2 others" (ns.UI.List)
+Text.Glue, Text.Capital, Text.MapName, Text.Who, Text.Day, Text.When = Glue, Capital, MapName, Who, Day, When
+Text.Times, Text.NUMBER, Text.WORDS, Text.Count, Text.ItemWord, Text.Items = Times, NUMBER, WORDS, Count, ItemWord, Items
+Text.Health, Text.Foes, Text.Kinds, Text.SortedKinds = Health, Foes, Kinds, SortedKinds
+Text.Giver, Text.Cut, Text.Join, Text.List = Giver, Cut, Join, List
 
--- The subzone a plate's campfires (records { t, subZone, ... }) all share,
--- or nil where they differ, where one has none, or where it is only the
--- zone's own name (`zone`).
-function Text.CampfireAt(fires, zone)
-    local at
-    for _, fire in ipairs(fires) do
-        local sub = fire.subZone
-        if type(sub) ~= "string" or sub == "" or (at and sub ~= at) then return nil end
-        at = sub
+--------------------------------------------------------------------------
+-- The caption words registered by kind (Text.RegisterCaption)
+--------------------------------------------------------------------------
+
+-- Each block below is one kind's words on a plate, whole: what it gathers,
+-- its lead, its tail, and what the margin tells it (`said`, by the kind's
+-- key). They live here until their features move to Features/<Name>/
+-- (.claude/registry-refactor.md), and are written to be cut out as they
+-- are: they reach nothing of this file but Text's exports.
+
+-- Firsts found (JRN-24), told beside the plate on their cards
+-- (UI/FindCard.lua). `said.find` is the firsts whose cards are drawn
+-- beside the plate, [moment] = true (or [its record] = true, as a plate's
+-- marks and its moments are not the same tables): their card shows the
+-- item and says who gave it, so the words only name the first ("A first
+-- green."); one with no card keeps its item's name here ("A first green:
+-- Wolfskin Bracers."), unless a death is told with it. A first in a few
+-- words: "a first bag", "a first bag from Koko" when Koko gave it and no
+-- margin note of hers says so already. They lead after the people, and are
+-- the first of the tail: ", a first bag, and two deaths".
+do
+    local Capital, List, Short = Text.Capital, Text.List, Text.Short
+    local FindWords, Giver, ItemName = Text.FindWords, Text.Giver, Text.ItemName
+    local function Shown(m, c)
+        local shown = c.said.find or {}
+        return shown[m] or (m.find ~= nil and shown[m.find]) or false
     end
-    if at == zone then return nil end
-    return at
+    -- The second value: whether who gave it is said, here or on her note.
+    local function Found(m, c)
+        local text = FindWords(m.what)
+        local giver = m.gift and Giver(m.find or m)
+        if m.gift and Shown(m, c) then return text, true end
+        if giver and c.named[giver] then return text, true end
+        if giver and ns.Diary.IsDiary(giver) then return text .. " from " .. Short(giver), true end
+        return text, false
+    end
+    Text.RegisterCaption("find", {
+        moment = "find",
+        lead = { at = 20, say = function(finds, c)
+            local m = finds[1]
+            local name = #finds == 1 and not c.of.death and not m.gift and not Shown(m, c)
+                and ItemName((m.find or m).link)
+            local words = {}
+            for _, f in ipairs(finds) do words[#words + 1] = (Found(f, c)) end
+            local text = Capital(List(words)) .. (name and (": " .. name) or "")
+            if #finds == 1 and m.gift and not select(2, Found(m, c)) then text = text .. ", a gift" end
+            return text
+        end },
+        tail = { at = 10, say = function(finds, c)
+            local words = {}
+            for _, m in ipairs(finds) do words[#words + 1] = (Found(m, c)) end
+            return words
+        end },
+    })
 end
 
--- The fire's mark and its slip, under the mouse: "Sat by a campfire", then
--- where ("In Lushwater Oasis", where there is a subzone that is not the
--- zone's name) and when ("Yesterday, 21:40, at level 12").
-function Text.CampfireTip(fire, now)
-    local lines = {}
-    local sub = fire.subZone
-    if type(sub) == "string" and sub ~= "" and sub ~= MapName(fire.mapID) then lines[#lines + 1] = "In " .. sub end
-    local j = ns.Journey.For and ns.Journey.For(ns.ownGUID)
-    local level = j and ns.JourneyRecap and ns.JourneyRecap.LevelAt(j, fire.t or 0) or nil
-    lines[#lines + 1] = When(fire.t or 0, level, now)
-    return Capital(Text.CAMPFIRE_SLIP), lines
+-- A chain's end (JRN-28): after the finds, or leading where nothing above
+-- it does ("The end of “Crown of the Earth”."); "two chains finished".
+do
+    local Capital, NUMBER = Text.Capital, Text.NUMBER
+    local function Ended(finales)
+        return #finales == 1 and Text.FinaleWords(finales[1])
+            or ((NUMBER[#finales] or tostring(#finales)) .. " chains finished")
+    end
+    Text.RegisterCaption("finale", {
+        moment = "finale",
+        take = function(m) return m.finale end,
+        lead = { at = 30, say = function(finales) return Capital(Ended(finales)) end },
+        tail = { at = 20, say = Ended },
+    })
 end
+
+-- The professions brought to their cap (JRN-29), after the chains' ends,
+-- or leading where neither finds nor finales do: "First Aid at 75"; one
+-- profession twice, "First Aid at 75, then 150"; several, "two
+-- professions at their cap".
+do
+    local Capital, NUMBER = Text.Capital, Text.NUMBER
+    local function Capped(caps)
+        local trades, seen = 0, {}
+        for _, cap in ipairs(caps) do
+            local key = cap.skillLine or cap.name or cap
+            if not seen[key] then seen[key], trades = true, trades + 1 end
+        end
+        if trades > 1 then return (NUMBER[trades] or tostring(trades)) .. " professions at their cap" end
+        local text = Text.SkillWords(caps[1])
+        for k = 2, #caps do text = text .. ", then " .. (caps[k].rank or "its cap") end
+        return text
+    end
+    Text.RegisterCaption("skill", {
+        moment = "skill",
+        take = function(m) return m.cap end,
+        lead = { at = 40, say = function(caps) return Capital(Capped(caps)) end },
+        tail = { at = 30, say = Capped },
+    })
+end
+
+-- The deaths there: "a death", "two deaths". `said.death` is what killed
+-- you, as Text.KillerName writes it, when its card (UI/KillerCard.lua)
+-- found no room beside the plate (or a witness's card did not name it):
+-- it goes with the deaths ("Two deaths, to a Sunscale Lashtail."), so its
+-- name is still written somewhere. They lead after a fight with a
+-- stranger, and a fight lost to strangers already says how it went, so
+-- with that lead (the diary's "fights") the deaths are not added.
+do
+    local Capital, NUMBER = Text.Capital, Text.NUMBER
+    local function Deaths(n)
+        if n == 1 then return "a death" end
+        return (NUMBER[n] or tostring(n)) .. " deaths"
+    end
+    local function Died(deaths, c)
+        local killer = c.said.death
+        return Deaths(#deaths) .. (killer and (", to " .. killer) or "")
+    end
+    Text.RegisterCaption("death", {
+        moment = "death",
+        lead = { at = 50, say = function(deaths, c) return Capital(Died(deaths, c)) end },
+        tail = { at = 40, say = function(deaths, c)
+            if c.lead == "fights" then return nil end
+            return Died(deaths, c)
+        end },
+    })
+end
+
+-- A close call (JRN-25): after the deaths, ", and a close call", or
+-- leading where nothing above does. `said.close` (true): the card of the
+-- creature that nearly got you is beside the plate (UI/KillerCard.lua's
+-- SetFoe), or a witness's card names it, its health and fight charted
+-- there, so a close call leading the words only names it ("A close
+-- call."); without, the creature is named after the deaths too (", and a
+-- close call with a Plainstrider"), as the killer is, and a lone close
+-- call leads whole ("Got away from a Plainstrider with 6% health"). More
+-- are counted, "two close calls". A killer's card and a close call's are
+-- two fights, so both may be beside the plate, or either left off.
+do
+    local Capital, NUMBER = Text.Capital, Text.NUMBER
+    local function Calls(calls, c)
+        if #calls == 1 then
+            local name = not c.said.close and Text.KillerName(calls[1])
+            return name and ("a close call with " .. name) or "a close call"
+        end
+        return (NUMBER[#calls] or tostring(#calls)) .. " close calls"
+    end
+    Text.RegisterCaption("close", {
+        moment = "close",
+        take = function(m) return m.call end,
+        lead = { at = 60, say = function(calls, c)
+            if #calls == 1 then return c.said.close and "A close call" or Text.CloseCall(calls[1]):sub(1, -2) end
+            return Capital(Calls(calls, c))
+        end },
+        tail = { at = 50, say = Calls },
+    })
+end
+
+-- Bad luck with a quest's drops (JRN-26): after the close calls, or
+-- leading where nothing above does: "31 Plainstriders for 7 Plainstrider
+-- Meat, 14 more than expected", "two slow hunts". `said.luck` is the hunt
+-- whose card (UI/HuntCard.lua) is beside the plate: its words are on the
+-- card, so they leave the caption, and any other slow hunt is said as
+-- before.
+do
+    local Capital, NUMBER = Text.Capital, Text.NUMBER
+    local function Hunted(hunts)
+        return #hunts == 1 and Text.HuntLine(hunts[1]) or ((NUMBER[#hunts] or tostring(#hunts)) .. " slow hunts")
+    end
+    Text.RegisterCaption("luck", {
+        moment = "luck",
+        take = function(m, said)
+            if m.hunt and m.hunt ~= said.luck then return m.hunt end
+            return nil
+        end,
+        lead = { at = 70, say = function(hunts) return Capital(Hunted(hunts)) end },
+        tail = { at = 60, say = Hunted },
+    })
+end
+
+-- Good luck with a quest's drops (EXT-3), a list after the slow hunts: "4
+-- Plainstriders for 7 Plainstrider Meat, 54 fewer than expected", "two
+-- lucky hunts". `said.fortune` is { hunt, print }, the good luck told
+-- beside the plate (UI/LuckyCard.lua). On a margin card its words leave
+-- the caption, and any other lucky hunt is counted, not told ("another
+-- lucky hunt", "two more lucky hunts"): told whole, the second would make
+-- the words longer because a card showed. On a light plate's print
+-- (`print`: the card's S, no heading) the words name the item and who
+-- dropped it, the print how it went (Text.LuckyCaption). Leading, it says
+-- the first of these, and the rest in its place in the tail.
+do
+    local Capital, NUMBER = Text.Capital, Text.NUMBER
+    local function Lucky(fortunes, c)
+        local lucky = c.said.fortune
+        local told = lucky and lucky.hunt
+        if not told then
+            return { #fortunes == 1 and Text.HuntLine(fortunes[1])
+                or ((NUMBER[#fortunes] or tostring(#fortunes)) .. " lucky hunts") }
+        end
+        local words, more = {}, 0
+        for _, hunt in ipairs(fortunes) do
+            if hunt ~= told then more = more + 1 end
+        end
+        if lucky.print then words[1] = Text.LuckyCaption(told) end
+        if more == 1 then
+            words[#words + 1] = "another lucky hunt"
+        elseif more > 1 then
+            words[#words + 1] = (NUMBER[more] or tostring(more)) .. " more lucky hunts"
+        end
+        return words
+    end
+    Text.RegisterCaption("fortune", {
+        moment = "fortune",
+        take = function(m) return m.hunt end,
+        lead = { at = 80, say = function(fortunes, c)
+            local words = Lucky(fortunes, c)
+            if #words == 0 then return nil end
+            local rest = {}
+            for k = 2, #words do rest[#rest + 1] = words[k] end
+            return Capital(words[1]), rest
+        end },
+        tail = { at = 70, say = Lucky },
+    })
+end
+
+-- Someone who was there at a death or a close call on the plate
+-- (UI/KillerCard.lua's Witness) whose card (UI/WitnessCard.lua) found no
+-- room beside it: `said.witness`, told in a sentence of its own after the
+-- rest, in the timeline's words ("Two deaths, to a Sunscale Lashtail.
+-- Grisha mercilessly watched you die."). With the card beside the plate
+-- the words say nothing of them; the creature the card names is the
+-- margin's to leave out (`said.death`, `said.close`), as with the killer's.
+Text.RegisterCaption("witness", {
+    coda = { at = 10, say = function(c)
+        local w = c.said.witness
+        return w and Text.WitnessCaption(w) or nil
+    end },
+})

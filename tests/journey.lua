@@ -2077,10 +2077,10 @@ Eq(Text.PlateHeading(after, now, plate), "Mulgore, today", "a plate on another d
 plate.moments = { { kind = "session", guid = KOKO, t = d0, seconds = 1200 } }
 Eq(Text.PlateCaption(plate), "With Koko.", "a plate with someone")
 -- A margin note names Koko: the caption does not name her again.
-Eq(Text.PlateCaption(plate, nil, { [KOKO] = true }), "In good company.", "a caption names who a strip names")
+Eq(Text.PlateCaption(plate, nil, { named = { [KOKO] = true } }), "In good company.", "a caption names who a strip names")
 plate.moments = { { kind = "level", level = 5, t = d0 }, { kind = "session", guid = KOKO, t = d0, seconds = 1200 } }
 Eq(Text.PlateCaption(plate), "With Koko.", "a level plate with someone leads with them")
-Eq(Text.PlateCaption(plate, nil, { [KOKO] = true }), "In good company.", "a level caption names who a strip names")
+Eq(Text.PlateCaption(plate, nil, { named = { [KOKO] = true } }), "In good company.", "a level caption names who a strip names")
 -- The level reached is said only when nothing else on the plate is.
 plate.moments = { { kind = "level", level = 5, t = d0 } }
 Eq(Text.PlateCaption(plate), "Level 5.", "a plate with only the level-up")
@@ -2089,7 +2089,7 @@ Eq(Text.PlateCaption(plate, d0), "Into Mulgore for the first time.", "a new zone
 plate.moments = { { kind = "level", level = 5, t = d0 }, { kind = "road", t = d0, seg = {}, seconds = 600 } }
 Eq(Text.PlateCaption(plate), "Level 5.", "the level-up leads before an empty road")
 plate.moments = { { kind = "fight", outcome = "won", t = d0 } }
-Eq(Text.PlateCaption(plate, nil, { someone = 1 }), "Where the fighting was.", "a caption tells a stranger's strip again")
+Eq(Text.PlateCaption(plate, nil, { named = { someone = 1 } }), "Where the fighting was.", "a caption tells a stranger's strip again")
 plate.moments = { { kind = "fight", outcome = "won", t = d0 } }
 Eq(Text.PlateCaption(plate), "A fight, won.", "a stranger's fight")
 plate.moments = { { kind = "arrive", t = d0 + 50 } }

@@ -118,24 +118,7 @@ ROW_TEXT.saved_you = function(row, guid)
     return them .. " saved you" .. (foe and (" from " .. foe) or "") .. health .. Place(row)
 end
 
--- A campfire sat by with them (Capture/Campfire.lua): "You and Bram sat
--- by a campfire together in Lushwater Oasis, The Barrens". The user's own
--- words (14 Oct), the place "Subzone, Zone" as everywhere; the zone alone
--- where the client gave no subzone, or one with the zone's own name.
-ROW_TEXT.campfire = function(row, guid)
-    local them = guid and ns.Characters.Name(guid)
-    local subZone = row.context and row.context.subZone
-    if subZone == "" then subZone = nil end
-    local place = row.zone
-    if subZone and place and subZone ~= place then
-        place = subZone .. ", " .. place
-    elseif subZone then
-        place = subZone
-    end
-    return (them and ("You and " .. them .. " sat") or "Sat") .. " by a campfire together"
-        .. (place and (" in " .. place) or "")
-end
-
+-- Each kind's icon, a Style.ART key.
 local ROW_ICON = {
     trade = "trade",
     whisper_in = "whisper",
@@ -150,8 +133,12 @@ local ROW_ICON = {
     watched_death = "around",
     tried_to_help = "together",
     saved_you = "together",
-    campfire = "campfire",
 }
+
+-- Told to each kind (Core/Rows.lua: `text`, `icon`), where the page reads
+-- them; a feature's own kinds tell theirs from its own folder.
+for kind, text in pairs(ROW_TEXT) do ns.Rows.Register(kind, { text = text }) end
+for kind, icon in pairs(ROW_ICON) do ns.Rows.Register(kind, { icon = icon }) end
 
 -- "You died to Plainstrider (3 attackers) near Red Cloud Mesa", "Gunther
 -- died, probably to Plainstrider". A death on this page is theirs or the
@@ -466,9 +453,17 @@ function ns.UI.DescribeItem(item, guid)
         return when, "Added to the diary" .. place, nil, "added"
     end
 
-    local describe = ROW_TEXT[item.row.type]
-    return when, describe and describe(item.row, guid) or item.row.type, nil, ROW_ICON[item.row.type]
+    local kind = ns.Rows.Get(item.row.type)
+    return when, kind.text and kind.text(item.row, guid) or item.row.type, nil, kind.icon
 end
 
 -- For the page lines, which lay episodes and visits out (UI/JournalTimeline.lua).
-ns.UI.TimelineText = { IsEpisode = IsEpisode, OtherMembers = OtherMembers }
+-- And a row's words shared by its kinds, for a feature's file
+-- (Features/<Name>/, .claude/registry-refactor.md) to tell its own rows
+-- (Core/Rows.lua's `text`) as these do: Items(list) "2x [Linen Cloth],
+-- [Copper Ore]"; Quote(text, fallback) 'Said: "hello"', or the fallback
+-- alone; Place(row) " in Hillsbrad Foothills", or ""; Foe(row) the
+-- creature in a witness's row as Your Diary names a killer ("a Kobold
+-- Vermin"), or nil.
+ns.UI.TimelineText = { IsEpisode = IsEpisode, OtherMembers = OtherMembers, Items = Items, Quote = Quote,
+    Place = Place, Foe = Foe }

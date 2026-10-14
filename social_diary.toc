@@ -19,6 +19,7 @@ Core/Identity.lua
 Core/Location.lua
 Core/Characters.lua
 Core/Heat.lua
+Core/Rows.lua
 Core/Interactions.lua
 Core/Fights.lua
 Core/Sightings.lua
@@ -48,7 +49,6 @@ UI/FindCard.lua
 UI/HuntCard.lua
 UI/LuckyCard.lua
 UI/WitnessCard.lua
-UI/CampfireSlip.lua
 UI/Entry.lua
 UI/Picker.lua
 UI/LooseSheet.lua
@@ -77,6 +77,16 @@ UI/Settings.lua
 UI/Intro.lua
 UI/SocialTab.lua
 
+# Features: each detection in a folder of its own (Features/<Name>/), which
+# registers itself into the registries of Core/ and UI/ above, so it loads
+# after them: Kind, Text, Mark, Slip or Card, then Capture. Its Dev.lua
+# goes in the block at the foot (.claude/registry-refactor.md).
+Features/Campfire/Kind.lua
+Features/Campfire/Text.lua
+Features/Campfire/Mark.lua
+Features/Campfire/Slip.lua
+Features/Campfire/Capture.lua
+
 Capture/Trade.lua
 Capture/Whisper.lua
 Capture/Menus.lua
@@ -89,15 +99,17 @@ Capture/Sightings.lua
 Capture/Journey.lua
 Capture/Combat.lua
 Capture/Witnesses.lua
-Capture/Campfire.lua
 
 #@do-not-package@
 # Development tooling: diagnostics, /sd art, /sd journey and /sd testdata. They
 # register their own /sd commands. The packager strips this block, so a
-# release never loads them (.pkgmeta leaves the folder out as well).
+# release never loads them (.pkgmeta leaves the folder out as well, and
+# every Features/*/Dev.lua). A feature's Dev.lua adds its test data to
+# /sd testdata (TestData.Register), so it comes after Dev/TestData.lua.
 Dev/Art.lua
 Dev/Diagnostics.lua
 Dev/SightingsDebug.lua
 Dev/JourneyDebug.lua
 Dev/TestData.lua
+Features/Campfire/Dev.lua
 #@end-do-not-package@

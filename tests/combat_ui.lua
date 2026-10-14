@@ -98,7 +98,7 @@ Check(Text.CombatLines({ closeCalls = {}, hunts = {} }) == nil, "nothing to say 
 
 -- The captions: after the deaths, or leading where nothing else does.
 local function Caption(moments, foe)
-    return Text.PlateCaption({ moments = moments }, nil, nil, nil, nil, foe)
+    return Text.PlateCaption({ moments = moments }, nil, { close = foe })
 end
 local CLOSE = { kind = "close", call = STRIDER }
 local LUCK = { kind = "luck", hunt = MEAT }

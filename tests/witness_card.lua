@@ -92,9 +92,9 @@ Check(tip:find("|Joined your fight|You came out of it with 6\194\160health|", 1,
 
 -- The caption: the witness in a sentence after the rest, only when given.
 local plate = { mapID = 1411, moments = { { kind = "death", t = now - 600 } } }
-Eq(Text.PlateCaption(plate, nil, nil, "a Ragged Young Wolf"), "A death, to a Ragged Young Wolf.",
+Eq(Text.PlateCaption(plate, nil, { death = "a Ragged Young Wolf" }), "A death, to a Ragged Young Wolf.",
     "the caption without a witness")
-Eq(Text.PlateCaption(plate, nil, nil, "a Ragged Young Wolf", nil, nil, nil, nil, Watcher(6.4)),
+Eq(Text.PlateCaption(plate, nil, { death = "a Ragged Young Wolf", witness = Watcher(6.4) }),
     "A death, to a Ragged Young Wolf. Grisha mercilessly watched you die.", "the caption with the witness left off")
 
 --------------------------------------------------------------------------
@@ -403,7 +403,7 @@ Check(Any(margins, "^11:person,find,witness,lucky$"), "level 11's margin: " .. t
 Check(Any(margins, "^14:witness,foe,lucky$"), "level 14's margin: " .. table.concat(margins, "; "))
 Check(Any(margins, "^13:find,witness$"), "level 13's margin: " .. table.concat(margins, "; "))
 -- (The oasis week's campfire, sat by with Tester, comes last of all: its
--- slip, UI/CampfireSlip.lua, 14 Oct.)
+-- slip, Features/Campfire/Slip.lua, 14 Oct.)
 Check(Any(margins, "^week:person,witness,foe,campfire$"), "the oasis week's margin: " .. table.concat(margins, "; "))
 
 -- Level 13: the card's leader goes to the death's cross; the caption says

@@ -101,8 +101,8 @@ local title, lines = Text.DeathCross(3, { Death(1, "Sunscale Lashtail", { spell 
 Eq(title, "Died here 3 times", "a cross's tooltip title")
 Eq(lines[1], "Sunscale Lashtail, with Bite, twice", "a cross's killer line")
 Eq(lines[2], "A fall", "a fall in a cross's tooltip")
-Eq(Text.PlateCaption({ moments = { { kind = "level", level = 12 }, { kind = "death" }, { kind = "death" } } }, nil, nil,
-    "a Sunscale Lashtail"), "Two deaths, to a Sunscale Lashtail.", "the caption with a left-off card")
+Eq(Text.PlateCaption({ moments = { { kind = "level", level = 12 }, { kind = "death" }, { kind = "death" } } }, nil,
+    { death = "a Sunscale Lashtail" }), "Two deaths, to a Sunscale Lashtail.", "the caption with a left-off card")
 
 --------------------------------------------------------------------------
 Section("the card on the plate")

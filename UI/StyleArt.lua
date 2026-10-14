@@ -46,9 +46,6 @@ Style.ART = {
     sortArrow = { "Interface\\Buttons\\UI-SortArrow" },
     -- SES-9's "seen around": something glimpsed, not done.
     around = { "Interface\\Icons\\INV_Misc_Spyglass_03", "Interface\\Icons\\Ability_Tracking" },
-    -- A campfire sat by together (Capture/Campfire.lua): Basic Campfire's
-    -- own spell icon.
-    campfire = { "Interface\\Icons\\Spell_Fire_Fire", "Interface\\Icons\\INV_Sword_04" },
     -- An inventory icon, so it keeps its dark square (fine at 14 px).
     added = { "Interface\\Icons\\INV_Feather_05" },
     -- A note the user wrote (DIA-11), standing on its own on the timeline.
@@ -85,6 +82,14 @@ function Style.Art(key)
         end
     end
     return resolved[key] or nil
+end
+
+-- Art of a feature's own (Features/<Name>/), under `key`: its candidate
+-- files, the first the client has winning. Asked again from scratch, in case
+-- it was asked for before it was told.
+function Style.AddArt(key, paths)
+    Style.ART[key] = paths
+    resolved[key] = nil
 end
 
 -- Cycles both pages through the trials, then flat colour, then around.

@@ -1,13 +1,14 @@
--- Campfires (Capture/Campfire.lua): a minute sat out by a fire is one on
--- the route and a "campfire" row on each who sat there too; a minute cut
--- short is nothing; minute after minute at one fire is one campfire.
+-- Campfires (Features/Campfire/Capture.lua): a minute sat out by a fire
+-- is one on the route and a "campfire" row on each who sat there too; a
+-- minute cut short is nothing; minute after minute at one fire is one
+-- campfire.
 
 local T = ...
 local mock, F = T.mock, T.F
 local Section, Check, Eq = T.Section, T.Check, T.Eq
 local ns = T.Boot()
 
-local J, C = ns.Journey, ns.Campfire
+local C = ns.Campfire
 local SELF, STRANGER, FRIEND, STRANGER2 = F.SELF, F.STRANGER, F.FRIEND, F.STRANGER2
 local COUNTDOWN, BENEFITS = C.COUNTDOWN, 1229741
 
@@ -87,8 +88,8 @@ local aura = Sit()
 Check(ns._test.Campfire().sitting, "the countdown was not taken for sitting")
 Pass(30)
 Gone(aura)
-Eq(#J.Campfires(j), 1, "the campfire on the route")
-local rec = J.Campfires(j)[1]
+Eq(#C.List(j), 1, "the campfire on the route")
+local rec = C.List(j)[1]
 Eq(rec.mapID, 1412, "its map")
 Eq(rec.x, 0.42, "its x")
 Eq(rec.subZone, "Bloodhoof Village", "its subzone")
@@ -109,7 +110,7 @@ Plate(3, FRIEND, true)      -- sits down for the second minute
 aura = Sit()
 Pass(60)
 Gone(aura)
-Eq(#J.Campfires(j), 1, "a second minute at the same fire was a second campfire")
+Eq(#C.List(j), 1, "a second minute at the same fire was a second campfire")
 Eq(Rows(STRANGER.guid), 1, "a second row for the same sitting")
 Eq(Rows(FRIEND.guid), 1, "one who joined for the second minute has no row")
 
@@ -125,7 +126,7 @@ Plate(1, STRANGER2, true)
 aura = Sit()
 Pass(20)
 Gone(aura, 25)
-Eq(#J.Campfires(j), 1, "standing up early was a campfire")
+Eq(#C.List(j), 1, "standing up early was a campfire")
 Eq(Rows(STRANGER2.guid), 0, "standing up early gave a row")
 
 --------------------------------------------------------------------------
@@ -134,14 +135,14 @@ Section("another fire, or the same one much later, is another campfire")
 aura = Sit()
 Pass(60)
 Gone(aura)
-Eq(#J.Campfires(j), 2, "a fire across the zone was the first one")
+Eq(#C.List(j), 2, "a fire across the zone was the first one")
 Eq(Rows(STRANGER2.guid), 1, "the second fire's companion")
 
 mock.now = mock.now + C.AGAIN + 60
 aura = Sit()
 Pass(60)
 Gone(aura)
-Eq(#J.Campfires(j), 3, "the same fire hours later was the same campfire")
+Eq(#C.List(j), 3, "the same fire hours later was the same campfire")
 
 --------------------------------------------------------------------------
 Section("a /reload in the middle of a sitting")
@@ -151,7 +152,7 @@ mock.now = mock.now + 5
 aura = Sit()
 Pass(60)
 Gone(aura)
-Eq(#J.Campfires(j), 3, "a reload made the same fire a new campfire")
+Eq(#C.List(j), 3, "a reload made the same fire a new campfire")
 Eq(Rows(STRANGER2.guid), 2, "a reload gave the same sitting a second row")
 
 -- Already counting down when the world loads: picked up from the full scan.
@@ -164,7 +165,7 @@ Check(ns._test.Campfire().sitting, "a countdown already running was missed")
 mock.now = aura.expirationTime
 auras.player = {}
 mock.fire("UNIT_AURA", "player", { isFullUpdate = true })
-Eq(#J.Campfires(j), 3, "a full update's finished minute made a new campfire at the same fire")
+Eq(#C.List(j), 3, "a full update's finished minute made a new campfire at the same fire")
 Check(not ns._test.Campfire().sitting, "still sitting after a full update dropped the countdown")
 
 --------------------------------------------------------------------------
@@ -189,7 +190,7 @@ Plate(1, FRIEND, true)
 aura = Sit()
 Pass(60)
 Gone(aura)
-Eq(#J.Campfires(j), 3, "a campfire went on a route not kept")
+Eq(#C.List(j), 3, "a campfire went on a route not kept")
 Eq(Rows(FRIEND.guid), 2, "with the route off, no row for the one who sat too")
 ns.db.settings.keepRoute = true
 
@@ -200,5 +201,5 @@ aura = Sit()
 Pass(60)
 Gone(aura)
 mock.inInstance = false
-Eq(#J.Campfires(j), 3, "a campfire inside an instance")
+Eq(#C.List(j), 3, "a campfire inside an instance")
 Eq(Rows(FRIEND.guid), 2, "a row inside an instance")

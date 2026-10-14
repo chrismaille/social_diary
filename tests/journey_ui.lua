@@ -511,9 +511,9 @@ do
     end
     -- Short as first written, but long once whoever had no room in the
     -- row is named in it: under the plate after all, decided once.
-    Text.PlateCaption = function(p, began, named, ...)
-        local text = real(p, began, named, ...)
-        for key in pairs(named or {}) do
+    Text.PlateCaption = function(p, began, said)
+        local text = real(p, began, said)
+        for key in pairs(said and said.named or {}) do
             if key ~= "someone" then return text end
         end
         return text .. " With everyone who was there, and everything that happened along the way."
@@ -2017,6 +2017,66 @@ do
     Check(slots[1] == LAYOUT.LFL[1] and slots[2] == LAYOUT.LFL[2] and slots[3] == LAYOUT.LFL[3], "LFL's slots")
     Eq(page.plates[1].mapID .. "," .. page.plates[2].mapID .. "," .. page.plates[3].mapID, "2665,1412,1413",
         "the plates are not in time order")
+end
+
+--------------------------------------------------------------------------
+Section("a plate's marks by kind (Plate.RegisterMark)")
+
+do
+    local Plate = ns.UI.JourneyPlate
+    local kinds = {}
+    for _, spec in ipairs(Plate.MARK_ORDER) do kinds[#kinds + 1] = spec.kind end
+    Eq(table.concat(kinds, " "), "finale skill close luck fortune campfire", "the registered marks' draw order")
+    Check(Plate.MARKS.fortune.order < Plate.ROAD_DEATHS and Plate.ROAD_DEATHS < Plate.MARKS.campfire.order,
+        "the deaths on the road are not drawn between good luck and the fires")
+    for kind, key in pairs({ finale = "finales", skill = "skills", close = "closeCalls", luck = "hunts",
+        fortune = "fortunes", campfire = "campfires" }) do
+        Eq(Plate.CAP[key], Plate.MARKS[kind].cap, kind .. "'s cap is not in CAP under " .. key)
+    end
+
+    -- A kind registered after this file loaded, as a feature's is: drawn
+    -- in its order, merged on a spot, capped, counted, kept and chosen.
+    local drawn = {}
+    Plate.RegisterMark("tested", { order = 45, cap = 1, count = "tested", radius = 6, halo = 14, hover = 15,
+        keep = "testedMarks", chosen = "tested",
+        tip = function(m) return "Tested " .. m.n end,
+        arg = function(list) return #list end,
+        choose = function(marks) return marks[1] end,
+        draw = function(kit, x, y, n)
+            drawn[#drawn + 1] = { x, y, n }
+            kit.Dot(kit.ink, x, y, 6, kit.INK_STRONG, 1)
+        end })
+    Eq(Plate.MARK_ORDER[5].kind, "tested", "a kind at 45 is not drawn between bad and good luck")
+    Eq(Plate.CAP.tested, 1, "the kind's cap is not in CAP")
+
+    local mapID = 1441
+    local perX, perY = Plate.Cover(mapID, 1, 1)
+    local moments = {
+        { kind = "tested", mapID = mapID, x = 0.5, y = 0.5, t = now, n = 1 },
+        { kind = "tested", mapID = mapID, x = 0.5 + 2 * perX, y = 0.5, t = now, n = 2 },
+        { kind = "tested", mapID = mapID, x = 0.5 + 40 * perX, y = 0.5 + 20 * perY, t = now, n = 3 },
+    }
+    local p = Plate(page.right, { x = 0, y = 0, w = 214, h = 138, t = 0, pad = 7, pc = 20, corners = {} })
+    p:Draw(ns.JourneyRecap.SheetFor(SELF.guid, mapID), nil, Plate.Window(mapID, 0.5, 0.5, 200, 124),
+        { moments = moments })
+    Eq(#drawn, 1, "the kind's cap of one mark")
+    Eq(drawn[1] and drawn[1][3], 2, "two moments on one spot are not one mark, its arg from both")
+    Eq(p.counts.tested, 1, "the kind's count")
+    Eq(#p.testedMarks, 1, "the kind's marks are not kept")
+    Eq(#p.testedMarks[1].list, 2, "the kept mark's moments")
+    Check(type(p.testedMarks[1].at[1]) == "number", "the kept mark has no place on the page")
+    Check(p.tested == p.testedMarks[1], "the kind's card is not chosen")
+    Check(Any(Tips(p), "^Tested 1|Tested 2$"), "the mark's tooltip does not tell each moment")
+    local room
+    for _, s in ipairs(p.spots) do
+        if s[1] == drawn[1][1] and s[2] == drawn[1][2] then room = s[3] end
+    end
+    Eq(room, 6, "the mark does not claim its radius")
+
+    -- Gone again, so nothing after this draws it.
+    Plate.MARKS.tested, Plate.CAP.tested = nil, nil
+    table.remove(Plate.MARK_ORDER, 5)
+    p:Hide()
 end
 
 ns.UI.CloseJournal()

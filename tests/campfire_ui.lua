@@ -16,7 +16,7 @@ local Section, Check, Eq = T.Section, T.Check, T.Eq
 local ns = T.Boot()
 local SELF = F.SELF
 local Text = ns.UI.JourneyText
-local Slip = ns.UI.CampfireSlip
+local Slip = ns.Campfire.Slip
 local Plate = ns.UI.JourneyPlate
 
 -- The mock's own day, as the plates' render tool has it: the cap's weeks
@@ -74,31 +74,31 @@ local function M(kind, extra)
     return m
 end
 local alone = Plated({ M("campfire", { campfire = Fire("Lushwater Oasis") }) })
-Eq(Text.PlateCaption(alone, nil, {}, nil, {}, nil, nil, nil, nil, true), "By a campfire in Lushwater Oasis.",
+Eq(Text.PlateCaption(alone, nil, { named = {}, find = {}, campfire = true }), "By a campfire in Lushwater Oasis.",
     "a fire alone, its slip left off")
-Eq(Text.PlateCaption(alone, nil, {}, nil, {}, nil, nil, nil, nil, false), "Lushwater Oasis.",
+Eq(Text.PlateCaption(alone, nil, { named = {}, find = {}, campfire = false }), "Lushwater Oasis.",
     "a fire alone, its slip beside it: the place, for the slip to finish")
 local bare = Plated({ M("campfire", { campfire = Fire(nil) }) })
-Eq(Text.PlateCaption(bare, nil, {}, nil, {}, nil, nil, nil, nil, false), "On the road.",
+Eq(Text.PlateCaption(bare, nil, { named = {}, find = {}, campfire = false }), "On the road.",
     "a fire with no subzone, its slip beside it")
-Eq(Text.PlateCaption(bare, nil, {}, nil, {}, nil, nil, nil, nil, true), "By a campfire.", "no subzone, left off")
+Eq(Text.PlateCaption(bare, nil, { named = {}, find = {}, campfire = true }), "By a campfire.", "no subzone, left off")
 local twice = Plated({ M("campfire", { campfire = Fire("Lushwater Oasis") }),
     M("campfire", { campfire = Fire("Lushwater Oasis", now - 300) }) })
-Eq(Text.PlateCaption(twice, nil, {}, nil, {}, nil, nil, nil, nil, true), "By a campfire in Lushwater Oasis.",
+Eq(Text.PlateCaption(twice, nil, { named = {}, find = {}, campfire = true }), "By a campfire in Lushwater Oasis.",
     "one place sat by twice: no count")
 local two = Plated({ M("campfire", { campfire = Fire("Lushwater Oasis") }),
     M("campfire", { campfire = Fire("The Stagnant Oasis", now - 300) }) })
-Eq(Text.PlateCaption(two, nil, {}, nil, {}, nil, nil, nil, nil, true), "By campfires.", "two places")
+Eq(Text.PlateCaption(two, nil, { named = {}, find = {}, campfire = true }), "By campfires.", "two places")
 local died = Plated({ M("death"), M("campfire", { campfire = Fire("Lushwater Oasis") }) })
-Eq(Text.PlateCaption(died, nil, {}, nil, {}, nil, nil, nil, nil, true), "A death, and a campfire.",
+Eq(Text.PlateCaption(died, nil, { named = {}, find = {}, campfire = true }), "A death, and a campfire.",
     "last of the list")
-Eq(Text.PlateCaption(died, nil, {}, nil, {}, nil, nil, nil, nil, false), "A death.", "its slip beside it")
+Eq(Text.PlateCaption(died, nil, { named = {}, find = {}, campfire = false }), "A death.", "its slip beside it")
 local stayed = Plated({ M("stay", { seg = { subZone = "Lushwater Oasis", mapID = BARRENS }, seconds = 1500 }),
     M("campfire", { campfire = Fire("Lushwater Oasis") }) })
-local words = Text.PlateCaption(stayed, nil, {}, nil, {}, nil, nil, nil, nil, true):gsub(NB, " ")
+local words = Text.PlateCaption(stayed, nil, { named = {}, find = {}, campfire = true }):gsub(NB, " ")
 Eq(words, "Lushwater Oasis, 25 min, and a campfire.", "after a stay")
-Eq(Text.CAMPFIRE_SLIP, "sat by a campfire", "the slip's words, the user's")
-local title, lines = Text.CampfireTip(Fire("Lushwater Oasis"), now)
+Eq(ns.Campfire.WORDS, "sat by a campfire", "the slip's words, the user's")
+local title, lines = ns.Campfire.Tip(Fire("Lushwater Oasis"), now)
 Eq(title, "Sat by a campfire", "the tooltip's title")
 Eq(lines[1], "In Lushwater Oasis", "the tooltip's place")
 Eq(#lines, 2, "the tooltip's lines")
@@ -332,7 +332,7 @@ do
     local fire = full.campfireMarks[1]
     Check(ring and fire, "setup: the ring and the fire")
     local d = math.sqrt((ring.x - fire.x) ^ 2 + (ring.y - fire.y) ^ 2)
-    Check(d >= Plate.CAMPFIRE.h / 2, "the fire lies on the ring: " .. d)
+    Check(d >= ns.Campfire.MARK.h / 2, "the fire lies on the ring: " .. d)
 end
 
 -- Laid flat, the slips lie square.

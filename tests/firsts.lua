@@ -236,7 +236,7 @@ local plate = { mapID = MULGORE, t = d0, moments = { Find("uncommon", loot) } }
 Eq(Text.PlateCaption(plate), "A first green: Wolfskin Bracers.", "a plate with a first alone")
 plate.moments = { Find("bag", gift) }
 Eq(Text.PlateCaption(plate), "A first bag from Koko.", "a plate with a gift")
-Eq(Text.PlateCaption(plate, nil, { [KOKO] = true }), "A first bag.", "a gift Koko's note already tells")
+Eq(Text.PlateCaption(plate, nil, { named = { [KOKO] = true } }), "A first bag.", "a gift Koko's note already tells")
 plate.moments = { Find("bag", stranger) }
 Eq(Text.PlateCaption(plate), "A first bag, a gift.", "a gift from someone gone")
 plate.moments = { { kind = "level", level = 6, t = d0 }, Find("shoulder", loot) }
@@ -427,14 +427,14 @@ Eq(Text.FindGift(loot, {}), nil, "a find looted is a gift")
 do
     local m = Find("uncommon", loot)
     local p = { mapID = MULGORE, t = d0, moments = { m } }
-    Eq(Text.PlateCaption(p, nil, nil, nil, { [m] = true }), "A first green.", "a first with its card")
-    Eq(Text.PlateCaption(p, nil, nil, nil, {}), "A first green: Wolfskin Bracers.", "a first with no card")
+    Eq(Text.PlateCaption(p, nil, { find = { [m] = true } }), "A first green.", "a first with its card")
+    Eq(Text.PlateCaption(p, nil, { find = {} }), "A first green: Wolfskin Bracers.", "a first with no card")
     local s = Find("bag", stranger)
     p.moments = { s }
-    Eq(Text.PlateCaption(p, nil, nil, nil, { [s] = true }), "A first bag.", "a gift its card tells")
+    Eq(Text.PlateCaption(p, nil, { find = { [s] = true } }), "A first bag.", "a gift its card tells")
     local k = Find("bag", fromTika)
     p.moments = { k }
-    Eq(Text.PlateCaption(p, nil, nil, nil, { [k] = true }), "A first bag.", "a giver its card names")
+    Eq(Text.PlateCaption(p, nil, { find = { [k] = true } }), "A first bag.", "a giver its card names")
 end
 
 --------------------------------------------------------------------------

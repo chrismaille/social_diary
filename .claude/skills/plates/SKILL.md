@@ -55,8 +55,9 @@ Recap.Holds(plate, w, h)  ◄────────────────  L
   close luck fortune finale skill arrive dungeon campfire stay road level`.
   `Recap.RANK` orders which open plates; a pin (`level`) never opens a
   plate alone unless nothing else exists. A campfire (`RANK.campfire =
-  5.5`, 14 Oct) opens a plate, but last of all that do: after a dungeon's
-  door, before a stay. Ranks are only compared, so fractions are fine.
+  5.5`, 14 Oct, registered in `Features/Campfire/Kind.lua`) opens a plate,
+  but last of all that do: after a dungeon's door, before a stay. Ranks are
+  only compared, so fractions are fine.
 - **Grouping**: a moment joins the first plate whose window it fits
   (`Fits`: the box spans ≤ `PLATES.inset` = 0.8 of the window). Windows are
   the slot's art box at **1 screen px per px of map art** (Decision 3;
@@ -125,11 +126,54 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   it doesn't fit one line, the zone alone, and the day moves into the words.
   A plate on the same day as the one before counts on ("Twenty minutes
   later").
-- **Words** (`Text.PlateCaption(p, began, named, killer, shown, foe,
-  hunted)`): `FONT.body`. They name what the margin had no room for, so
-  `Plated` writes the words, lays the margin, rewrites the words and lays
-  again until they agree (`Mark`/`Undo` roll the pools back). Anyone a
-  strip names is not named again in the words.
+- **Words** (`Text.PlateCaption(p, began, said)`): `FONT.body`. They name
+  what the margin had no room for, so `Plated` writes the words, lays the
+  margin, rewrites the words and lays again until they agree (`Mark`/`Undo`
+  roll the pools back). Anyone a strip names is not named again in the
+  words. `said` is what the margin shows: `said.named` (who the strips
+  name, `someone` = strangers' strips) and one key per caption kind
+  (`find` the firsts on cards, `death` the killer's name when its card is
+  left off, `close` true with a close call's card, `luck` the hunt on its
+  card, `fortune` `{ hunt, print }`, `witness` a witness left off,
+  `campfire` true when the slip is left off).
+- **Caption registry** (`Text.RegisterCaption(key, spec)`, spec comment above
+  `PlateCaption`; today's kinds registered at the foot of JourneyText.lua,
+  each a self-contained block, campfire's in `Features/Campfire/Text.lua`): the words are a **lead** (first in `at`
+  order with something to say), a **tail** (", a, b, and c": every kind's
+  words in tail `at` order, less the lead's own kind) and **codas**
+  (sentences after the full stop). `spec`: `moment` (the plate.moments kind
+  it gathers), `take(m, said)` (what it keeps, nil drops), `lead = { at,
+  say(list, c) → text, rest }`, `tail = { at, say(list, c) → words }`,
+  `coda = { at, say(c) → sentence }`; `c` = plate, began, said, named, of,
+  lists, lead (the key that led). Core leads (hand-written `LEADS`): people
+  10, fights (strangers) 45, arrive 100, dungeon 110, stay 120, company 130,
+  level 150, then "On the road". Kinds today: lead find 20, finale 30,
+  skill 40, death 50, close 60, luck 70, fortune 80, campfire 140; tail find
+  10, finale 20, skill 30, death 40 (silent after the "fights" lead), close
+  50, luck 60, fortune 70 (a fortune lead puts its `rest` here), campfire
+  90; coda witness 10. Shared helpers are exported on `Text` (`When`,
+  `Capital`, `MapName`, `Who`, `Day`, `Times`, `NUMBER`, `WORDS`, `Count`,
+  `ItemWord`, `Items`, `Health`, `Foes`, `Kinds`, `SortedKinds`, `Giver`,
+  `Cut`, `Join`, `List`, `Glue`, plus the older `Short`, `Plural`, ...; list
+  above the exports), the timeline's row helpers on `ns.UI.TimelineText`
+  (`Items`, `Quote`, `Place`, `Foe`).
+- **Margin registry** (`ns.UI.JourneyMargin.Register(kind, spec)`, spec
+  comment above `MarginOrder` in JournalJourney.lua; today's kinds at the
+  foot of that file, each self-contained, campfire's in
+  `Features/Campfire/Slip.lua`): `order`, `item(plate)` or
+  `items(plate)` (→ `{ top, x, <own fields> }`; `kind`/`rank` set by core),
+  `pool` (page key; killer and foe share `killerPool`), `new(parent)`,
+  `write(note, it, c)` (`c.Seed(...)`, `c.now`, `c.named`, `c.ToPerson`),
+  `mark(it, note)`, optional `wants(it)` (row width, `Shared`), `assume(said,
+  plate, slot, plan)` (words before laying: as if all shown), `say(said,
+  shown, plate)` (words after: asked in `order`, so a witness's creature is
+  overruled by a killer card left off), `count` + `counted(shown, plate)`
+  (page.*Written, reset in `DrawPlates`), `filler` + `flag` (campfire:
+  plate.camped), `fits(plan, slot)` (F+L veto: S on the tucked print),
+  `after(plate, c)` (`c.Leader`: S's leader). People stay core at
+  `JourneyMargin.PEOPLE` close 10 / seen 80 (people first at equal order).
+  `JourneyMargin.Remove(kind)` / `Text.RemoveCaption(key)` take a kind out
+  (tests/margin_caption.lua registers and removes a throwaway one).
 - **Margin order** (`MarginOrder`): tier-1 people (session, fight, note,
   added, find given) → firsts found (`FindCard.Items`) → witness (`UI/WitnessCard.lua`:
   someone who watched you die, tried to save you or saved you; it replaces the
@@ -137,7 +181,7 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   (`foe`) → lucky (good luck, `UI/LuckyCard.lua`; on a light plate's print
   it is the print's S instead, never in the margin) → hunt (bad luck, the
   mildest card) → tier-2/3 people (first
-  sightings, crossed) → campfire (`UI/CampfireSlip.lua`: one slip a plate,
+  sightings, crossed) → campfire (`Features/Campfire/Slip.lua`: one slip a plate,
   exactly "sat by a campfire", no count however many fires; filler, last
   of all, so the first left off; it goes in a light plate's margin under
   its caption too, never on the print). `WriteMargin` tries quoted notes at 3/2/1 lines
@@ -148,12 +192,13 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   (`UI/PaperStrip.lua`), `findPool` (`UI/FindCard.lua`), `killerPool`
   (`UI/KillerCard.lua`, also the close-call card via `KillerCard.Foe`),
   `huntPool` (`UI/HuntCard.lua`), `witnessPool` (`UI/WitnessCard.lua`), `luckyPool` (`UI/LuckyCard.lua`: a card
-  and its tag, a second slip, `card.tag`), `campfirePool` (`UI/CampfireSlip.lua`),
-  `leaderPool`, `dotPool`.
+  and its tag, a second slip, `card.tag`), `campfirePool` (`Features/Campfire/Slip.lua`),
+  `leaderPool`, `dotPool`. Every registered kind's pool is made by
+  `EnsurePools` (`page.marginPools` for `Mark`/`Undo`, `page.rightPools`).
 - **Campfire slip left off** (Rule B, the user's choice 14 Oct): where it
   has no room (always under FL's print, whose caption starts at y 474; often
   under F+L's tucked print; first to go in a full margin), the caption's
-  words say it (`Text.PlateCaption`'s `camped`: ", and a campfire", or "By
+  words say it (`said.campfire`: ", and a campfire", or "By
   a campfire in Lushwater Oasis." as the lead). FL is never turned FF for
   it. Filler never runs the words past their foot: where saying it would,
   `Plated` leaves it out of the words too and the mark alone tells it
@@ -161,14 +206,17 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
 - **S, good luck on a light print** (`LuckyCard.Print`, drawn by the plate in
   `DrawPrint` through its own toolkit, `PRINT_LAYERS` on the `over` frame,
   under the lift's shade): `plate.print` (form, polys, leader). F+L is not
-  kept where S will not go on the tucked print (`LuckyCard.PrintFits`).
+  kept where S will not go on the tucked print (`LuckyCard.PrintFits`, the
+  lucky kind's `fits`).
 - **Leaders** (`LEADER`, `Aim`, `Pencil`, `Follow`): one per strip, graphite
   pen (not ink), leave the strip's nearest edge, enter over the plate edge
   nearest the strip, bow down slightly, end `stop` px short in a dot.
   `plate.where[m]` gives a mark's page position (through `plate:OnPage`).
 - Copy lives in `UI/JourneyText.lua` (`PlateHeading`, `PlateCaption`,
   `MarginWhat`, `MarginQuote`, `KillerName`, `FoeTag`, `Hunt*`, `Find*`,
-  `ZoneFoot`, tooltips). Changes there go through the copywriter skill.
+  `ZoneFoot`, tooltips), and a moved feature's in its own
+  `Features/<Name>/Text.lua` (campfire: `ns.Campfire.WORDS`, `At`, `Tip`).
+  Changes there go through the copywriter skill.
 
 ## 4. The plate itself (`UI/JourneyPlate.lua`, header comment = spec)
 
@@ -176,13 +224,33 @@ The card is `ns.UI.LooseSheet(..., glued)`: everything is placed through its
 toolkit (`K.Place`, `K.Quad`, `K.PlaceText`, `K.Pool`) so it turns with the
 card. Look tables: `PLATE` (stock, desaturate, tint), `FRAME`, `VIGNETTE`,
 `THICKNESS`, `SHADOW`, `MOUNT` (kraft photo corners), `GLUE`, `LIFT`,
-`SHARE` (a smaller plate gets a share of the trail caps by area). Marks:
-`MARK`, `PRIORITY`, `POUCH` (find), `CLOSE` (close call), `TALLY` (bad
-luck), `FORTUNE` (good luck star), `FINALE`, `SKILL` (stairs), `DOOR`,
-`DEATH`, `PIN`, `FLIGHT`, `CAMPFIRE` (ink only: a flame with a paper tongue
-on two crossed logs, drawn last of the marks, so it steps aside with a
-tether; `plate.campfireMarks`, `plate.campfire`); `SHAPES[kind]` draws them; `Radius`/`Apart` keep
-them apart. The ink trail is `UI/InkTrail.lua`; map art and explored
+`SHARE` (a smaller plate gets a share of the trail caps by area). Core
+marks: `MARK`, `PRIORITY`, `POUCH` (find), `DOOR`, `DEATH`, `PIN`,
+`FLIGHT`; `SHAPES[kind]` draws them, bespoke in `DrawMoments` (doors, pins,
+people's shared marks, pouches, death crosses). `Radius`/`Apart` keep all
+marks apart.
+
+**Registered marks** (`Plate.RegisterMark(kind, spec)`, the comment above
+it is the spec): one mark per merged spot of one moment kind. A feature
+file loaded after `UI/` registers its own; `DrawMoments` draws every kind
+in `order` through one loop (Spots → Apart(radius) → halo → `draw(kit, x,
+y, arg)` → hover with `tip` → kept in `plate[keep]` → `plate.counts[count]`
+→ `plate[chosen] = choose(marks)`), with the deaths on the road in a fixed
+slot (`ROAD_DEATHS` = 60). Today's, registered at the foot of
+JourneyPlate.lua (each block self-contained, look table included, ready to
+move to `Features/<Name>/`): `finale` 10 (`FINALE`, tailpiece), `skill` 20
+(`SKILL` stairs, `arg` = best rank), `close` 30 (`CLOSE`, no halo: lays its
+own dot on `kit.halo`; `plate.closeMarks`, its card chosen in
+`DrawKillers`), `luck` 40 (`TALLY`; `plate.huntMarks` → `plate.hunt`),
+`fortune` 50 (`FORTUNE` star; `plate.fortuneMarks` → `plate.lucky`),
+and, from its feature's folder (`Features/Campfire/Mark.lua`), `campfire`
+70 (`ns.Campfire.MARK`, ink only: a flame with a paper tongue on two
+crossed logs, filler, last, so it steps aside with a tether;
+`plate.campfireMarks` → `plate.campfire`). `cap` fills `Plate.CAP[count]`.
+The kit: pools `ink`/`inner`/`halo`, `Dot`, `Box`, `Stroke`, `Quad`,
+`Place`, `Fill`, `Light`, `Clamp`, `P`, `INK`, `INK_STRONG`. Order changes
+which mark steps aside, so a new kind's `order` is a design decision.
+The ink trail is `UI/InkTrail.lua`; map art and explored
 overlays are `UI/MapArt.lua`. "Flat paper only" lays everything flat (no
 turn, shadow, lift, glue, vignette). Drawing is pooled, deterministic
 (seeded), once per open/turn, and nothing runs per frame.
@@ -221,7 +289,9 @@ turn, shadow, lift, glue, vignette). Drawing is pooled, deterministic
   `tests/killer_card.lua`, `tests/combat_ui.lua` (close-call/foe cards on
   testdata pages), `tests/hunt_card.lua`, `tests/lucky_card.lua`,
   `tests/firsts.lua`, `tests/campfire_ui.lua` (the People row, the
-  caption's campfire words, the slip and its testdata pages).
+  caption's campfire words, the slip and its testdata pages),
+  `tests/margin_caption.lua` (the margin and caption registries: today's
+  orders, a throwaway kind registered, placed, counted, told, removed).
 - Useful handles: `ns.UI.JourneyPage()` (page: `.plates`, `.links`,
   `.recap.entries`, `.layout`, `.pattern`, pools), `ns.UI.RedrawJourneyPage()`,
   `ns.UI.JourneyLook` (LAYOUT, CAPTION, LEADER, ROW, FOOT, SNAPSHOT,
@@ -263,7 +333,7 @@ turn, shadow, lift, glue, vignette). Drawing is pooled, deterministic
   (M, F+L row), lv11 saved (L), lv13 watched (L), lv14 saw + two others (M),
   the cap's oasis mercilessly watched (XL on lv16's page, smaller on a week's),
   the crag on the last week tried (XL); the weeks fall by the calendar.
-  Campfires (14 Oct): lv11's FL print (no room: "First Aid at 75, and a
+  Campfires (14 Oct; written by `Features/Campfire/Dev.lua`): lv11's FL print (no room: "First Aid at 75, and a
   campfire."), lv12's 122 px column (slip after the lucky card), lv13's FL
   print (its words long already: left to the mark), lv15 two fires, one
   sat by twice (two marks; margin full, so the words say it), and on the
@@ -272,7 +342,10 @@ turn, shadow, lift, glue, vignette). Drawing is pooled, deterministic
   the person). The glyph's render: `.claude/ui-proposal/render_plate_marks.py`
   (local). None of FLF/FFL/LFF/LFL
   occur naturally; they're only seen forced. If a change needs them for
-  real, add a testdata entry in `Dev/TestData.lua` (`TestData.WriteJourney`).
+  real, add a testdata entry in `Dev/TestData.lua` (`TestData.WriteJourney`),
+  or, for a moved feature, in its `Features/<Name>/Dev.lua`
+  (`TestData.Register("route" | "tester", fn)`, spec above it in
+  TestData.lua).
 
 **Proposals**: mockups go to `.claude/ui-proposal/<name>-mockup.html` with a
 `<name>-proposal.md`, drawn to the real 466×534 page. Reuse the

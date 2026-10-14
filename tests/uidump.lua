@@ -610,6 +610,21 @@ local function Run(art)
         ns.UI.RedrawJourneyPage()
         Dump("your diary: flat paper", J.views.journey)
         ns.SetSetting("flatSheets", false)
+        -- SD_UIDUMP_ENTRIES=all: every level's and week's plates, and every
+        -- zone's full page, for a refactor of the plates themselves (the
+        -- pages above are only a sample of them).
+        if os.getenv("SD_UIDUMP_ENTRIES") == "all" then
+            for i = 1, #JP.recap.entries do
+                JP.open, JP.mode = i, "plates"
+                ns.UI.RedrawJourneyPage()
+                local e = JP.recap.entries[i]
+                Dump("your diary: entry " .. i .. " (" .. tostring(e.level or e.week) .. ")", J.views.journey)
+            end
+            for _, zone in ipairs(JP.recap.zones) do
+                ns.UI.OpenZoneSheet(zone.mapID)
+                Dump("your diary: the full page of " .. tostring(zone.mapID), J.views.journey)
+            end
+        end
     end
     ns.UI.SetJournalView("people")
 

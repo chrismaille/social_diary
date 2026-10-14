@@ -24,13 +24,11 @@ ns.People = People
 
 local DAY = ns.DAY
 
--- Rows that mean the two of you were in one place. A whisper is contact, not
--- a meeting; /say lines come in bursts and would inflate the count. Rows
--- stamped with a session are already counted by the session.
-local MEETING = {
-    group_join = true,
-    trade = true,
-}
+-- Rows that mean the two of you were in one place (their kind's `meeting`,
+-- Core/Rows.lua). A whisper is contact, not a meeting; /say lines come in
+-- bursts and would inflate the count. Rows stamped with a session are
+-- already counted by the session.
+local Rows = ns.Rows
 
 People.SORTS = {
     { key = "lastMet", label = "Last met" },
@@ -157,7 +155,7 @@ local function Finish(s)
     if rows then
         for i = 1, #rows do
             local row = rows[i]
-            if not row.session and MEETING[row.type] then
+            if not row.session and Rows.Get(row.type).meeting then
                 Meet(s, row.time, row.time, row.theirLevel, row.zone)
                 AddZone(s, row.zone)
             end

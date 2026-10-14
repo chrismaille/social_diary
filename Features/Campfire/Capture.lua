@@ -1,4 +1,5 @@
--- Campfires: a minute sat by one, and who sat there too.
+-- Campfires: a minute sat by one, and who sat there too. The countdown
+-- watched, and what it leaves written down.
 --
 -- WoW Forever's campfires give camp benefits after a minute spent sitting
 -- near one. While the user sits, "Welcoming Campfire" counts that minute
@@ -12,22 +13,22 @@
 --               is the same campfire: one record on the route, one row a
 --               person, however many minutes they sat
 --
--- On a completed minute: the route gets the campfire (Journey.Campfired,
--- while it is kept), and each other player who had their own countdown
--- running while the user's did gets a "campfire" row (Interactions.Add).
--- Others are read off the nameplates and the group's tokens: their auras
--- are open to addons out of combat (probe, 14 Oct), and a sitting is out
--- of combat by nature. Once a SWEEP while the user sits, and as a plate
--- comes into view. Nameplates reach further than the fire's warmth, but
--- a countdown running means sitting at a fire, and two fires in one
--- plate's reach are rare.
+-- On a completed minute: the route gets the campfire (Campfire.Added,
+-- Kind.lua, while it is kept), and each other player who had their own
+-- countdown running while the user's did gets a "campfire" row
+-- (Interactions.Add; the row's kind is Kind.lua's). Others are read off
+-- the nameplates and the group's tokens: their auras are open to addons
+-- out of combat (probe, 14 Oct), and a sitting is out of combat by nature.
+-- Once a SWEEP while the user sits, and as a plate comes into view.
+-- Nameplates reach further than the fire's warmth, but a countdown
+-- running means sitting at a fire, and two fires in one plate's reach are
+-- rare.
 --
 -- The spell IDs are the client's, the same in every language.
 
 local addonName, ns = ...
 
-local Campfire = {}
-ns.Campfire = Campfire
+local Campfire = ns.Campfire
 
 local COUNTDOWN = 1229739   -- "Welcoming Campfire": the minute, counting down
 Campfire.COUNTDOWN = COUNTDOWN
@@ -104,7 +105,7 @@ local function Completed(sitters)
     if not fire then
         -- After a /reload the last fire is the route's newest, so a sitting
         -- that spans one is still one campfire.
-        local list = ns.Journey.Campfires(ns.Journey.Mine())
+        local list = Campfire.List(ns.Journey.Mine())
         local rec = list[#list]
         if rec then
             fire = { at = rec.t, rec = rec, rowed = {},
@@ -117,7 +118,7 @@ local function Completed(sitters)
         end
     end
     if not Same(where, now) then
-        fire = { where = where, rowed = {}, rec = ns.Journey.Campfired(now, where) }
+        fire = { where = where, rowed = {}, rec = Campfire.Added(now, where) }
         ns.Debug("campfire in %s", tostring(where.subZone or where.zone))
     end
     fire.at = now

@@ -43,43 +43,19 @@ local RANK_OF = {}
 for i, key in ipairs(RANK) do RANK_OF[key] = i end
 
 local UNCOMMON = 2
+Timeline.UNCOMMON = UNCOMMON
 
--- Where each row type sits. `activity` is what it adds to an episode's
--- headline; `moment(row)` says whether this row gets a line of its own. A
--- type missing here is chatter under "other", so a new capture path folds
--- before anyone gets round to adding it.
-local TYPES = {
-    whisper_in = { activity = "chat" },
-    whisper_out = { activity = "chat" },
-    say = { activity = "chat" },
-    yell = { activity = "chat" },
-    party = { activity = "chat" },
-    group_join = { activity = "group" },
-    -- Implied by the session's end, so never a line.
-    group_leave = { hidden = true },
-    trade = {
-        activity = "trade",
-        moment = function(row) return Timeline.TradeQuality(row) >= UNCOMMON end,
-    },
-    -- Always a line, and names nothing in a headline: the details line
-    -- already says "they went from 18 to 21".
-    level_up = { moment = function() return true end },
-    -- World PvP (Core/Fights.lua): always a line, never an activity, as
-    -- TLN-2 has it for PvP kills.
-    pvp_kill = { moment = function() return true end },
-    pvp_death = { moment = function() return true end },
-    -- Witnesses to the user's fights (Capture/Witnesses.lua): always a line.
-    watched_death = { moment = function() return true end },
-    tried_to_help = { moment = function() return true end },
-    saved_you = { moment = function() return true end },
-    -- A campfire sat by together (Capture/Campfire.lua): always a line, one
-    -- a sitting, however many minutes it was renewed.
-    campfire = { moment = function() return true end },
-}
+-- Where each row type sits is the kind's (Core/Rows.lua): `activity` is what
+-- it adds to an episode's headline; `moment(row)` says whether this row
+-- gets a line of its own; `hidden` keeps it off. A kind that says none of
+-- them is chatter under "other", so a new capture path folds before anyone
+-- gets round to placing it.
 local OTHER = { activity = "other" }
 
 local function TypeOf(row)
-    return TYPES[row.type] or OTHER
+    local kind = ns.Rows.Get(row.type)
+    if kind.activity or kind.moment or kind.hidden then return kind end
+    return OTHER
 end
 
 --------------------------------------------------------------------------
@@ -271,7 +247,7 @@ local function AddToSession(episode, row)
     local item = RowItem(row)
     episode.rows[#episode.rows + 1] = row
     episode.all[#episode.all + 1] = item
-    -- A level-up names nothing (TYPES), so it adds no activity.
+    -- A level-up names nothing (its kind, Core/Rows.lua), so it adds no activity.
     if item.activity then episode.present[item.activity] = true end
 end
 

@@ -37,8 +37,8 @@ local STOPS = { max = 3 }
 local HINDSIGHT = { slack = 120, encounter = 30 * 60 }
 
 -- The interaction rows that make a person matter: you grouped, traded,
--- whispered or said something to each other (D6 amended).
-local MATTERS = { group_join = true, trade = true, whisper_in = true, whisper_out = true, say = true }
+-- whispered or said something to each other (D6 amended); their kind's
+-- `matters` (Core/Rows.lua).
 
 -- JRN-21: at most `max` plates an entry. A window fits its moments when
 -- they span no more than `inset` of it, so no mark sits on the plate's
@@ -50,16 +50,14 @@ local MATTERS = { group_join = true, trade = true, whisper_in = true, whisper_ou
 -- longest stays (one a zone), the longest road when there was nothing
 -- else, and last the level-up spot: a level is reached anyway, so a place
 -- is worth a plate for what happened there, not for the ding (12 Oct).
--- A campfire sat by (WoW Forever's camps) opens a plate too, but last of
--- everything that does: after a dungeon's door, before a stay. It is
--- filler, "kind of unimportant, just filler if we don't have anything
--- better" (the user, 14 Oct), so 5.5 puts it between the two without
--- moving anything else; ranks are only ever compared, never counted.
+-- Ranks are only ever compared, never counted, so a feature's kind may
+-- slot in between two with a fraction, moving nothing else.
 local PLATES = { max = 3, inset = 0.8, window = 0.3 }
-local RANK = { session = 1, fight = 1, note = 1, first = 1, gift = 1, find = 2, finale = 2, skill = 2,
-    death = 3,
-    close = 3, luck = 3, fortune = 3, arrive = 4,
-    dungeon = 5, campfire = 5.5, stay = 6, road = 7, level = 8 }
+-- The features' kinds are ranked as they register (RegisterMoment below):
+-- find, finale and skill 2; close, luck and fortune 3; those registered
+-- from Features/<Name>/ say theirs there.
+local RANK = { session = 1, fight = 1, note = 1, first = 1, gift = 1, death = 3, arrive = 4,
+    dungeon = 5, stay = 6, road = 7, level = 8 }
 Recap.RANK = RANK
 -- A plate's weight (plate-weight proposal, 13 Oct): it is light when all it
 -- holds is a place, nothing for the margin and a line of words at most, and
@@ -67,20 +65,56 @@ Recap.RANK = RANK
 -- (UI/JournalJourney.lua's LAYOUT). A first visit, a dungeon's door, a
 -- stay, the road, a level's pin; and a chain's finale, a profession's cap
 -- and good luck with a quest's drops, which are words only, with no card
--- in the margin (the user's choice, 13 Oct); and a campfire sat by,
--- filler, with only a small slip ("sat by a campfire") under the caption,
--- or the words saying it where there is no room (the user's choice, 14
--- Oct). Anything else is full: a kind that puts a note in the margin
--- (people, a first found, a death with its killer, a close call, bad luck)
--- or one no one has weighed yet, so a new kind of moment is given a full
--- plate until someone says otherwise.
-local LIGHT = { arrive = true, dungeon = true, stay = true, road = true, level = true,
-    finale = true, skill = true, fortune = true, campfire = true }
+-- in the margin (the user's choice, 13 Oct). Anything else is full: a
+-- kind that puts a note in the margin (people, a first found, a death with
+-- its killer, a close call, bad luck) or one no one has weighed yet, so a
+-- new kind of moment is given a full plate until someone says otherwise.
+-- (The features' light kinds say so as they register: `light`.)
+local LIGHT = { arrive = true, dungeon = true, stay = true, road = true, level = true }
 Recap.LIGHT = LIGHT
+
+--------------------------------------------------------------------------
+-- A feature's moments
+--------------------------------------------------------------------------
+--
+-- What a feature notes on the road (a first found, a close call, ...)
+-- reaches the plates as moments of its own kind.
+-- Recap.RegisterMoment(kind, spec) declares one:
+--
+--   order   its place among the features' moments (Moments' order, which
+--           the plates' grouping sees)
+--   entry   the entry's field its records are gathered into (e.closeCalls)
+--   list    the route's list they come from (Core/Journey.lua's
+--           RegisterList): those within the entry's time are gathered
+--   gather  function(j, a, b, e, ctx), instead of `list`: fills e[entry]
+--           (and any other entry it shares a list with) itself
+--   field   the moment's field that holds its record (m.call, m.cap)
+--   rank    its RANK (see above); `light` true makes it a light kind
+--   rankAs  function(m): the RANK key a moment of it ranks as, where it is
+--           not its kind (a find that was a gift ranks with the people)
+--   moment  function(j, rec, Own) → moment, mapID, x, y: instead of the
+--           record placed at its own spot (Own) as { kind, t, [field] }
+--
+-- An entry with any feature's records is kept, as one with people or time
+-- on the road is (Recap.Build's weeks).
+
+local MOMENTS, MOMENT = {}, {}
+
+function Recap.RegisterMoment(kind, spec)
+    spec.kind = kind
+    spec.entry = spec.entry or spec.list
+    MOMENT[kind] = spec
+    MOMENTS[#MOMENTS + 1] = spec
+    table.sort(MOMENTS, function(a, b) return (a.order or 0) < (b.order or 0) end)
+    RANK[kind] = spec.rank
+    LIGHT[kind] = spec.light or nil
+    return spec
+end
 
 -- A moment's rank: a find that was a gift ranks with the people.
 local function Rank(m)
-    return RANK[m.kind == "find" and m.gift and "gift" or m.kind] or 9
+    local spec = MOMENT[m.kind]
+    return RANK[spec and spec.rankAs and spec.rankAs(m) or m.kind] or 9
 end
 Recap.Rank = Rank
 
@@ -167,8 +201,8 @@ end
 -- fights and notes.
 local function Gather(j, a, b, ctx)
     local e = { from = a, to = b, places = {}, stops = {}, dungeons = {}, flights = {},
-        people = {}, fights = {}, notes = {}, deaths = {}, finds = {}, closeCalls = {}, hunts = {}, fortunes = {},
-        finales = {}, skillCaps = {}, campfires = {}, roads = {}, seconds = 0 }
+        people = {}, fights = {}, notes = {}, deaths = {}, roads = {}, seconds = 0 }
+    for _, spec in ipairs(MOMENTS) do e[spec.entry] = {} end
     local byMap = {}
 
     for _, seg in ipairs(Journey.All(j)) do
@@ -252,41 +286,16 @@ local function Gather(j, a, b, ctx)
     end
     table.sort(e.notes, function(x, y) return x.time < y.time end)
 
-    -- JRN-24: the firsts found, each { kind, rec }, oldest first.
-    for _, f in ipairs(Journey.Firsts(j)) do
-        if f.rec.t >= a and f.rec.t < b then e.finds[#e.finds + 1] = f end
-    end
-
-    -- JRN-25, JRN-26, EXT-3: the close calls, and the hunts that were bad
-    -- luck or good.
-    for _, call in ipairs(Journey.CloseCalls(j)) do
-        if call.t >= a and call.t < b then e.closeCalls[#e.closeCalls + 1] = call end
-    end
-    local usual = Journey.UsualLuck(j) or false
-    for _, hunt in ipairs(Journey.Hunts(j)) do
-        if hunt.t >= a and hunt.t < b then
-            Journey.HuntRated(hunt)
-            if Journey.BadLuck(j, hunt, usual) then
-                e.hunts[#e.hunts + 1] = hunt
-            elseif Journey.GoodLuck(hunt) then
-                e.fortunes[#e.fortunes + 1] = hunt
+    -- The features' (RegisterMoment): within the entry's time, oldest first.
+    for _, spec in ipairs(MOMENTS) do
+        if spec.gather then
+            spec.gather(j, a, b, e, ctx)
+        elseif spec.list then
+            local into = e[spec.entry]
+            for _, rec in ipairs(Journey.List(j, spec.list)) do
+                if rec.t >= a and rec.t < b then into[#into + 1] = rec end
             end
         end
-    end
-
-    -- JRN-28: the chains brought to their end.
-    for _, f in ipairs(Journey.Finales(j)) do
-        if f.t >= a and f.t < b then e.finales[#e.finales + 1] = f end
-    end
-
-    -- JRN-29: the professions brought to their cap.
-    for _, cap in ipairs(Journey.SkillCaps(j)) do
-        if cap.t >= a and cap.t < b then e.skillCaps[#e.skillCaps + 1] = cap end
-    end
-
-    -- The campfires sat by (WoW Forever's camps, Capture/Campfire.lua).
-    for _, fire in ipairs(Journey.Campfires(j)) do
-        if fire.t >= a and fire.t < b then e.campfires[#e.campfires + 1] = fire end
     end
 
     return e
@@ -379,9 +388,9 @@ function Recap.Build(j, ctx)
             local a = math.max(week, capAt)
             local e = Gather(j, a, math.min(nextWeek, now + 1), ctx)
             e.kind, e.week = "week", week
-            if e.seconds > 0 or #e.people > 0 or #e.fights > 0 or #e.notes > 0 or #e.flights > 0 or #e.finds > 0
-                or #e.closeCalls > 0 or #e.hunts > 0 or #e.fortunes > 0 or #e.finales > 0 or #e.skillCaps > 0
-                or #e.campfires > 0 then
+            local any = e.seconds > 0 or #e.people > 0 or #e.fights > 0 or #e.notes > 0 or #e.flights > 0
+            for _, spec in ipairs(MOMENTS) do any = any or #e[spec.entry] > 0 end
+            if any then
                 if a == capAt and first < maxLevel then e.reached, e.level = Reached(j, maxLevel), maxLevel end
                 recap.entries[#recap.entries + 1] = e
             end
@@ -562,7 +571,7 @@ end
 
 -- When `guid` first mattered (D6 amended), or nil: the earlier of being
 -- added to the diary and an interaction row of grouping, trading,
--- whispering or saying something (MATTERS). Only something done with
+-- whispering or saying something (`matters`). Only something done with
 -- them: being seen again is not (11 Oct: passers-by seen on both sides of
 -- midnight, never spoken to, took a plate's margin). `ctx` carries the
 -- stores, read only: diary, interactions, characters.
@@ -578,7 +587,7 @@ function Recap.Matters(guid, ctx)
     if entry then Take(entry.addedAt or record.firstSeen) end
 
     for _, row in ipairs(ctx.interactions and ctx.interactions[guid] or {}) do
-        if MATTERS[row.type] then
+        if ns.Rows.Get(row.type).matters then
             Take(row.time)
             break
         end
@@ -746,44 +755,16 @@ function Recap.Moments(j, e, ctx)
         local map, x, y = Journey.PointIn(seg, (seg.from + seg.to) / 2)
         Add({ kind = "death", t = seg.from, seg = seg }, map, x, y)
     end
-    -- JRN-24: a first found, where it was found. A gift names the giver
-    -- while the diary still knows them (Journey.Prune).
-    for _, f in ipairs(e.finds or {}) do
-        local rec = f.rec
-        local map, x, y = Own(j, rec.mapID, rec.x, rec.y, rec.t)
-        Add({ kind = "find", what = f.kind, t = rec.t, find = rec, gift = rec.from == "trade" or nil, guid = rec.guid },
-            map, x, y)
-    end
-    -- JRN-25: a fight left with almost no health, where it ended.
-    for _, call in ipairs(e.closeCalls or {}) do
-        local map, x, y = Own(j, call.mapID, call.x, call.y, call.t)
-        Add({ kind = "close", t = call.t, call = call }, map, x, y)
-    end
-    -- JRN-26: a quest's drops that took bad luck, where the last came;
-    -- EXT-3: and good luck.
-    for _, hunt in ipairs(e.hunts or {}) do
-        local map, x, y = Own(j, hunt.mapID, hunt.x, hunt.y, hunt.t)
-        Add({ kind = "luck", t = hunt.t, hunt = hunt }, map, x, y)
-    end
-    for _, hunt in ipairs(e.fortunes or {}) do
-        local map, x, y = Own(j, hunt.mapID, hunt.x, hunt.y, hunt.t)
-        Add({ kind = "fortune", t = hunt.t, hunt = hunt }, map, x, y)
-    end
-    -- JRN-28: a chain's finale, where it was turned in.
-    for _, f in ipairs(e.finales or {}) do
-        local map, x, y = Own(j, f.mapID, f.x, f.y, f.t)
-        Add({ kind = "finale", t = f.t, finale = f }, map, x, y)
-    end
-    -- JRN-29: a profession at its cap, where the last skill-up came.
-    for _, cap in ipairs(e.skillCaps or {}) do
-        local map, x, y = Own(j, cap.mapID, cap.x, cap.y, cap.t)
-        Add({ kind = "skill", t = cap.t, cap = cap }, map, x, y)
-    end
-    -- A campfire sat by, where its first minute was done. Its spot is
-    -- zone-level only; without one, the route's at its time.
-    for _, fire in ipairs(e.campfires or {}) do
-        local map, x, y = Own(j, fire.mapID, fire.x, fire.y, fire.t)
-        Add({ kind = "campfire", t = fire.t, campfire = fire }, map, x, y)
+    -- The features' (RegisterMoment), each record where it happened.
+    for _, spec in ipairs(MOMENTS) do
+        for _, rec in ipairs(e[spec.entry] or {}) do
+            if spec.moment then
+                Add(spec.moment(j, rec, Own))
+            else
+                local map, x, y = Own(j, rec.mapID, rec.x, rec.y, rec.t)
+                Add({ kind = spec.kind, t = rec.t, [spec.field] = rec }, map, x, y)
+            end
+        end
     end
     -- A zone new to the road: its first spot, when this entry holds it.
     local firsts = {}
@@ -958,3 +939,48 @@ function Recap.SheetFor(guid, mapID)
     local _, ctx = Recap.For(guid)
     return Recap.Sheet(j, mapID, ctx or {})
 end
+
+--------------------------------------------------------------------------
+-- The features' moments, until each moves to its folder (Features/)
+--------------------------------------------------------------------------
+
+-- JRN-24: a first found, where it was found, each { kind, rec } gathered.
+-- A gift names the giver while the diary still knows them (Journey.Prune),
+-- and ranks with the people.
+Recap.RegisterMoment("find", { order = 10, entry = "finds", rank = 2,
+    gather = function(j, a, b, e)
+        for _, f in ipairs(Journey.Firsts(j)) do
+            if f.rec.t >= a and f.rec.t < b then e.finds[#e.finds + 1] = f end
+        end
+    end,
+    rankAs = function(m) return m.gift and "gift" or "find" end,
+    moment = function(j, f, Own)
+        local rec = f.rec
+        local map, x, y = Own(j, rec.mapID, rec.x, rec.y, rec.t)
+        return { kind = "find", what = f.kind, t = rec.t, find = rec, gift = rec.from == "trade" or nil,
+            guid = rec.guid }, map, x, y
+    end })
+-- JRN-25: a fight left with almost no health, where it ended.
+Recap.RegisterMoment("close", { order = 20, list = "closeCalls", field = "call", rank = 3 })
+-- JRN-26: a quest's drops that took bad luck, where the last came; EXT-3:
+-- and good luck. One list, the hunts, makes both.
+Recap.RegisterMoment("luck", { order = 30, entry = "hunts", field = "hunt", rank = 3,
+    gather = function(j, a, b, e)
+        local usual = Journey.UsualLuck(j) or false
+        for _, hunt in ipairs(Journey.Hunts(j)) do
+            if hunt.t >= a and hunt.t < b then
+                Journey.HuntRated(hunt)
+                if Journey.BadLuck(j, hunt, usual) then
+                    e.hunts[#e.hunts + 1] = hunt
+                elseif Journey.GoodLuck(hunt) then
+                    e.fortunes[#e.fortunes + 1] = hunt
+                end
+            end
+        end
+    end })
+Recap.RegisterMoment("fortune", { order = 40, entry = "fortunes", field = "hunt", rank = 3, light = true,
+    gather = function() end })
+-- JRN-28: a chain's finale, where it was turned in.
+Recap.RegisterMoment("finale", { order = 50, list = "finales", field = "finale", rank = 2, light = true })
+-- JRN-29: a profession at its cap, where the last skill-up came.
+Recap.RegisterMoment("skill", { order = 60, list = "skillCaps", field = "cap", rank = 2, light = true })

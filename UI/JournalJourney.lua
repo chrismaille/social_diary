@@ -209,12 +209,12 @@ local function Snap(x, y, t, corners, lift, cap)
 end
 -- The print a light plate must fit to be drawn light (LayoutFor).
 local SNAPSHOT = Snap(0, 0, 0, {})
--- A light plate's campfire slip ("sat by a campfire", UI/CampfireSlip.lua)
--- goes under its print's caption where there is room (LF, LFF, LFL, FLF;
--- FFL with the route kept). Under FL's print (its caption from y 474) and
--- often F+L's tucked one there is none: the slip is left off there and the
--- caption's words say it. The layouts stay as they are for it, never FL
--- turned FF for a campfire, which is filler (the user's choice, 14 Oct).
+-- A light plate's filler note (a margin kind with `filler`) goes under
+-- its print's caption where there is room (LF, LFF, LFL, FLF; FFL with
+-- the route kept). Under FL's print (its caption from y 474) and often
+-- F+L's tucked one there is none: the note is left off there and the
+-- caption's words say it. The layouts stay as they are for filler, never
+-- FL turned FF for it (the user's choice, 14 Oct).
 LAYOUT.FL = { { x = 8, y = -2, w = 260, h = 318, t = -1.4, pad = 8, pc = 24, corners = FOUR,
         cap = { x = 282, y = 18, w = 176, limit = 528 } },
     Snap(40, 336, 2.2, LOST, "br", { x = 42, y = 474, w = 200, limit = 528 }) }
@@ -1150,31 +1150,158 @@ local function Tier(g)
     return best
 end
 
+--------------------------------------------------------------------------
+-- The margin's kinds (JourneyMargin.Register)
+--------------------------------------------------------------------------
+
 -- What a plate's margin holds, in the order it is given room (MarginOrder):
--- the people who did something with you, then the firsts found, then what
--- killed you, then what nearly did (a close call's creature, JRN-25: a
--- fight of its own, so its card is beside the killer's, the same creature
--- or not; the user's choice, 11 Oct), then a quest's drops that took bad
--- luck (JRN-26, UI/HuntCard.lua: the mildest of the cards, the first left
--- off; the user's choice, 12 Oct), then the people only seen. Good luck
--- (JRN-27, UI/LuckyCard.lua) goes after the close call and before the slow
--- hunt (the user's choice, 13 Oct): rarer, and a happy moment, but never
--- in place of a person, a find, a death or a close call; on a light plate's
--- print it is told on the print instead (the plate's S), so not here.
--- Someone who was there (a witness, UI/WitnessCard.lua) goes where the
--- card they took the place of would have (the user's call, 14 Oct: a
--- witness before the killer): with the killer's, ahead of the close call's
--- (UI/JourneyPlate.lua clears the one they replace, plate.killer for a
--- death's witness, plate.foe for a rescue).
--- A campfire sat by (UI/CampfireSlip.lua: one slip, "sat by a campfire")
--- comes last of all, after the people only seen, so it is the first left
--- off: filler (the user, 14 Oct), and the caption's words say it then. It
--- goes in a light plate's margin too (under its caption), never on the
--- print.
--- Each { kind = "person", "find", "witness", "killer", "foe", "lucky", "hunt" or "campfire", top (its mark's
--- height on the page), x (where across the page its leader likeliest
--- goes, for a row of notes under the plate), rank (its place in that
--- order) }.
+-- the people who did something with you, then the firsts found, then
+-- someone who was there (a witness), then what killed you, then what
+-- nearly did, then good luck, then bad luck, then the people only seen,
+-- then filler. The people are the diary's own and placed here;
+-- every other kind of note (a card, a slip) registers itself, so a
+-- feature's file (Features/<Name>/, loaded after UI/) puts its note in
+-- every plate's margin without this file knowing of it
+-- (.claude/registry-refactor.md, phase 4). Today's are registered at the
+-- foot of this file, each block whole, to be cut out as they are; their
+-- block's comment says why each stands where it does.
+--
+-- Each kind is laid as the people's strips are (LayNotes): from its own
+-- pool, down the boxes, a leader from it to its mark, left off where it
+-- has no room (and everything after it), then laid again by its marks'
+-- heights; and the caption's words told what it showed, so whatever had
+-- no room is said there instead (Text.PlateCaption's `said`).
+--
+-- `spec` (JourneyMargin.Register(kind, spec)), `kind` the name its items
+-- carry (it.kind, plate.margin's; never "person"):
+--   order    its place in the margin: lowest first, and first left off
+--            last. The people who did something with you stand at
+--            PEOPLE.close (10) and those only seen at PEOPLE.seen (80);
+--            at equal numbers the people go first, then the kinds in the
+--            order they registered. Today's: find 20, witness 30, killer
+--            40, foe 50, lucky 60, hunt 70; a kind registered from
+--            Features/<Name>/ says its number there. Leave gaps.
+--   item     function(plate) → one item or nil; or
+--   items    function(plate) → a list of them (a find card each item).
+--            An item is { top, x, ... }: `top` its mark's height on the
+--            page (the column is laid again in that order, so leaders do
+--            not cross), `x` where across the page its leader likeliest
+--            goes (for a row of notes under the plate), and its own fields
+--            (it.killer, it.hunt, ...: the tests read them). `kind` and
+--            `rank` (its place in the order) are set here.
+--   pool     the page's key for its pool of notes (page.killerPool, ...);
+--            kinds may share one (a killer's and a close call's card are
+--            one card, KillerCard).
+--   new      function(parent) → a new note for the pool, the first time it
+--            is needed. It is laid over the plates (STRIPS). A note has
+--            :Layout(x, y, w, room) → w, h; :Nearest(x, y) → the point of
+--            its edge nearest a mark; and, optionally, :Smaller() (it
+--            draws itself smaller, false when it cannot) and `overfull`.
+--   write    function(note, it, c): the note written for its item. `c`:
+--            plate, e (the entry), level, named (who the people's notes
+--            name), now, Seed(...) (its parts joined with the plate's map
+--            and level: a note's seeded look, the same each time),
+--            ToPerson(guid) (a name that opens their page).
+--   mark     function(it, note) → { x, y } on the page: where its leader
+--            goes.
+--   wants    optional function(it) → the width it would like in a row of
+--            fewer notes than boxes (Shared): a hunt's card its wide
+--            arrangement.
+--   assume   optional function(said, plate, slot, plan): tells the words,
+--            before the margin is laid, what it would show if all of it
+--            had room (said[...], Text.PlateCaption's `said`).
+--   say      optional function(said, shown, plate): tells the words what
+--            it showed (`shown`, its items that had room, maybe none), so
+--            what had none goes into them. Asked in `order`, so a kind may
+--            leave a later one's word to it (a witness's creature, which a
+--            killer's card left off overrules).
+--   count    optional: the page's key counting its notes written
+--            (page.killersWritten, ...: the tests'), set to 0 as the
+--            plates are drawn; counted(shown, plate) → how many where it
+--            is not just its shown items (good luck on a print counts).
+--   filler   true: it is filler (the user, 14 Oct). Left off, its words go
+--            in the caption (`say` is asked only then) but never cost the
+--            caption its place over the plate nor run it past its foot;
+--            `flag` names the plate field saying whether the words told
+--            it.
+--   fits     optional function(plan, slot) → false where what it puts on
+--            a light plate's print will not go on the smaller print tucked
+--            into F+L (`slot`): the page is FL then.
+--   after    optional function(plate, c): once the margin is laid, for
+--            what it draws besides its notes; c.Leader(from, mark) draws a
+--            leader (good luck's print up to its star).
+local MARGIN, MARGIN_ORDER, marginSeq = {}, {}, 0
+local NONE = {}
+local PEOPLE = { close = 10, seen = 80 }
+local Margin = { KINDS = MARGIN, ORDER = MARGIN_ORDER, PEOPLE = PEOPLE }
+ns.UI.JourneyMargin = Margin
+
+-- The right page's pools for every registered kind, made as they are first
+-- needed, and the lists of them: the margin's (Mark, Undo) and the whole
+-- right page's (DrawRight).
+local function EnsurePools()
+    if not page then return end
+    local margin, right = { "notePool" }, { page.leaderPool, page.dotPool, page.headingPool, page.captionPool,
+        page.notePool }
+    local seen = { notePool = true }
+    for _, spec in ipairs(MARGIN_ORDER) do
+        local key = spec.pool
+        if not page[key] then
+            local new = spec.new
+            page[key] = Handout(function()
+                local note = new(page.right)
+                note:SetFrameLevel(page.right:GetFrameLevel() + STRIPS.level)
+                return note
+            end)
+        end
+        if not seen[key] then
+            seen[key] = true
+            margin[#margin + 1] = key
+            right[#right + 1] = page[key]
+        end
+    end
+    margin[#margin + 1], margin[#margin + 2] = "leaderPool", "dotPool"
+    page.marginPools, page.rightPools = margin, right
+end
+
+function Margin.Register(kind, spec)
+    assert(type(kind) == "string" and kind ~= "person" and type(spec) == "table"
+        and (spec.item or spec.items) and type(spec.pool) == "string" and spec.new and spec.write and spec.mark,
+        "JourneyMargin.Register(kind, { order, item | items, pool, new, write, mark, ... })")
+    Margin.Remove(kind)
+    marginSeq = marginSeq + 1
+    spec.kind, spec.seq, spec.order = kind, marginSeq, spec.order or 100
+    MARGIN[kind] = spec
+    MARGIN_ORDER[#MARGIN_ORDER + 1] = spec
+    table.sort(MARGIN_ORDER, function(a, b)
+        if a.order ~= b.order then return a.order < b.order end
+        return a.seq < b.seq
+    end)
+    EnsurePools()
+    return spec
+end
+
+-- Takes a kind out of every margin again (a test's own kind). Its pool
+-- stays, unused.
+function Margin.Remove(kind)
+    local old = MARGIN[kind]
+    if not old then return end
+    MARGIN[kind] = nil
+    for i = #MARGIN_ORDER, 1, -1 do
+        if MARGIN_ORDER[i] == old then table.remove(MARGIN_ORDER, i) end
+    end
+    EnsurePools()
+end
+
+-- A kind's items on `plate`, a list.
+local function ItemsOf(spec, plate)
+    if spec.items then return spec.items(plate) or {} end
+    local item = spec.item(plate)
+    return item and { item } or {}
+end
+
+-- The margin's items for `plate` in their order. Each { kind = "person"
+-- or a registered kind's, top, x, rank, ... }; a person's { g, index }.
 local function MarginOrder(plate, groups)
     local order = {}
     local function Add(item)
@@ -1194,33 +1321,23 @@ local function MarginOrder(plate, groups)
         end
         return x or 0
     end
-    for i, g in ipairs(groups) do
-        if Tier(g) == 1 then Add({ kind = "person", g = g, index = i, top = g.top, x = Across(g) }) end
+    -- The people of tier 1 (close) or past it, in their marks' order.
+    local function People(close)
+        for i, g in ipairs(groups) do
+            if (Tier(g) == 1) == close then Add({ kind = "person", g = g, index = i, top = g.top, x = Across(g) }) end
+        end
     end
-    for _, item in ipairs(ns.UI.FindCard.Items(plate)) do
-        Add({ kind = "find", item = item, top = item.top, x = item.mark and item.mark[1] or 0 })
+    local close, seen = false, false
+    for _, spec in ipairs(MARGIN_ORDER) do
+        if not close and spec.order >= PEOPLE.close then close = People(true) or true end
+        if not seen and spec.order >= PEOPLE.seen then seen = People(false) or true end
+        for _, item in ipairs(ItemsOf(spec, plate)) do
+            item.kind = spec.kind
+            Add(item)
+        end
     end
-    if plate.witness then
-        Add({ kind = "witness", witness = plate.witness, top = plate.witness.mark[2], x = plate.witness.mark[1] })
-    end
-    if plate.killer then
-        Add({ kind = "killer", killer = plate.killer, top = plate.killer.mark[2], x = plate.killer.mark[1] })
-    end
-    if plate.foe then
-        Add({ kind = "foe", foe = plate.foe, top = plate.foe.mark[2], x = plate.foe.mark[1] })
-    end
-    if plate.lucky and not (plate.slot and plate.slot.light) then
-        Add({ kind = "lucky", lucky = plate.lucky, top = plate.lucky.mark[2], x = plate.lucky.mark[1] })
-    end
-    if plate.hunt then
-        Add({ kind = "hunt", hunt = plate.hunt, top = plate.hunt.mark[2], x = plate.hunt.mark[1] })
-    end
-    for i, g in ipairs(groups) do
-        if Tier(g) > 1 then Add({ kind = "person", g = g, index = i, top = g.top, x = Across(g) }) end
-    end
-    if plate.campfire then
-        Add({ kind = "campfire", campfire = plate.campfire, top = plate.campfire.mark[2], x = plate.campfire.mark[1] })
-    end
+    if not close then People(true) end
+    if not seen then People(false) end
     return order
 end
 
@@ -1232,10 +1349,9 @@ local QUOTES = { 3, 2, 1 }
 local quoteMost
 
 -- The note for one of MarginOrder's items, from its pool, written: a
--- person's strip, a found card, the killer's card, the card of what
--- nearly got you (the same card, charted). `named` is who the
--- people's notes name (Named), so a gift whose giver has a note does not
--- say so again.
+-- person's strip here, any other kind's note by its own `write`
+-- (JourneyMargin.Register). `named` is who the people's notes name
+-- (Named), so a gift whose giver has a note does not say so again.
 local function MarginNote(plate, e, it, named)
     local level = e.level or e.week or 0
     if it.kind == "person" then
@@ -1252,61 +1368,23 @@ local function MarginNote(plate, e, it, named)
             quoteLines = quoteMost, guid = guid, rival = Rival(guid), onClick = ToPerson, tip = quote and Tip or nil,
             seed = table.concat({ guid or ("someone" .. it.index), plate.mapID or 0, level }, ":") })
         return strip
-    elseif it.kind == "find" then
-        local card = page.findPool:Next()
-        card:SetFind(it.item, table.concat({ "find", it.item.link or "", plate.mapID or 0, level }, ":"),
-            page.now, Text.FindGift(it.item.rec, named))
-        return card
-    elseif it.kind == "hunt" then
-        local card = page.huntPool:Next()
-        local hunt = it.hunt.hunt
-        card:SetHunt(it.hunt, table.concat({ "hunt", hunt.questID or hunt.item or "", plate.mapID or 0, level }, ":"),
-            page.now)
-        return card
-    elseif it.kind == "lucky" then
-        local card = page.luckyPool:Next()
-        local hunt = it.lucky.hunt
-        card:SetHunt(it.lucky, table.concat({ "lucky", hunt.questID or hunt.item or "", plate.mapID or 0, level }, ":"),
-            page.now)
-        return card
-    elseif it.kind == "campfire" then
-        local slip = page.campfirePool:Next()
-        local first = it.campfire.list[1]
-        slip:SetCampfire(it.campfire, table.concat({ "campfire", first and first.t or 0, plate.mapID or 0, level }, ":"),
-            page.now)
-        return slip
-    elseif it.kind == "witness" then
-        -- Their name opens their page, as a person's strip does.
-        local card = page.witnessPool:Next()
-        local w = it.witness
-        local guid = w.guid and ns.db.characters[w.guid] ~= nil and w.guid or nil
-        card:SetWitness(w, table.concat({ "witness", w.guid or "", plate.mapID or 0, level }, ":"), page.now, guid,
-            ToPerson)
-        return card
     end
-    local card = page.killerPool:Next()
-    if it.kind == "foe" then
-        card:SetFoe(it.foe, table.concat({ "foe", it.foe.npcID or it.foe.name, plate.mapID or 0, level }, ":"),
-            page.now)
-        return card
-    end
-    card:SetKiller(it.killer, table.concat({ "killer", it.killer.npcID or it.killer.name, plate.mapID or 0, level },
-        ":"), page.now)
-    return card
+    local spec = MARGIN[it.kind]
+    local note = page[spec.pool]:Next()
+    spec.write(note, it, { plate = plate, e = e, level = level, named = named, now = page.now, ToPerson = ToPerson,
+        Seed = function(...)
+            local parts, n = { ... }, select("#", ...)
+            parts[n + 1], parts[n + 2] = plate.mapID or 0, level
+            return table.concat(parts, ":")
+        end })
+    return note
 end
 
--- Where a note's leader goes: a person's likeliest mark (LeaderMark), a
--- find's pouch, the killer's cross, a close call's cross in outline, a
--- hunt's tally, good luck's star, the campfire nearest the slip.
+-- Where a note's leader goes: a person's likeliest mark (LeaderMark), any
+-- other kind's by its own `mark`.
 local function MarginMark(plate, it, note)
     if it.kind == "person" then return LeaderMark(it.g, note, plate) end
-    if it.kind == "campfire" then return ns.UI.CampfireSlip.Mark(it.campfire, note) end
-    if it.kind == "find" then return it.item.mark end
-    if it.kind == "hunt" then return it.hunt.mark end
-    if it.kind == "lucky" then return it.lucky.mark end
-    if it.kind == "witness" then return it.witness.mark end
-    if it.kind == "foe" then return it.foe.mark end
-    return it.killer.mark
+    return MARGIN[it.kind].mark(it, note)
 end
 
 -- `items` laid in turn down the `boxes` ({ x, y, w, limit, align }), each
@@ -1350,9 +1428,9 @@ end
 -- importance stands.
 -- A row under one plate (LAYOUT[1][1].top.row) with fewer notes than
 -- boxes shares its width among the notes there are (Shared): a box for
--- each, as wide as the widest note would like (a hunt card's wide
--- arrangement, UI/HuntCard.lua's card:Preferred, or a lucky card's, its
--- tag beside the struck words, UI/LuckyCard.lua) and no wider than its
+-- each, as wide as the widest note would like (its kind's `wants`: a hunt
+-- card's wide arrangement, UI/HuntCard.lua's card:Preferred, or a lucky
+-- card's, its tag beside the struck words, UI/LuckyCard.lua) and no wider than its
 -- share of the row (217 px for two) or `most` px; never narrower than the
 -- row's own boxes. (26 kills, 12 expected, want 187 px; 37 for about 15,
 -- some 212.)
@@ -1371,9 +1449,8 @@ local function Shared(order, boxes)
     local first, last = boxes[1], boxes[#boxes]
     local want = first.w
     for _, it in ipairs(order) do
-        if it.kind == "hunt" then want = math.max(want, ns.UI.HuntCard.Preferred(it.hunt)) end
-        if it.kind == "lucky" then want = math.max(want, ns.UI.LuckyCard.Preferred(it.lucky)) end
-        if it.kind == "witness" then want = math.max(want, ns.UI.WitnessCard.Preferred(it.witness)) end
+        local spec = MARGIN[it.kind]
+        if spec and spec.wants then want = math.max(want, spec.wants(it)) end
     end
     if want <= first.w then return boxes end
     local x0, x1 = first.x, last.x + last.w
@@ -1458,18 +1535,16 @@ local function LayNotes(plate, e, items, boxes, named, replay)
 end
 
 -- What the right page's pools and leaders hold now, and back to it: a
--- margin laid again from there.
-local MARGIN_POOLS = { "notePool", "findPool", "killerPool", "huntPool", "luckyPool", "witnessPool", "campfirePool",
-    "leaderPool", "dotPool" }
-
+-- margin laid again from there. The pools are the people's strips', every
+-- registered kind's (EnsurePools) and the leaders'.
 local function Mark()
     local at = { links = #page.links }
-    for _, key in ipairs(MARGIN_POOLS) do at[key] = page[key].used end
+    for _, key in ipairs(page.marginPools) do at[key] = page[key].used end
     return at
 end
 
 local function Undo(at)
-    for _, key in ipairs(MARGIN_POOLS) do
+    for _, key in ipairs(page.marginPools) do
         local pool = page[key]
         for i = at[key] + 1, pool.used do pool[i]:Hide() end
         pool.used = at[key]
@@ -1482,7 +1557,7 @@ end
 -- shown is then laid again in the order of its marks' heights (across the
 -- page, for a row of boxes), so the leaders do not cross, where that
 -- still fits; else in its order of importance. Returns the items shown,
--- and how many there were to show.
+-- and all there were to show (MarginOrder's).
 local function WriteMargin(plate, e, groups, boxes)
     local order = MarginOrder(plate, groups)
     boxes = Shared(order, boxes)
@@ -1523,19 +1598,7 @@ local function WriteMargin(plate, e, groups, boxes)
             LayNotes(plate, e, shown, boxes, named)
         end
     end
-    return shown, #order
-end
-
--- The creature a witness's death was to, as Text.KillerName takes it (the
--- row's, else the death's own), for the caption where their card does not
--- name it; nil for a death to the world or to nobody known.
-local function WitnessKiller(w)
-    if w.creature and w.creature.name then return w.creature end
-    local d = w.death
-    if d and type(d.name) == "string" and d.name ~= "" and not d.environment then
-        return { name = d.name, rank = d.rank }
-    end
-    return nil
+    return shown, order
 end
 
 -- A plate's heading by hand, "The Barrens, yesterday", in ink: on one line
@@ -1599,21 +1662,10 @@ local function Plated(ctx, slot, over)
     local oneLine = Write(words, FONT.body, "Ag", cap.x, cap.y, cap.w, cap.align)
     local function Short(tall) return tall <= oneLine * 1.5 end
     if over and h > oneHeading * 1.5 then return false end
-    -- The firsts found are taken as shown on their cards until one is
-    -- left off.
-    local allFinds = {}
-    for _, m in ipairs(p.moments or {}) do
-        if m.kind == "find" then allFinds[m.find or m] = true end
-    end
-    -- Good luck told on the print (the plate's S, UI/LuckyCard.lua) stays
-    -- told there whatever the margin does; on a lucky card it is taken as
-    -- shown, as the hunt's is, until the card is left off.
-    local printed = plate.print and { hunt = plate.print.hunt, print = true } or nil
-    -- A campfire's slip is taken as shown until it is left off; then the
-    -- words say it (`camped`).
-    local function Words(named, killer, shown, foe, hunted, lucky, witness, camped)
-        local text = Text.PlateCaption(p, ctx.began, named, killer and Text.KillerName(killer), shown or allFinds,
-            foe, hunted, printed or lucky, witness, camped)
+    -- The words, told what the margin shows (Text.PlateCaption's `said`),
+    -- the day first where the heading had no room for it.
+    local function Words(said)
+        local text = Text.PlateCaption(p, ctx.began, said)
         return day and (day:sub(1, 1):upper() .. day:sub(2) .. ". " .. text) or text
     end
     -- The margin (WriteMargin) under the words, and the words naming
@@ -1623,18 +1675,18 @@ local function Plated(ctx, slot, over)
     -- line, written longer after it was placed). Over the plate the words
     -- are clear of the margin, so once is enough.
     local top = cap.y + h + CAPTION.under
-    -- The hunt with a card is taken as shown, as the finds are, until it
-    -- is left off.
-    -- A witness's card (UI/WitnessCard.lua) is taken as shown too, its
-    -- creature named on it: a rescue's as the close call's card would.
-    local seen = plate.witness
-    local tall = Write(words, FONT.body, Words(Named(groups, #groups), nil, nil,
-        plate.foe ~= nil or (seen ~= nil and seen.call ~= nil),
-        plate.hunt and plate.hunt.hunt, plate.lucky and not slot.light and { hunt = plate.lucky.hunt }), cap.x, top,
-        cap.w, cap.align)
+    -- First as if the margin had room for all of it: the people's notes
+    -- and every kind's (its `assume`: the firsts on their cards, the
+    -- hunt's and good luck's cards, a close call's or a witness's card
+    -- naming its creature), each taken as shown until it is left off.
+    local first = { named = Named(groups, #groups) }
+    for _, spec in ipairs(MARGIN_ORDER) do
+        if spec.assume then spec.assume(first, plate, slot, p) end
+    end
+    local tall = Write(words, FONT.body, Words(first), cap.x, top, cap.w, cap.align)
     if over and not Short(tall) then return false end
     local at, shown, all = Mark(), nil, 0
-    local people, finds, killer, foe, hunted, lucky, witness, named, fire, rewrite, quiet
+    local people, byKind, left, rewrite, quiet
     for pass = 1, 4 do
         -- Its notes: in their own column first and then under the
         -- caption, or under the caption; over the plate, in the row
@@ -1648,44 +1700,45 @@ local function Plated(ctx, slot, over)
                 align = cap.align }
             boxes = slot.notes and { slot.notes, under } or { under }
         end
-        shown, all = WriteMargin(plate, e, groups, boxes)
-        people, finds, killer, foe, hunted, lucky, witness, named, fire = {}, {}, nil, nil, nil, nil, nil, false, false
+        local order
+        shown, order = WriteMargin(plate, e, groups, boxes)
+        all = #order
+        -- What it showed, by kind, and the filler it left off: a kind
+        -- with an item in the margin and none of it shown.
+        people, byKind, left = {}, {}, {}
         for _, it in ipairs(shown) do
             if it.kind == "person" then
                 people[#people + 1] = it.g
-            elseif it.kind == "find" then
-                for _, m in ipairs(it.item.moments) do finds[m.find or m] = true end
-            elseif it.kind == "foe" then
-                foe = it.foe
-            elseif it.kind == "hunt" then
-                hunted = it.hunt.hunt
-            elseif it.kind == "lucky" then
-                lucky = { hunt = it.lucky.hunt }
-            elseif it.kind == "witness" then
-                witness = it.witness
-                named = it.note ~= nil and it.note.plan ~= nil and it.note.plan.foe ~= nil
-            elseif it.kind == "campfire" then
-                fire = true
             else
-                killer = it.killer
+                local list = byKind[it.kind] or {}
+                byKind[it.kind] = list
+                list[#list + 1] = it
             end
         end
-        -- Whoever and whatever has no note goes back into the words: a
-        -- witness in a sentence of their own, and the creature their card
-        -- did not name (a death's, as its killer's card would have; a
-        -- rescue's, as the close call's).
-        local dropped = plate.killer ~= killer and plate.killer or nil
-        if seen and seen.death and not named then dropped = dropped or WitnessKiller(seen) end
-        rewrite = function(camped)
-            return Write(words, FONT.body, Words(Named(people, #people), dropped, finds,
-                foe ~= nil or (named and seen.call ~= nil), hunted, lucky, seen ~= witness and seen or nil,
-                camped), cap.x, top, cap.w, cap.align)
+        local filler = false
+        for _, it in ipairs(order) do
+            local spec = MARGIN[it.kind]
+            if spec and spec.filler and not byKind[it.kind] then left[it.kind], filler = true, true end
         end
-        local again = rewrite(plate.campfire ~= nil and not fire)
+        -- Whoever and whatever has no note goes back into the words: each
+        -- kind's `say`, in the margin's order, told what of it showed (a
+        -- witness in a sentence of their own, and the creature their card
+        -- did not name; a killer whose card had no room). Filler only
+        -- with `withFiller`.
+        rewrite = function(withFiller)
+            local said = { named = Named(people, #people) }
+            for _, spec in ipairs(MARGIN_ORDER) do
+                if spec.say and (withFiller or not spec.filler) then
+                    spec.say(said, byKind[spec.kind] or NONE, plate)
+                end
+            end
+            return Write(words, FONT.body, Words(said), cap.x, top, cap.w, cap.align)
+        end
+        local again = rewrite(filler)
         if over or again <= tall or pass == 4 then
-            -- Over the plate, a campfire's words never cost the caption its
-            -- place there: filler (the user, 14 Oct) is left to its mark.
-            if over and not Short(again) and plate.campfire ~= nil and not fire then
+            -- Over the plate, filler's words never cost the caption its
+            -- place there (the user, 14 Oct): it is left to its mark.
+            if over and not Short(again) and filler then
                 local plain = rewrite(false)
                 if Short(plain) then again, quiet = plain, true end
             end
@@ -1699,28 +1752,31 @@ local function Plated(ctx, slot, over)
         tall = again
         Undo(at)
     end
-    -- A campfire is filler (the user, 14 Oct): where saying it would run
-    -- the words past their foot, they leave it to its mark on the plate
-    -- and its tooltip. (14 Oct, rasterised: level 13's FL print, whose
-    -- caption has two lines, ran a third off the page.)
-    plate.camped = plate.campfire ~= nil and not fire and not quiet
-    if plate.camped and not over and top + tall > (cap.limit or CAPTION.limit) then
+    -- Nor where saying it would run the words past their foot: they leave
+    -- it to its mark on the plate and its tooltip. (14 Oct, rasterised:
+    -- level 13's FL print, whose caption has two lines, ran a third off the
+    -- page.) Each filler kind's `flag` on the plate says whether the words
+    -- told it.
+    local told = next(left) ~= nil and not quiet
+    if told and not over and top + tall > (cap.limit or CAPTION.limit) then
         tall = math.min(tall, rewrite(false))
-        plate.camped = false
+        told = false
+    end
+    for _, spec in ipairs(MARGIN_ORDER) do
+        if spec.filler and spec.flag then plate[spec.flag] = told and left[spec.kind] == true end
     end
     page.notesWritten = page.notesWritten + #people
-    page.killersWritten = page.killersWritten + (killer and 1 or 0)
-    page.foesWritten = page.foesWritten + (foe and 1 or 0)
-    page.huntsWritten = page.huntsWritten + (hunted and 1 or 0)
-    page.luckyWritten = page.luckyWritten + ((lucky or printed) and 1 or 0)
-    page.witnessesWritten = page.witnessesWritten + (witness and 1 or 0)
-    page.campfiresWritten = page.campfiresWritten + (fire and 1 or 0)
-    for _, it in ipairs(shown) do
-        if it.kind == "find" then page.findsWritten = page.findsWritten + 1 end
+    for _, spec in ipairs(MARGIN_ORDER) do
+        if spec.count then
+            local list = byKind[spec.kind] or NONE
+            page[spec.count] = (page[spec.count] or 0) + (spec.counted and spec.counted(list, plate) or #list)
+        end
     end
-    -- Good luck on the print has a short leader up to its star, where the
-    -- star is not right by it (UI/JourneyPlate.lua's DrawPrint).
-    if plate.print and plate.print.far then Leader(plate.print, plate.print.mark, plate) end
+    -- What a kind draws besides its notes (good luck's leader up its print).
+    local drawn = { Leader = function(from, mark) Leader(from, mark, plate) end }
+    for _, spec in ipairs(MARGIN_ORDER) do
+        if spec.after then spec.after(plate, drawn) end
+    end
     -- For the tests: where the words end, what the margin shows, and
     -- whether the caption is over the plate.
     plate.captionFoot, plate.margin, plate.captionOver = top + tall, shown, over
@@ -1732,8 +1788,10 @@ end
 local function DrawPlates(e)
     local plates, layout, pattern = PlatesOf(e)
     page.layout, page.pattern = #plates, pattern
-    page.notesWritten, page.killersWritten, page.findsWritten, page.foesWritten = 0, 0, 0, 0
-    page.huntsWritten, page.luckyWritten, page.witnessesWritten, page.campfiresWritten = 0, 0, 0, 0
+    page.notesWritten = 0
+    for _, spec in ipairs(MARGIN_ORDER) do
+        if spec.count then page[spec.count] = 0 end
+    end
     if #plates == 0 then
         -- JRN-21: a level whose road was not kept says so, faded.
         page.nothing:SetText("Nothing of this level's road was kept.")
@@ -1748,10 +1806,12 @@ local function DrawPlates(e)
     -- margin whole), decided once, so the print follows it.
     local tucked = layout.tucked
     if tucked and not (Holds(plates[1], tucked[1]) and Holds(plates[2], tucked[2])) then tucked = nil end
-    -- Nor where the print's good luck (UI/LuckyCard.lua's S) will not go on
-    -- the smaller print: nothing may be lost by tucking it in, and FL's
-    -- snapshot has room for it.
-    if tucked and not ns.UI.LuckyCard.PrintFits(plates[2], tucked[2]) then tucked = nil end
+    -- Nor where what a kind puts on the print will not go on the smaller
+    -- one (its `fits`: good luck's S, UI/LuckyCard.lua): nothing may be
+    -- lost by tucking it in, and FL's snapshot has room for it.
+    for _, spec in ipairs(MARGIN_ORDER) do
+        if tucked and spec.fits and not spec.fits(plates[2], tucked[2]) then tucked = nil end
+    end
     for i, p in ipairs(plates) do
         local slot = layout[i]
         local plate = PlateAt(i)
@@ -2226,46 +2286,10 @@ function ns.UI.BuildJourneyPage(parent)
         return text
     end)
     page.notePool = Handout(NewNote)
-    -- The creatures' cards: a killer's and a close call's a plate at most,
-    -- so never more than six, and with them their models
-    -- (UI/KillerCard.lua).
-    page.killerPool = Handout(function()
-        local card = ns.UI.KillerCard.New(page.right)
-        card:SetFrameLevel(page.right:GetFrameLevel() + STRIPS.level)
-        return card
-    end)
-    -- The first found cards: one an item found on a plate (UI/FindCard.lua).
-    page.findPool = Handout(function()
-        local card = ns.UI.FindCard.New(page.right)
-        card:SetFrameLevel(page.right:GetFrameLevel() + STRIPS.level)
-        return card
-    end)
-    -- The hunt cards: one a plate at most (UI/HuntCard.lua).
-    page.huntPool = Handout(function()
-        local card = ns.UI.HuntCard.New(page.right)
-        card:SetFrameLevel(page.right:GetFrameLevel() + STRIPS.level)
-        return card
-    end)
-    -- The lucky cards: one a plate at most (UI/LuckyCard.lua).
-    page.luckyPool = Handout(function()
-        local card = ns.UI.LuckyCard.New(page.right)
-        card:SetFrameLevel(page.right:GetFrameLevel() + STRIPS.level)
-        return card
-    end)
-    -- The witness cards: one a plate at most (UI/WitnessCard.lua).
-    page.witnessPool = Handout(function()
-        local card = ns.UI.WitnessCard.New(page.right)
-        card:SetFrameLevel(page.right:GetFrameLevel() + STRIPS.level)
-        return card
-    end)
-    -- The campfire slips: one a plate at most (UI/CampfireSlip.lua).
-    page.campfirePool = Handout(function()
-        local slip = ns.UI.CampfireSlip.New(page.right)
-        slip:SetFrameLevel(page.right:GetFrameLevel() + STRIPS.level)
-        return slip
-    end)
-    page.rightPools = { page.leaderPool, page.dotPool, page.headingPool, page.captionPool, page.notePool,
-        page.killerPool, page.findPool, page.huntPool, page.luckyPool, page.witnessPool, page.campfirePool }
+    -- Every registered kind's notes (JourneyMargin.Register): the cards
+    -- and slips, each kind's pool made here (page.killerPool, findPool,
+    -- ...), and the lists of pools the page draws and the margin rolls back.
+    EnsurePools()
 
     page.nothing = Style.Text(page.right, FONT.faded)
     page.nothing:SetPoint("TOPLEFT", NOTHING.x, -NOTHING.y)
@@ -2435,3 +2459,216 @@ function ns.UI.OpenZoneSheet(mapID)
     end
     OpenFull(mapID, i)
 end
+
+--------------------------------------------------------------------------
+-- The margin's kinds registered (JourneyMargin.Register)
+--------------------------------------------------------------------------
+
+-- Each block below is one kind's note in the margin, whole: what it puts
+-- there, its pool, how it is written, where its leader goes, and what it
+-- tells the caption's words (Text.PlateCaption's `said`, by the caption
+-- kind's key: UI/JourneyText.lua's blocks). They live here until their
+-- features move to Features/<Name>/ (.claude/registry-refactor.md), and
+-- are written to be cut out as they are: they reach nothing of this file
+-- but ns.UI.JourneyMargin and what `write` and `after` are given.
+-- The order is the user's, case by case: a person who did something with
+-- you before any card; the cards by how much they matter (a find, someone
+-- there when you died, what killed you, what nearly did, good luck, bad
+-- luck); the people only seen; filler last (from Features/<Name>/).
+
+-- The firsts found (JRN-24, UI/FindCard.lua): a card an item found on the
+-- plate, right after the people who did something with you. Taken as
+-- shown on their cards until one is left off: the words name the item
+-- only where its card has no room.
+ns.UI.JourneyMargin.Register("find", {
+    order = 20, pool = "findPool", count = "findsWritten",
+    new = function(parent) return ns.UI.FindCard.New(parent) end,
+    items = function(plate)
+        local list = {}
+        for _, item in ipairs(ns.UI.FindCard.Items(plate)) do
+            list[#list + 1] = { item = item, top = item.top, x = item.mark and item.mark[1] or 0 }
+        end
+        return list
+    end,
+    write = function(card, it, c)
+        card:SetFind(it.item, c.Seed("find", it.item.link or ""), c.now,
+            ns.UI.JourneyText.FindGift(it.item.rec, c.named))
+    end,
+    mark = function(it) return it.item.mark end,
+    assume = function(said, plate, slot, plan)
+        local all = {}
+        for _, m in ipairs(plan.moments or {}) do
+            if m.kind == "find" then all[m.find or m] = true end
+        end
+        said.find = all
+    end,
+    say = function(said, shown)
+        local finds = {}
+        for _, it in ipairs(shown) do
+            for _, m in ipairs(it.item.moments) do finds[m.find or m] = true end
+        end
+        said.find = finds
+    end,
+})
+
+-- Someone who was there (UI/WitnessCard.lua): who watched you die, tried
+-- to save you or saved you. Their card goes where the card they took the
+-- place of would have (the user's call, 14 Oct: a witness before the
+-- killer): with the killer's, ahead of the close call's (UI/JourneyPlate.lua
+-- clears the one they replace, plate.killer for a death's witness,
+-- plate.foe for a rescue). Their name opens their page, as a person's
+-- strip does. Taken as shown, its creature named on it (a rescue's as the
+-- close call's card would); left off, they are told in a sentence of their
+-- own (`said.witness`) and the creature their card did not name goes to
+-- the words: a death's as its killer's card would have (`said.death`,
+-- which the killer's own card, left off, overrules), a rescue's as the
+-- close call's (`said.close`).
+do
+    -- The creature a witness's death was to, as Text.KillerName takes it
+    -- (the row's, else the death's own); nil for a death to the world or
+    -- to nobody known.
+    local function WitnessKiller(w)
+        if w.creature and w.creature.name then return w.creature end
+        local d = w.death
+        if d and type(d.name) == "string" and d.name ~= "" and not d.environment then
+            return { name = d.name, rank = d.rank }
+        end
+        return nil
+    end
+    ns.UI.JourneyMargin.Register("witness", {
+        order = 30, pool = "witnessPool", count = "witnessesWritten",
+        new = function(parent) return ns.UI.WitnessCard.New(parent) end,
+        wants = function(it) return ns.UI.WitnessCard.Preferred(it.witness) end,
+        item = function(plate)
+            local w = plate.witness
+            return w and { witness = w, top = w.mark[2], x = w.mark[1] } or nil
+        end,
+        write = function(card, it, c)
+            local w = it.witness
+            local guid = w.guid and ns.db.characters[w.guid] ~= nil and w.guid or nil
+            card:SetWitness(w, c.Seed("witness", w.guid or ""), c.now, guid, c.ToPerson)
+        end,
+        mark = function(it) return it.witness.mark end,
+        assume = function(said, plate)
+            if plate.witness and plate.witness.call ~= nil then said.close = true end
+        end,
+        say = function(said, shown, plate)
+            local seen = plate.witness
+            if not seen then return end
+            local it = shown[1]
+            -- Whether the card as laid kept its creature's line.
+            local named = it ~= nil and it.note ~= nil and it.note.plan ~= nil and it.note.plan.foe ~= nil
+            if seen.death and not named then said.death = ns.UI.JourneyText.KillerName(WitnessKiller(seen)) end
+            if named and seen.call ~= nil then said.close = true end
+            if not it then said.witness = seen end
+        end,
+    })
+end
+
+-- What killed you (UI/KillerCard.lua). Left off, its name goes with the
+-- deaths in the words ("Two deaths, to a Sunscale Lashtail.").
+ns.UI.JourneyMargin.Register("killer", {
+    order = 40, pool = "killerPool", count = "killersWritten",
+    new = function(parent) return ns.UI.KillerCard.New(parent) end,
+    item = function(plate)
+        local k = plate.killer
+        return k and { killer = k, top = k.mark[2], x = k.mark[1] } or nil
+    end,
+    write = function(card, it, c)
+        card:SetKiller(it.killer, c.Seed("killer", it.killer.npcID or it.killer.name), c.now)
+    end,
+    mark = function(it) return it.killer.mark end,
+    say = function(said, shown, plate)
+        if plate.killer and not shown[1] then said.death = ns.UI.JourneyText.KillerName(plate.killer) end
+    end,
+})
+
+-- What nearly got you (a close call's creature, JRN-25): a fight of its
+-- own, so its card is beside the killer's, the same creature or not (the
+-- user's choice, 11 Oct), the same card charted (KillerCard's SetFoe, so
+-- the same pool). Shown, the words only say there was a close call.
+ns.UI.JourneyMargin.Register("foe", {
+    order = 50, pool = "killerPool", count = "foesWritten",
+    new = function(parent) return ns.UI.KillerCard.New(parent) end,
+    item = function(plate)
+        local f = plate.foe
+        return f and { foe = f, top = f.mark[2], x = f.mark[1] } or nil
+    end,
+    write = function(card, it, c)
+        card:SetFoe(it.foe, c.Seed("foe", it.foe.npcID or it.foe.name), c.now)
+    end,
+    mark = function(it) return it.foe.mark end,
+    assume = function(said, plate)
+        if plate.foe then said.close = true end
+    end,
+    say = function(said, shown)
+        if shown[1] then said.close = true end
+    end,
+})
+
+-- Good luck with a quest's drops (JRN-27, UI/LuckyCard.lua): after the
+-- close call and before the slow hunt (the user's choice, 13 Oct), rarer,
+-- and a happy moment, but never in place of a person, a find, a death or
+-- a close call. On a light plate's print it is told on the print instead
+-- (the plate's S, drawn by the plate), so not in the margin: it stays told
+-- there whatever the margin does (`said.fortune`'s `print`), counts as
+-- written, and has a short leader up to its star where the star is not
+-- right by it (UI/JourneyPlate.lua's DrawPrint); F+L is not kept where S
+-- will not go on the tucked print (LuckyCard.PrintFits). On a card it is
+-- taken as shown, as the hunt's is, until the card is left off.
+do
+    local function Printed(plate)
+        return plate.print and { hunt = plate.print.hunt, print = true } or nil
+    end
+    ns.UI.JourneyMargin.Register("lucky", {
+        order = 60, pool = "luckyPool", count = "luckyWritten",
+        counted = function(shown, plate) return (shown[1] or plate.print) and 1 or 0 end,
+        new = function(parent) return ns.UI.LuckyCard.New(parent) end,
+        wants = function(it) return ns.UI.LuckyCard.Preferred(it.lucky) end,
+        item = function(plate)
+            local l = plate.lucky
+            if not l or (plate.slot and plate.slot.light) then return nil end
+            return { lucky = l, top = l.mark[2], x = l.mark[1] }
+        end,
+        write = function(card, it, c)
+            local hunt = it.lucky.hunt
+            card:SetHunt(it.lucky, c.Seed("lucky", hunt.questID or hunt.item or ""), c.now)
+        end,
+        mark = function(it) return it.lucky.mark end,
+        assume = function(said, plate, slot)
+            said.fortune = Printed(plate) or (plate.lucky and not slot.light and { hunt = plate.lucky.hunt })
+        end,
+        say = function(said, shown, plate)
+            said.fortune = Printed(plate) or (shown[1] and { hunt = shown[1].lucky.hunt })
+        end,
+        fits = function(plan, slot) return ns.UI.LuckyCard.PrintFits(plan, slot) end,
+        after = function(plate, c)
+            if plate.print and plate.print.far then c.Leader(plate.print, plate.print.mark) end
+        end,
+    })
+end
+
+-- A quest's drops that took bad luck (JRN-26, UI/HuntCard.lua): the
+-- mildest of the cards, the first of them left off (the user's choice, 12
+-- Oct). Its words are on the card, so the caption leaves them off while it
+-- shows (`said.luck`).
+ns.UI.JourneyMargin.Register("hunt", {
+    order = 70, pool = "huntPool", count = "huntsWritten",
+    new = function(parent) return ns.UI.HuntCard.New(parent) end,
+    wants = function(it) return ns.UI.HuntCard.Preferred(it.hunt) end,
+    item = function(plate)
+        local h = plate.hunt
+        return h and { hunt = h, top = h.mark[2], x = h.mark[1] } or nil
+    end,
+    write = function(card, it, c)
+        local hunt = it.hunt.hunt
+        card:SetHunt(it.hunt, c.Seed("hunt", hunt.questID or hunt.item or ""), c.now)
+    end,
+    mark = function(it) return it.hunt.mark end,
+    assume = function(said, plate)
+        said.luck = plate.hunt and plate.hunt.hunt
+    end,
+    say = function(said, shown)
+        said.luck = shown[1] and shown[1].hunt.hunt or nil
+    end,
+})

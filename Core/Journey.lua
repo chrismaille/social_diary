@@ -21,10 +21,10 @@
 --
 -- db.journey[charGUID] = { startedAt, startLevel, startMapID, levels,
 -- segments, marks, deaths, firsts, closeCalls, hunts, hunting, finales,
--- chainStarts, skillCaps, campfires, open }
--- (prd.md section 7). `open` is the working state:
--- the stop or road being built, saved so that a /reload carries on where it
--- was (JRN-20), and never read by the UI.
+-- chainStarts, skillCaps, open } (prd.md section 7), and a list of its own
+-- for each feature that registered one (Journey.RegisterList). `open` is
+-- the working state: the stop or road being built, saved so that a /reload
+-- carries on where it was (JRN-20), and never read by the UI.
 --
 -- The compaction is plain functions over that record, so the tests drive it
 -- with made-up samples and no client at all.
@@ -71,7 +71,6 @@ local T = {
                         -- chance is taken for wrong, and the next source tried
     finales = 200,      -- chain finales kept a character, the oldest first (JRN-28)
     skillCaps = 100,    -- profession caps kept a character, the oldest first (JRN-29)
-    campfires = 300,    -- campfires sat by kept a character, the oldest first
 }
 Journey.T = T
 
@@ -1130,6 +1129,7 @@ local function Spot(where)
     end
     return spot
 end
+Journey.Spot = Spot
 
 -- The logged-in character's route, while it is being kept.
 local function Kept()
@@ -1137,6 +1137,49 @@ local function Kept()
     local j = Journey.Mine()
     if not j or j.test then return nil end
     return j
+end
+Journey.Kept = Kept
+
+--------------------------------------------------------------------------
+-- A feature's list of moments on the route
+--------------------------------------------------------------------------
+--
+-- Most of what a feature notes on the road is a list of records, oldest
+-- first, each where and when it happened: j[name] = { { t, mapID, x, y,
+-- ... }, ... }, kept to the newest T[name]. Journey.RegisterList(name,
+-- { cap }) declares one (its cap goes into T); Append adds to it, List
+-- reads it. The recap gathers it through its moment (Core/JourneyRecap.lua,
+-- Recap.RegisterMoment).
+
+local LISTS = {}
+
+function Journey.RegisterList(name, spec)
+    spec = spec or {}
+    LISTS[name] = spec
+    if spec.cap then T[name] = spec.cap end
+    return spec
+end
+
+-- `rec` on j's list `name`, stamped now unless it says when, and placed
+-- where `where` says (ns.Where's shape; here and now without it; only on a
+-- zone map, else the recap places it by time). Returns `rec`.
+function Journey.Append(j, name, rec, where)
+    if not j then return nil end
+    local spot = Spot(where)
+    rec.t = rec.t or ns.Now()
+    rec.mapID, rec.x, rec.y = spot.mapID, spot.x, spot.y
+    local list = j[name] or {}
+    j[name] = list
+    list[#list + 1] = rec
+    local cap = T[name]
+    while cap and #list > cap do table.remove(list, 1) end
+    Touch()
+    return rec
+end
+
+-- j's list `name`, oldest first (empty without one).
+function Journey.List(j, name)
+    return j and j[name] or {}
 end
 
 function Journey.Fought(outcome, guid, t, where)
@@ -1531,56 +1574,13 @@ end
 -- by time). `rec` is { t, level, skillLine, name, rank }.
 function Journey.SkillCap(j, rec, where)
     if not (j and rec and rec.skillLine and rec.rank) then return nil end
-    local spot = Spot(where)
-    local cap = { t = rec.t or ns.Now(), mapID = spot.mapID, x = spot.x, y = spot.y, level = rec.level,
-        skillLine = rec.skillLine, name = rec.name, rank = rec.rank }
-    j.skillCaps = j.skillCaps or {}
-    j.skillCaps[#j.skillCaps + 1] = cap
-    while #j.skillCaps > T.skillCaps do table.remove(j.skillCaps, 1) end
-    Touch()
-    return cap
+    return Journey.Append(j, "skillCaps", { t = rec.t, level = rec.level, skillLine = rec.skillLine,
+        name = rec.name, rank = rec.rank }, where)
 end
 
 -- A character's profession caps, oldest first.
 function Journey.SkillCaps(j)
-    return j and j.skillCaps or {}
-end
-
---------------------------------------------------------------------------
--- Campfires: a minute sat by one, and its benefits had
---------------------------------------------------------------------------
---
--- WoW Forever's campfires give camp benefits after a minute sat nearby
--- (Capture/Campfire.lua). Only a minute sat out counts; a sitting that
--- renews the buff minute after minute is one campfire, not one a minute.
---
--- j.campfires holds each, oldest first: { t, mapID, x, y, subZone, zone }.
--- `t` is when the first minute was done; the rest is where.
-
--- A campfire sat by, here and now unless `where` says otherwise (in
--- ns.Where's shape).
-function Journey.Campfire(j, t, where)
-    if not j then return nil end
-    local spot = Spot(where)
-    local rec = { t = t or ns.Now(), mapID = spot.mapID, x = spot.x, y = spot.y,
-        subZone = where and where.subZone or nil, zone = where and where.zone or nil }
-    j.campfires = j.campfires or {}
-    j.campfires[#j.campfires + 1] = rec
-    while #j.campfires > T.campfires do table.remove(j.campfires, 1) end
-    Touch()
-    return rec
-end
-
--- The logged-in character's, while the route is kept.
-function Journey.Campfired(t, where)
-    local j = Kept()
-    if not j then return nil end
-    return Journey.Campfire(j, t, where)
-end
-
--- A character's campfires, oldest first.
-function Journey.Campfires(j)
-    return j and j.campfires or {}
+    return Journey.List(j, "skillCaps")
 end
 
 --------------------------------------------------------------------------
@@ -1619,23 +1619,17 @@ end
 function Journey.CloseCall(rec, where)
     local j = Kept()
     if not j or not Journey.IsCloseCall(rec.taken, rec.max) then return nil end
-    local spot = Spot(where)
     local took = math.floor(rec.taken / rec.max * 100 + 0.5)
-    local call = { t = rec.t or ns.Now(), mapID = spot.mapID, x = spot.x, y = spot.y, level = rec.level,
+    return Journey.Append(j, "closeCalls", { t = rec.t, level = rec.level,
         pct = math.min(math.floor(T.closeCall * 100), math.max(1, 100 - took)), took = took, seconds = rec.seconds,
         npcID = rec.npcID, name = rec.npcID and rec.name or nil, rank = rec.npcID and rec.rank or nil,
         foeLevel = rec.npcID and rec.foeLevel or nil,
-        foes = (rec.foes or 0) > 1 and rec.foes or nil }
-    j.closeCalls = j.closeCalls or {}
-    j.closeCalls[#j.closeCalls + 1] = call
-    while #j.closeCalls > T.closeCalls do table.remove(j.closeCalls, 1) end
-    Touch()
-    return call
+        foes = (rec.foes or 0) > 1 and rec.foes or nil }, where)
 end
 
 -- A character's close calls, oldest first.
 function Journey.CloseCalls(j)
-    return j and j.closeCalls or {}
+    return Journey.List(j, "closeCalls")
 end
 
 --------------------------------------------------------------------------
@@ -1986,21 +1980,15 @@ function Journey.Finale(j, questID, rec, where)
     end
     if not best then return nil end
     local started = j.chainStarts and j.chainStarts[best[1]]
-    local spot = Spot(where)
-    local finale = { t = rec.t or ns.Now(), mapID = spot.mapID, x = spot.x, y = spot.y, level = rec.level,
-        questID = questID, title = rec.title or chain.title, n = n,
+    return Journey.Append(j, "finales", { t = rec.t, level = rec.level, questID = questID,
+        title = rec.title or chain.title, n = n,
         started = started and { t = started.t, mapID = started.mapID, x = started.x, y = started.y,
-            level = started.level } or nil }
-    j.finales = j.finales or {}
-    j.finales[#j.finales + 1] = finale
-    while #j.finales > T.finales do table.remove(j.finales, 1) end
-    Touch()
-    return finale
+            level = started.level } or nil }, where)
 end
 
 -- A character's finales, oldest first.
 function Journey.Finales(j)
-    return j and j.finales or {}
+    return Journey.List(j, "finales")
 end
 
 -- At login: a mark kept with a GUID whose person has left the diary is a

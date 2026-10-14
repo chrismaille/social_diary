@@ -48,8 +48,8 @@
 --              bad luck with a quest's drops (JRN-26) and a star for good
 --              luck with them (EXT-3), a tailpiece where a long quest
 --              chain ended (JRN-28), a flight of stairs where a profession
---              reached its cap (JRN-29), and a flame on two crossed logs
---              where a campfire was sat by (CAMPFIRE)
+--              reached its cap (JRN-29), and whatever a feature registers
+--              (Plate.RegisterMark)
 --              Each has a tooltip (UI/JourneyText.lua)
 -- The page writes the margin notes and draws their pencil leaders (they
 -- cross the plate's edge, and the page does not turn): plate.where has each
@@ -246,83 +246,6 @@ local PRIORITY = { fight = 1, session = 2, note = 3, first = 4, find = 5 }
 -- item's pouch is plain ink.
 local POUCH = { body = { size = 8, y = 1.6 }, neck = { w = 2.2, y0 = -3.4, y1 = -1.6 },
     mouth = { w = 6.4, top = -6.0 }, notch = { w = 2.2, depth = 1.5 }, tint = 0.6, height = 11.6 }
--- A close call (JRN-25): the death's cross drawn in outline and never
--- filled in, the cross you nearly got. Ink round paper, as the hollow
--- lozenge of a first sighting is: a `stem` `w` wide and `h` tall, its middle
--- `y` below the mark's, and a `bar` `w` wide, its middle `y` off it, each
--- `line` px of ink round its paper. A little bigger than the death's solid
--- cross (8 px), so its paper reads at the book's size, but no heavier: the
--- death stays the darker mark. On a `dot` of paper, as the death's is.
--- (11 Oct, a rasterised render: at 12.4 px with 1.25 px of ink it
--- outweighed the death beside it.)
-local CLOSE = { stem = { w = 3.8, h = 11, y = 0.5 }, bar = { w = 8.2, y = -1.9 }, line = 1.1, dot = 14 }
--- Bad luck with a quest's drops (JRN-26): a tally, the kills counted where
--- the hunt went on. Four uprights `gap` px apart, `h` tall, each leaning
--- `lean` px at its top as a hand draws them (`jitter`: each one's height
--- given or taken), and a fifth stroke across them from the lower left,
--- `over` px past the outer two. Strokes `width` px. In ink, never a letter
--- (the gate of five is no letter), never a fight's crossed strokes (two,
--- red-brown).
-local TALLY = { count = 4, gap = 2.5, h = 10, lean = 0.5, jitter = { 0, 0.6, -0.4, 0.3 }, over = 1.6,
-    rise = 7.2, width = 1.3, halo = 16 }
--- Good luck with a quest's drops (EXT-3), the tally's bright counterpart:
--- a lucky star, five points `r` px out from its middle, its inner corners
--- `inner` of that, turned `turn` as a hand draws it, and set `drop` of r
--- lower so it sits on its middle (its points reach further up than down).
--- Solid ink, five kites from the middle (corners on the card); where
--- corners cannot move, five strokes `ray` px wide from the middle to its
--- points. Closed and solid, so never the tally's open strokes, the
--- crosses' square arms or the fight's two red-brown strokes; drawn solid,
--- never as the five strokes of a pentagram. About 12 px, the tally's size.
--- (12 Oct, a rasterised render: at 13 px it outweighed the death beside it.)
-local FORTUNE = { r = 6.2, inner = 0.45, turn = -0.10, drop = 0.095, ray = 2.4, halo = 16 }
--- The end of a long quest chain (JRN-28): a tailpiece, as an old book
--- ends a chapter. A swelled `rules` (`w` wide, `t` thick at its middle,
--- tapering to points, its middle `y` off the mark's), a shorter one under
--- it, and a full stop (`dot`: size, y). Where corners cannot move, each
--- rule a flat bar `bar` of its size. Rules lie across, so never the tally
--- or a cross; narrowing to a point, so never a pin or the ring of time
--- together. Ranked with a level's pin on the plate, so it keeps a halo as
--- big as the pin's.
-local FINALE = { rules = { { w = 14, t = 2.5, y = -3.2 }, { w = 7.5, t = 2.1, y = 0.5 } }, dot = { 2.8, 4.0 },
-    bar = 0.75, halo = 17, h = 10 }
--- A profession brought to its cap (JRN-29): a flight of `steps` stairs
--- rising to the right, one for each rank a trainer teaches (Apprentice,
--- Journeyman, Expert, Artisan), each `w` px wide and `rise` px higher than
--- the one before, standing on one line. The steps climbed, up to the rank
--- reached (its cap over `per`: 75 one, 300 all four), are solid ink; the
--- ones still to climb are drawn in outline, `line` px of ink round their
--- paper, so the flight is always whole and the tooltip says what it means
--- (no key on the plates). A cap past the last rank, or none kept, is the
--- whole flight. Stepped, so never the tally's strokes, a cross, the pouch
--- or the tailpiece's rules; boxes only, so it draws the same where corners
--- cannot move. Ranked with a level's pin, so it keeps a halo as big as
--- the tailpiece's. (12 Oct, a rasterised render: as a stepped line the
--- unclimbed steps blurred into a slash at the book's size; closed, they
--- read as stairs.)
-local SKILL = { steps = 4, w = 3.2, rise = 2.9, line = 1.0, per = 75, halo = 17 }
--- A campfire sat by till its buffs came (WoW Forever's camps,
--- Capture/Campfire.lua; .claude/ui-proposal/campfire.md): a flame on two
--- logs. The `logs`, two strokes `w` long and `width` px, crossed at
--- ±`angle` radians about a point `y` below the middle, so their ends show
--- either side of the flame's foot as an X of logs; the `flame`, solid ink,
--- a round `belly` (`size` across, its middle `y` down) drawn up into a
--- point at `tip` (leaning `lean` px, as a flame licks), its sides meeting
--- the belly where they touch it, so it is one smooth drop; inside it a
--- `tongue` of paper, a small drop of its own (a dot of `dot` px `foot`
--- down, drawn up to a point at `tip`), so it reads as a flame in a flame,
--- never the pouch's solid mass with ears. Where corners cannot move: the
--- belly's dot, a diamond for the point, the tongue's dot alone. Ink only
--- (the user's choice, 14 Oct): rubric is the level's pin, red-brown fights
--- and flights, and a warm tint would read as a pouch's quality. About 14 px
--- tall (`h`), set on its middle, a hair more than the star and the tally,
--- on a halo of `halo` that takes in the logs' ends.
--- (14 Oct, rasterised: the proposal's flame, 6.4 px of belly under a
--- point 7.6 px up on logs at 0.2 rad, read as a "Δ" on a bar; a rounder
--- belly, a shorter point and the logs crossed steeper read as a fire.)
-local CAMPFIRE = { logs = { w = 12, width = 1.5, angle = 0.40, y = 3.6 },
-    flame = { belly = { size = 7.6, y = 0.2 }, tip = -7.0, lean = 1.2 },
-    tongue = { tip = -1.4, foot = 1.6, dot = 2.6 }, halo = 18, h = 14 }
 -- The quality a first of each kind is, at least; a bag or shoulders say
 -- theirs in their link.
 local FIND_QUALITY = { uncommon = 2, rare = 3, epic = 4 }
@@ -333,9 +256,10 @@ local FIND_QUALITY = { uncommon = 2, rare = 3, epic = 4 }
 -- it. The head's lower half lies in the body, so the two are one arch.
 local DOOR = { body = { y = 0.18, w = 0.8, h = 0.62 }, head = { y = -0.1, size = 0.8 } }
 -- What a plate marks at most; past it, the rest is left off. The trail's
--- own caps are InkTrail's.
-local CAP = { meetings = 150, flights = 40, dashes = 600, dungeons = 30, pins = 80, firsts = 60, finds = 10,
-    closeCalls = 20, hunts = 20, fortunes = 20, finales = 10, skills = 10, campfires = 20 }
+-- own caps are InkTrail's; a registered mark's (Plate.RegisterMark) is
+-- its `cap`, filled in here under its `count` as it registers
+-- (closeCalls, hunts, fortunes, finales, skills, ...).
+local CAP = { meetings = 150, flights = 40, dashes = 600, dungeons = 30, pins = 80, firsts = 60, finds = 10 }
 -- A point this far past the art's edge (px) is still on it; a piece of ink
 -- may reach `SPILL` px past it (onto the neat line), and is left off past
 -- that: the window cuts a pool its edge crosses, as the art is cut.
@@ -348,6 +272,104 @@ local EDGE, SPILL = 0.5, 2
 local Plate = {}
 
 local function Clamp(v, lo, hi) return v < lo and lo or (v > hi and hi or v) end
+
+--------------------------------------------------------------------------
+-- Marks by kind (Plate.RegisterMark)
+--------------------------------------------------------------------------
+
+-- A kind of moment with a mark of its own registers it here, so a
+-- feature's file (Features/<Name>/, loaded after UI/) adds its mark to
+-- every plate, the full zone page's too, without this file knowing of it
+-- (.claude/registry-refactor.md, phase 3). The plate draws every
+-- registered kind the same way (DrawMoments): the open entry's moments of
+-- the kind in the window, those within MARK.merge of each other one mark
+-- (its tooltip telling each), at most `cap` marks, each stepped clear of
+-- the marks already down (Apart) and laid on a round halo of paper, then
+-- the kind's own shape, a hover square, the marks kept for the margin and
+-- the plate's one card of the kind chosen from them.
+-- What stays bespoke in DrawMoments is what is not one mark a spot of one
+-- kind: the doors, the levels' pins, the people's shared marks (PRIORITY
+-- picks the one on top), the pouches of firsts found (in the best item's
+-- ink, a gift joining its giver's marks) and the death crosses (on a
+-- pool's edge, or on the road).
+--
+-- `spec`:
+--   order    a number, lowest drawn first. A mark down keeps its place and
+--            the later ones step round it (Apart, with a tether), so the
+--            order says which matter most where they crowd. Today's:
+--            finale 10, skill 20, close 30, luck 40, fortune 50, then the
+--            deaths on the road (ROAD_DEATHS, 60, core); a kind registered
+--            from Features/<Name>/ says its number there (filler goes after
+--            the deaths on the road, last of all). Leave gaps; equal orders draw in the
+--            order they registered. All of them after the doors, pins,
+--            people and pouches (which are core and come first).
+--   cap      how many marks of it a plate draws at most; past it the rest
+--            is left off. Kept in CAP under `count` (Plate.CAP.hunts, ...).
+--   count    its key in plate.counts (how many marks were drawn) and in
+--            CAP. The plural names the tests know, never the kind's:
+--            "finales", "skills", "closeCalls", "hunts", "fortunes".
+--   radius   the room the mark claims (Apart's r, Radius(kind)): about
+--            half its height, a px or two more.
+--   halo     the size of the round paper laid under it (MARK.halo), so it
+--            reads over the art; false where the shape lays its own paper
+--            (a close call's cross, on a dot of paper as a death's is:
+--            kit.halo).
+--   hover    the size of its hover square (MARK.hover where nil).
+--   draw     function(kit, x, y, arg): the mark round x, y on the card,
+--            only through the kit (below), so it turns and is lit with
+--            the card and its textures come from the plate's pools.
+--   arg      optional function(list) → draw's `arg`, from the moments
+--            merged on the spot (a profession's stairs: the best rank).
+--   tip      function(m, now) → title, lines: each moment's words under
+--            the mouse (UI/JourneyText.lua's, looked up when asked: it
+--            loads after this file).
+--   keep     optional: the plate field its marks are kept in, a list of
+--            { x, y (on the card), list (the moments on it), at = { px, py }
+--            (on the page, for a margin card's leader) }: plate.closeMarks,
+--            huntMarks, fortuneMarks.
+--   chosen, choose   optional: plate[chosen] = choose(marks, plate), the
+--            plate's one card of the kind, chosen as soon as its marks are
+--            down (plate.hunt, plate.lucky). A close
+--            call's card is chosen with the killer's (DrawKillers).
+--
+-- The kit a `draw` gets, one a plate (built in New, as the lucky print's
+-- printKit is), closed over the card's toolkit:
+--   ink, inner, halo   the marks' pools: the ink (OVERLAY 0), the paper
+--                      inside it (OVERLAY 1), the paper under it (ARTWORK
+--                      7, the halos')
+--   Dot(pool, x, y, size, colour, alpha), Box(pool, x, y, w, h, colour,
+--   alpha, turn), Stroke(pool, x1, y1, x2, y2, width, colour, alpha)
+--                      a disc, a box, a stroke, lit where they lie; each
+--                      returns its texture (Stroke nil for no length)
+--   Quad(texture, x1, y1, x2, y2, x3, y3, x4, y4)   flat ink with its
+--                      corners on the card; false where the client cannot
+--                      move corners, and the shape draws its fallback
+--   Place(texture, x, y, w, h, turn), Fill(texture, r, g, b, a),
+--   Light(x, y) (the card's light there, to multiply a colour by),
+--   Clamp(v, lo, hi)
+--   P, INK, INK_STRONG  the paper and the inks (Style's)
+local MARKS, MARK_ORDER, ROAD_DEATHS = {}, {}, 60
+local registered = 0
+function Plate.RegisterMark(kind, spec)
+    assert(type(kind) == "string" and type(spec) == "table" and type(spec.draw) == "function",
+        "Plate.RegisterMark(kind, { draw = function(kit, x, y, arg) ... })")
+    local old = MARKS[kind]
+    for i = #MARK_ORDER, 1, -1 do
+        if MARK_ORDER[i] == old then table.remove(MARK_ORDER, i) end
+    end
+    registered = registered + 1
+    spec.kind, spec.seq, spec.order = kind, registered, spec.order or 100
+    MARKS[kind] = spec
+    MARK_ORDER[#MARK_ORDER + 1] = spec
+    table.sort(MARK_ORDER, function(a, b)
+        if a.order ~= b.order then return a.order < b.order end
+        return a.seq < b.seq
+    end)
+    if spec.count and spec.cap then CAP[spec.count] = spec.cap end
+    return spec
+end
+-- For the tests: the registered kinds, and their order.
+Plate.MARKS, Plate.MARK_ORDER, Plate.ROAD_DEATHS = MARKS, MARK_ORDER, ROAD_DEATHS
 
 --------------------------------------------------------------------------
 -- Windows (Decision 3)
@@ -762,8 +784,9 @@ local function New(parent, slot)
         return true
     end
 
-    -- The marks, each drawn round x, y with the pools given (ink, and its
-    -- paper inside).
+    -- The core marks, each drawn round x, y with the pools given (ink, and
+    -- its paper inside). A registered kind's shape is its spec's `draw`,
+    -- with its registration at the foot of this file (Plate.RegisterMark).
     local SHAPES = {}
 
     -- A death: a small cross on a dot of paper.
@@ -847,119 +870,6 @@ local function New(parent, slot)
             Place(mouth, x - hw * 0.8, y + M.top, M.w * 0.8, N.y0 + 0.3 - M.top)
         end
     end
-    -- A close call (CLOSE): the cross in ink, then its paper inside, so
-    -- the outline runs round the crossing unbroken.
-    function SHAPES.close(ink, inner, x, y, halo)
-        local S, B, t = CLOSE.stem, CLOSE.bar, CLOSE.line
-        if halo then Dot(halo, x, y, CLOSE.dot, P, 0.85) end
-        Box(ink, x, y + S.y, S.w, S.h, INK_STRONG, 1)
-        Box(ink, x, y + B.y, B.w, S.w, INK_STRONG, 1)
-        Box(inner, x, y + S.y, S.w - 2 * t, S.h - 2 * t, P, 1)
-        Box(inner, x, y + B.y, B.w - 2 * t, S.w - 2 * t, P, 1)
-    end
-    -- Bad luck (TALLY): four strokes leaning a little, and one across.
-    function SHAPES.luck(ink, _, x, y)
-        local T = TALLY
-        local half = (T.count - 1) * T.gap / 2
-        for i = 1, T.count do
-            local u = x - half + (i - 1) * T.gap
-            local h = T.h + (T.jitter[i] or 0)
-            Stroke(ink, u - T.lean / 2, y + h / 2, u + T.lean / 2, y - h / 2, T.width, INK_STRONG, 1)
-        end
-        local reach = half + T.over
-        Stroke(ink, x - reach, y + T.rise / 2, x + reach, y - T.rise / 2, T.width, INK_STRONG, 1)
-    end
-    -- Good luck (FORTUNE): a solid star, one kite of ink to each point.
-    function SHAPES.fortune(ink, _, x, y)
-        local F = FORTUNE
-        local R, r = F.r, F.r * F.inner
-        y = y + R * F.drop
-        local light = Light(x, y)
-        local c = INK_STRONG
-        local function Corner(i)
-            local a = -math.pi / 2 + F.turn + (i + 0.5) * 2 * math.pi / 5
-            return x + r * math.cos(a), y + r * math.sin(a)
-        end
-        for i = 0, 4 do
-            local a = -math.pi / 2 + F.turn + i * 2 * math.pi / 5
-            local px, py = x + R * math.cos(a), y + R * math.sin(a)
-            local bx, by = Corner(i - 1)
-            local ax, ay = Corner(i)
-            local kite = ink:Next()
-            Fill(kite, c[1] * light, c[2] * light, c[3] * light, 1)
-            if not Quad(kite, x, y, bx, by, px, py, ax, ay) then
-                kite:Hide()
-                Stroke(ink, x, y, px, py, F.ray, INK_STRONG, 1)
-            end
-        end
-    end
-    -- A chain's end (FINALE): two swelled rules and a full stop.
-    function SHAPES.finale(ink, _, x, y)
-        local F = FINALE
-        local light = Light(x, y)
-        local c = INK_STRONG
-        for _, rule in ipairs(F.rules) do
-            local ry, hw, ht = y + rule.y, rule.w / 2, rule.t / 2
-            local texture = ink:Next()
-            Fill(texture, c[1] * light, c[2] * light, c[3] * light, 1)
-            if not Quad(texture, x - hw, ry, x, ry - ht, x + hw, ry, x, ry + ht) then
-                Place(texture, x - hw * F.bar, ry - ht * F.bar, rule.w * F.bar, rule.t * F.bar)
-            end
-        end
-        Dot(ink, x, y + F.dot[2], F.dot[1], INK_STRONG, 1)
-    end
-    -- A profession's cap (SKILL): the whole flight in ink, a column to
-    -- each step (each a hair wider, under the taller one beside it, so no
-    -- seam shows between them), then the paper inside the steps above the
-    -- rank reached. The paper of each such step reaches on under the next,
-    -- so the outline runs round them as one, with no wall between.
-    function SHAPES.skill(ink, inner, x, y, rank)
-        local S = SKILL
-        local n, w, t = S.steps, S.w, S.line
-        local climbed = type(rank) == "number" and Clamp(math.floor(rank / S.per), 1, n) or n
-        local x0, base = x - n * w / 2, y + n * S.rise / 2
-        for i = 1, n do
-            local h, wide = i * S.rise, i < n and w + 0.3 or w
-            Box(ink, x0 + (i - 1) * w + wide / 2, base - h / 2, wide, h, INK_STRONG, 1)
-        end
-        for i = climbed + 1, n do
-            local h = i * S.rise
-            local left, right = x0 + (i - 1) * w + t, x0 + i * w + (i < n and t or -t)
-            Box(inner, (left + right) / 2, base - h / 2, right - left, h - 2 * t, P, 1)
-        end
-    end
-    -- A campfire (CAMPFIRE): the logs, then the flame over their crossing,
-    -- then the paper of its tongue.
-    function SHAPES.campfire(ink, inner, x, y)
-        local L, F, T = CAMPFIRE.logs, CAMPFIRE.flame, CAMPFIRE.tongue
-        local dx, dy = L.w / 2 * math.cos(L.angle), L.w / 2 * math.sin(L.angle)
-        local ly = y + L.y
-        Stroke(ink, x - dx, ly - dy, x + dx, ly + dy, L.width, INK_STRONG, 1)
-        Stroke(ink, x - dx, ly + dy, x + dx, ly - dy, L.width, INK_STRONG, 1)
-        local B = F.belly
-        Dot(ink, x, y + B.y, B.size, INK_STRONG, 1)
-        local light = Light(x, y)
-        local c = INK_STRONG
-        local point = ink:Next()
-        Fill(point, c[1] * light, c[2] * light, c[3] * light, 1)
-        -- The point's sides meet the belly where they touch it.
-        local r, tx, ty = B.size / 2, x + F.lean, y + F.tip
-        local d = math.sqrt(F.lean * F.lean + (F.tip - B.y) ^ 2)
-        local up, out = r * r / d, r * math.sqrt(math.max(0, 1 - (r / d) ^ 2))
-        if Quad(point, tx, ty, tx, ty, x + out, y + B.y - up, x - out, y + B.y - up) then
-            local tongue = inner:Next()
-            Fill(tongue, P[1], P[2], P[3], 1)
-            local hw = T.dot / 2 * 0.95
-            if not Quad(tongue, x + F.lean / 2, y + T.tip, x + F.lean / 2, y + T.tip, x + hw, y + T.foot - 0.3,
-                x - hw, y + T.foot - 0.3) then
-                tongue:Hide()
-            end
-        else
-            local side = r * 1.1
-            Place(point, x + F.lean / 2 - side / 2, y + (F.tip + B.y) / 2 - 1 - side / 2, side, side, math.pi / 4)
-        end
-        Dot(inner, x, y + T.foot, T.dot, P, 1)
-    end
 
     -- The paper round a mark, so it reads over the art.
     local function Halo(x, y, size, round)
@@ -969,6 +879,13 @@ local function New(parent, slot)
             Box(markHaloPool, x, y, size, size, P, MARK.halo * 0.8)
         end
     end
+
+    -- What a registered mark draws with (Plate.RegisterMark's kit): the
+    -- marks' pools and the card's own strokes, so it turns and is lit with
+    -- the card.
+    local kit = { ink = markPool, inner = markInnerPool, halo = markHaloPool, Dot = Dot, Box = Box, Stroke = Stroke,
+        Quad = Quad, Place = Place, Fill = Fill, Light = Light, Clamp = Clamp, P = P, INK = INK,
+        INK_STRONG = INK_STRONG }
 
     ----------------------------------------------------------------------
     -- The mount: the card's thickness and shadow, glue, a lifted corner,
@@ -1644,19 +1561,16 @@ local function New(parent, slot)
     ----------------------------------------------------------------------
     -- Drawing
 
-    -- How much room a mark of `kind` claims (Apart's radius).
+    -- How much room a mark of `kind` claims (Apart's radius): a registered
+    -- mark's own `radius`, else the core marks' by their look.
     local function Radius(kind)
+        local mark = MARKS[kind]
+        if mark and mark.radius then return mark.radius end
         if kind == "fight" then return MARK.fight / 2 + 1 end
         if kind == "note" then return MARK.note[2] / 2 + 1 end
         if kind == "first" then return MARK.first[2] / 2 + 1 end
         if kind == "dungeon" then return MARK.door / 2 + 1 end
         if kind == "find" then return POUCH.height / 2 + 1 end
-        if kind == "close" then return CLOSE.stem.h / 2 + 1 end
-        if kind == "luck" then return TALLY.h / 2 + 2 end
-        if kind == "fortune" then return FORTUNE.r + 1 end
-        if kind == "finale" then return FINALE.rules[1].w / 2 end
-        if kind == "skill" then return SKILL.steps * SKILL.w / 2 + 1 end
-        if kind == "campfire" then return CAMPFIRE.h / 2 + 1 end
         return MARK.together / 2 + 1
     end
 
@@ -1905,13 +1819,12 @@ local function New(parent, slot)
         end
         counts.finds = pouches
 
-        -- Close calls (JRN-25), bad and good luck with a quest's drops
-        -- (JRN-26, EXT-3), the ends of long quest chains (JRN-28) and the
-        -- professions brought to their cap (JRN-29):
+        -- The registered marks (Plate.RegisterMark): close calls (JRN-25),
+        -- bad and good luck with a quest's drops (JRN-26, EXT-3), the ends
+        -- of long quest chains (JRN-28), the professions brought to their
+        -- cap (JRN-29), and whatever a feature adds:
         -- a mark where each was, those on one spot (MARK.merge) one mark,
-        -- its tooltip telling each. The close calls' marks are kept
-        -- (plate.closeMarks) for the creature that nearly got you, its card
-        -- in the margin (plate.foe, below).
+        -- its tooltip telling each.
         local function Spots(kind, cap)
             local list = {}
             for _, h in ipairs(here) do
@@ -1943,105 +1856,43 @@ local function New(parent, slot)
                 return tip
             end
         end
-        -- A long chain's end (JRN-28) first: it ranks with the level's pin,
-        -- so it keeps its place and the crosses and tallies step round it.
-        local tailpieces = 0
-        for _, c in ipairs(Spots("finale", CAP.finales)) do
-            local x, y = Apart(c.x, c.y, Radius("finale"))
-            Halo(x, y, FINALE.halo, true)
-            SHAPES.finale(markPool, markInnerPool, x, y)
-            hoverPool:Next(x, y, Tell(c.list, function(m) return Text.FinaleTip(m.finale, now) end), FINALE.halo)
-            tailpieces = tailpieces + 1
-        end
-        counts.finales = tailpieces
-        -- A profession brought to its cap (JRN-29), ranked with them too:
-        -- its flight of stairs, the steps climbed by the best cap on the
-        -- spot.
-        local flights = 0
-        for _, c in ipairs(Spots("skill", CAP.skills)) do
-            local x, y = Apart(c.x, c.y, Radius("skill"))
-            local rank
-            for _, m in ipairs(c.list) do
-                if type(m.cap.rank) == "number" and (not rank or m.cap.rank > rank) then rank = m.cap.rank end
+        -- One kind's marks, all of them, then its count, its kept marks
+        -- and its card: in that order, so a kind's card is chosen before
+        -- the next kind is drawn, as it always was.
+        local function DrawKind(spec)
+            local marks, hover = {}, spec.hover or MARK.hover
+            if spec.keep then plate[spec.keep] = marks end
+            for _, c in ipairs(Spots(spec.kind, spec.count and CAP[spec.count] or spec.cap or math.huge)) do
+                local x, y = Apart(c.x, c.y, Radius(spec.kind))
+                if spec.halo then Halo(x, y, spec.halo, true) end
+                spec.draw(kit, x, y, spec.arg and spec.arg(c.list) or nil)
+                hoverPool:Next(x, y, spec.tip and Tell(c.list, spec.tip) or nil, hover)
+                local px, py = OnPage(x, y)
+                marks[#marks + 1] = { x = x, y = y, list = c.list, at = { px, py } }
             end
-            Halo(x, y, SKILL.halo, true)
-            SHAPES.skill(markPool, markInnerPool, x, y, rank)
-            hoverPool:Next(x, y, Tell(c.list, function(m) return Text.SkillTip(m.cap, now) end), SKILL.halo)
-            flights = flights + 1
+            if spec.count then counts[spec.count] = #marks end
+            if spec.chosen and spec.choose then plate[spec.chosen] = spec.choose(marks, plate) end
         end
-        counts.skills = flights
-
-        plate.closeMarks = {}
-        for _, c in ipairs(Spots("close", CAP.closeCalls)) do
-            local x, y = Apart(c.x, c.y, Radius("close"))
-            SHAPES.close(markPool, markInnerPool, x, y, markHaloPool)
-            hoverPool:Next(x, y, Tell(c.list, function(m) return Text.CloseTip(m.call, now) end), CLOSE.dot)
-            local px, py = OnPage(x, y)
-            plate.closeMarks[#plate.closeMarks + 1] = { x = x, y = y, list = c.list, at = { px, py } }
+        -- A death on the road has no pool to sit beside: its cross, in its
+        -- fixed place among the registered marks (ROAD_DEATHS), after the
+        -- luck and before the filler.
+        local function RoadDeaths()
+            for _, h in ipairs(deaths) do
+                local x, y = Apart(h.x, h.y, DEATH.dot / 2)
+                SHAPES.death(markInnerPool, nil, x, y, markHaloPool)
+                local seg = h.m.seg
+                crosses[#crosses + 1] = { x = x, y = y, segs = { seg }, count = seg.act and seg.act.deaths or 1 }
+            end
         end
-        counts.closeCalls = #plate.closeMarks
-        -- The tallies are kept (plate.huntMarks) for the plate's one hunt
-        -- card (UI/HuntCard.lua): the hunt furthest past its yardstick,
-        -- against the character's usual where the drop rates are not
-        -- known (plate.hunt).
-        local tallies = 0
-        plate.huntMarks = {}
-        for _, c in ipairs(Spots("luck", CAP.hunts)) do
-            local x, y = Apart(c.x, c.y, Radius("luck"))
-            Halo(x, y, TALLY.halo, true)
-            SHAPES.luck(markPool, markInnerPool, x, y)
-            hoverPool:Next(x, y, Tell(c.list, function(m) return Text.HuntTip(m.hunt, now) end), TALLY.halo)
-            tallies = tallies + 1
-            local px, py = OnPage(x, y)
-            plate.huntMarks[tallies] = { x = x, y = y, list = c.list, at = { px, py } }
+        local roadDeaths = false
+        for _, spec in ipairs(MARK_ORDER) do
+            if not roadDeaths and spec.order > ROAD_DEATHS then
+                RoadDeaths()
+                roadDeaths = true
+            end
+            DrawKind(spec)
         end
-        counts.hunts = tallies
-        local usual = tallies > 0 and ns.Journey.UsualLuck(ns.Journey.For(ns.ownGUID)) or nil
-        plate.hunt = ns.UI.HuntCard.Choose(plate.huntMarks, usual)
-        -- Good luck (EXT-3), the tally's counterpart: a star. The stars are
-        -- kept (plate.fortuneMarks) for the plate's one lucky card
-        -- (UI/LuckyCard.lua): the luckiest hunt (plate.lucky), in the
-        -- margin, or on the print of a light plate (DrawPrint).
-        local stars = 0
-        plate.fortuneMarks = {}
-        for _, c in ipairs(Spots("fortune", CAP.fortunes)) do
-            local x, y = Apart(c.x, c.y, Radius("fortune"))
-            Halo(x, y, FORTUNE.halo, true)
-            SHAPES.fortune(markPool, markInnerPool, x, y)
-            hoverPool:Next(x, y, Tell(c.list, function(m) return Text.HuntTip(m.hunt, now) end), FORTUNE.halo)
-            stars = stars + 1
-            local px, py = OnPage(x, y)
-            plate.fortuneMarks[stars] = { x = x, y = y, list = c.list, at = { px, py } }
-        end
-        counts.fortunes = stars
-        plate.lucky = ns.UI.LuckyCard.Choose(plate.fortuneMarks)
-
-        -- A death on the road has no pool to sit beside.
-        for _, h in ipairs(deaths) do
-            local x, y = Apart(h.x, h.y, DEATH.dot / 2)
-            SHAPES.death(markInnerPool, nil, x, y, markHaloPool)
-            local seg = h.m.seg
-            crosses[#crosses + 1] = { x = x, y = y, segs = { seg }, count = seg.act and seg.act.deaths or 1 }
-        end
-
-        -- The campfires sat by, drawn last of the marks: filler (the user,
-        -- 14 Oct), so every other mark keeps its place and a fire landing
-        -- on one steps aside (Apart, with its tether), as one by a group's
-        -- ring does. One fire sat by again is one mark (MARK.merge), its
-        -- tooltip telling each sitting. Kept (plate.campfireMarks) for the
-        -- plate's one slip in the margin (UI/CampfireSlip.lua, plate.campfire).
-        plate.campfireMarks = {}
-        for _, c in ipairs(Spots("campfire", CAP.campfires)) do
-            local x, y = Apart(c.x, c.y, Radius("campfire"))
-            Halo(x, y, CAMPFIRE.halo, true)
-            SHAPES.campfire(markPool, markInnerPool, x, y)
-            hoverPool:Next(x, y, Tell(c.list, function(m) return Text.CampfireTip(m.campfire, now) end),
-                CAMPFIRE.halo)
-            local px, py = OnPage(x, y)
-            plate.campfireMarks[#plate.campfireMarks + 1] = { x = x, y = y, list = c.list, at = { px, py } }
-        end
-        counts.campfires = #plate.campfireMarks
-        plate.campfire = ns.UI.CampfireSlip.Choose(plate.campfireMarks)
+        if not roadDeaths then RoadDeaths() end
         counts.dungeons, counts.pins, counts.pinsMoved = doors, pins, moved
         counts.meetings, counts.firsts, counts.marks = meetings, firsts, marks
     end
@@ -2489,6 +2340,214 @@ local function New(parent, slot)
     return plate
 end
 
+--------------------------------------------------------------------------
+-- The marks registered by kind (Plate.RegisterMark)
+--------------------------------------------------------------------------
+
+-- Each block below is one kind's mark, whole: its look, its shape through
+-- the kit, its words under the mouse, what the plate keeps of it and the
+-- card it chooses. They live here until their features move to
+-- Features/<Name>/ (.claude/registry-refactor.md), and are written to be
+-- cut out as they are: nothing in them reaches into New but through the
+-- kit, and the words are looked up when the mouse comes, as
+-- UI/JourneyText.lua loads after this file.
+
+-- The end of a long quest chain (JRN-28): a tailpiece, as an old book
+-- ends a chapter. A swelled `rules` (`w` wide, `t` thick at its middle,
+-- tapering to points, its middle `y` off the mark's), a shorter one under
+-- it, and a full stop (`dot`: size, y). Where corners cannot move, each
+-- rule a flat bar `bar` of its size. Rules lie across, so never the tally
+-- or a cross; narrowing to a point, so never a pin or the ring of time
+-- together. Ranked with a level's pin on the plate, so it keeps a halo as
+-- big as the pin's.
+local FINALE = { rules = { { w = 14, t = 2.5, y = -3.2 }, { w = 7.5, t = 2.1, y = 0.5 } }, dot = { 2.8, 4.0 },
+    bar = 0.75, halo = 17, h = 10 }
+-- Drawn first of the registered marks: it ranks with the level's pin, so
+-- it keeps its place and the crosses and tallies step round it.
+Plate.RegisterMark("finale", {
+    order = 10, cap = 10, count = "finales",
+    radius = FINALE.rules[1].w / 2, halo = FINALE.halo, hover = FINALE.halo,
+    tip = function(m, now) return ns.UI.JourneyText.FinaleTip(m.finale, now) end,
+    -- Two swelled rules and a full stop.
+    draw = function(kit, x, y)
+        local F = FINALE
+        local light = kit.Light(x, y)
+        local c = kit.INK_STRONG
+        for _, rule in ipairs(F.rules) do
+            local ry, hw, ht = y + rule.y, rule.w / 2, rule.t / 2
+            local texture = kit.ink:Next()
+            kit.Fill(texture, c[1] * light, c[2] * light, c[3] * light, 1)
+            if not kit.Quad(texture, x - hw, ry, x, ry - ht, x + hw, ry, x, ry + ht) then
+                kit.Place(texture, x - hw * F.bar, ry - ht * F.bar, rule.w * F.bar, rule.t * F.bar)
+            end
+        end
+        kit.Dot(kit.ink, x, y + F.dot[2], F.dot[1], kit.INK_STRONG, 1)
+    end,
+})
+
+-- A profession brought to its cap (JRN-29): a flight of `steps` stairs
+-- rising to the right, one for each rank a trainer teaches (Apprentice,
+-- Journeyman, Expert, Artisan), each `w` px wide and `rise` px higher than
+-- the one before, standing on one line. The steps climbed, up to the rank
+-- reached (its cap over `per`: 75 one, 300 all four), are solid ink; the
+-- ones still to climb are drawn in outline, `line` px of ink round their
+-- paper, so the flight is always whole and the tooltip says what it means
+-- (no key on the plates). A cap past the last rank, or none kept, is the
+-- whole flight. Stepped, so never the tally's strokes, a cross, the pouch
+-- or the tailpiece's rules; boxes only, so it draws the same where corners
+-- cannot move. Ranked with a level's pin, so it keeps a halo as big as
+-- the tailpiece's. (12 Oct, a rasterised render: as a stepped line the
+-- unclimbed steps blurred into a slash at the book's size; closed, they
+-- read as stairs.)
+local SKILL = { steps = 4, w = 3.2, rise = 2.9, line = 1.0, per = 75, halo = 17 }
+-- Ranked with the tailpiece, right after it: its steps climbed by the
+-- best cap on the spot (`arg`).
+Plate.RegisterMark("skill", {
+    order = 20, cap = 10, count = "skills",
+    radius = SKILL.steps * SKILL.w / 2 + 1, halo = SKILL.halo, hover = SKILL.halo,
+    tip = function(m, now) return ns.UI.JourneyText.SkillTip(m.cap, now) end,
+    arg = function(list)
+        local rank
+        for _, m in ipairs(list) do
+            if type(m.cap.rank) == "number" and (not rank or m.cap.rank > rank) then rank = m.cap.rank end
+        end
+        return rank
+    end,
+    -- The whole flight in ink, a column to each step (each a hair wider,
+    -- under the taller one beside it, so no seam shows between them), then
+    -- the paper inside the steps above the rank reached. The paper of each
+    -- such step reaches on under the next, so the outline runs round them
+    -- as one, with no wall between.
+    draw = function(kit, x, y, rank)
+        local S = SKILL
+        local n, w, t = S.steps, S.w, S.line
+        local climbed = type(rank) == "number" and kit.Clamp(math.floor(rank / S.per), 1, n) or n
+        local x0, base = x - n * w / 2, y + n * S.rise / 2
+        for i = 1, n do
+            local h, wide = i * S.rise, i < n and w + 0.3 or w
+            kit.Box(kit.ink, x0 + (i - 1) * w + wide / 2, base - h / 2, wide, h, kit.INK_STRONG, 1)
+        end
+        for i = climbed + 1, n do
+            local h = i * S.rise
+            local left, right = x0 + (i - 1) * w + t, x0 + i * w + (i < n and t or -t)
+            kit.Box(kit.inner, (left + right) / 2, base - h / 2, right - left, h - 2 * t, kit.P, 1)
+        end
+    end,
+})
+
+-- A close call (JRN-25): the death's cross drawn in outline and never
+-- filled in, the cross you nearly got. Ink round paper, as the hollow
+-- lozenge of a first sighting is: a `stem` `w` wide and `h` tall, its middle
+-- `y` below the mark's, and a `bar` `w` wide, its middle `y` off it, each
+-- `line` px of ink round its paper. A little bigger than the death's solid
+-- cross (8 px), so its paper reads at the book's size, but no heavier: the
+-- death stays the darker mark. On a `dot` of paper, as the death's is.
+-- (11 Oct, a rasterised render: at 12.4 px with 1.25 px of ink it
+-- outweighed the death beside it.)
+local CLOSE = { stem = { w = 3.8, h = 11, y = 0.5 }, bar = { w = 8.2, y = -1.9 }, line = 1.1, dot = 14 }
+-- No halo of the plate's: it lies on its own dot of paper, as the death's
+-- cross does (kit.halo). Its marks are kept (plate.closeMarks) for the
+-- creature that nearly got you, its card in the margin: chosen with the
+-- killer's (DrawKillers: plate.foe, or a witness's), so not here.
+Plate.RegisterMark("close", {
+    order = 30, cap = 20, count = "closeCalls",
+    radius = CLOSE.stem.h / 2 + 1, halo = false, hover = CLOSE.dot,
+    tip = function(m, now) return ns.UI.JourneyText.CloseTip(m.call, now) end,
+    keep = "closeMarks",
+    -- The cross in ink, then its paper inside, so the outline runs round
+    -- the crossing unbroken.
+    draw = function(kit, x, y)
+        local S, B, t = CLOSE.stem, CLOSE.bar, CLOSE.line
+        local P, INK_STRONG = kit.P, kit.INK_STRONG
+        kit.Dot(kit.halo, x, y, CLOSE.dot, P, 0.85)
+        kit.Box(kit.ink, x, y + S.y, S.w, S.h, INK_STRONG, 1)
+        kit.Box(kit.ink, x, y + B.y, B.w, S.w, INK_STRONG, 1)
+        kit.Box(kit.inner, x, y + S.y, S.w - 2 * t, S.h - 2 * t, P, 1)
+        kit.Box(kit.inner, x, y + B.y, B.w - 2 * t, S.w - 2 * t, P, 1)
+    end,
+})
+
+-- Bad luck with a quest's drops (JRN-26): a tally, the kills counted where
+-- the hunt went on. Four uprights `gap` px apart, `h` tall, each leaning
+-- `lean` px at its top as a hand draws them (`jitter`: each one's height
+-- given or taken), and a fifth stroke across them from the lower left,
+-- `over` px past the outer two. Strokes `width` px. In ink, never a letter
+-- (the gate of five is no letter), never a fight's crossed strokes (two,
+-- red-brown).
+local TALLY = { count = 4, gap = 2.5, h = 10, lean = 0.5, jitter = { 0, 0.6, -0.4, 0.3 }, over = 1.6,
+    rise = 7.2, width = 1.3, halo = 16 }
+-- The tallies are kept (plate.huntMarks) for the plate's one hunt card
+-- (UI/HuntCard.lua): the hunt furthest past its yardstick, against the
+-- character's usual where the drop rates are not known (plate.hunt).
+Plate.RegisterMark("luck", {
+    order = 40, cap = 20, count = "hunts",
+    radius = TALLY.h / 2 + 2, halo = TALLY.halo, hover = TALLY.halo,
+    tip = function(m, now) return ns.UI.JourneyText.HuntTip(m.hunt, now) end,
+    keep = "huntMarks", chosen = "hunt",
+    choose = function(marks)
+        local usual = #marks > 0 and ns.Journey.UsualLuck(ns.Journey.For(ns.ownGUID)) or nil
+        return ns.UI.HuntCard.Choose(marks, usual)
+    end,
+    -- Four strokes leaning a little, and one across.
+    draw = function(kit, x, y)
+        local T = TALLY
+        local half = (T.count - 1) * T.gap / 2
+        for i = 1, T.count do
+            local u = x - half + (i - 1) * T.gap
+            local h = T.h + (T.jitter[i] or 0)
+            kit.Stroke(kit.ink, u - T.lean / 2, y + h / 2, u + T.lean / 2, y - h / 2, T.width, kit.INK_STRONG, 1)
+        end
+        local reach = half + T.over
+        kit.Stroke(kit.ink, x - reach, y + T.rise / 2, x + reach, y - T.rise / 2, T.width, kit.INK_STRONG, 1)
+    end,
+})
+
+-- Good luck with a quest's drops (EXT-3), the tally's bright counterpart:
+-- a lucky star, five points `r` px out from its middle, its inner corners
+-- `inner` of that, turned `turn` as a hand draws it, and set `drop` of r
+-- lower so it sits on its middle (its points reach further up than down).
+-- Solid ink, five kites from the middle (corners on the card); where
+-- corners cannot move, five strokes `ray` px wide from the middle to its
+-- points. Closed and solid, so never the tally's open strokes, the
+-- crosses' square arms or the fight's two red-brown strokes; drawn solid,
+-- never as the five strokes of a pentagram. About 12 px, the tally's size.
+-- (12 Oct, a rasterised render: at 13 px it outweighed the death beside it.)
+local FORTUNE = { r = 6.2, inner = 0.45, turn = -0.10, drop = 0.095, ray = 2.4, halo = 16 }
+-- The stars are kept (plate.fortuneMarks) for the plate's one lucky card
+-- (UI/LuckyCard.lua): the luckiest hunt (plate.lucky), in the margin, or
+-- on the print of a light plate (DrawPrint).
+Plate.RegisterMark("fortune", {
+    order = 50, cap = 20, count = "fortunes",
+    radius = FORTUNE.r + 1, halo = FORTUNE.halo, hover = FORTUNE.halo,
+    tip = function(m, now) return ns.UI.JourneyText.HuntTip(m.hunt, now) end,
+    keep = "fortuneMarks", chosen = "lucky",
+    choose = function(marks) return ns.UI.LuckyCard.Choose(marks) end,
+    -- A solid star, one kite of ink to each point.
+    draw = function(kit, x, y)
+        local F = FORTUNE
+        local R, r = F.r, F.r * F.inner
+        y = y + R * F.drop
+        local light = kit.Light(x, y)
+        local c = kit.INK_STRONG
+        local function Corner(i)
+            local a = -math.pi / 2 + F.turn + (i + 0.5) * 2 * math.pi / 5
+            return x + r * math.cos(a), y + r * math.sin(a)
+        end
+        for i = 0, 4 do
+            local a = -math.pi / 2 + F.turn + i * 2 * math.pi / 5
+            local px, py = x + R * math.cos(a), y + R * math.sin(a)
+            local bx, by = Corner(i - 1)
+            local ax, ay = Corner(i)
+            local kite = kit.ink:Next()
+            kit.Fill(kite, c[1] * light, c[2] * light, c[3] * light, 1)
+            if not kit.Quad(kite, x, y, bx, by, px, py, ax, ay) then
+                kite:Hide()
+                kit.Stroke(kit.ink, x, y, px, py, F.ray, kit.INK_STRONG, 1)
+            end
+        end
+    end,
+})
+
 -- A plate's share of the trail's caps, by its area (SHARE).
 function Plate.Share(slot)
     return math.min(1, math.max(SHARE.least, slot.w * slot.h / SHARE.area))
@@ -2496,7 +2555,7 @@ end
 
 Plate.MOUNT, Plate.GLUE, Plate.LIFT, Plate.SHARE, Plate.MARK = MOUNT, GLUE, LIFT, SHARE, MARK
 Plate.PRIORITY, Plate.DOOR, Plate.POUCH = PRIORITY, DOOR, POUCH
-Plate.CAMPFIRE, Plate.CAP = CAMPFIRE, CAP
+Plate.CAP = CAP
 Plate.ZOOM, Plate.FULLZOOM, Plate.DRAG = ZOOM, FULLZOOM, DRAG
 Plate.PLATE, Plate.SHADOW, Plate.THICKNESS, Plate.VIGNETTE = PLATE, SHADOW, THICKNESS, VIGNETTE
 

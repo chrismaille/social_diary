@@ -407,12 +407,8 @@ end
 -- A day's people, for the Recently nearby page (JNL-3)
 --------------------------------------------------------------------------
 
--- Interactions that mark a row, and which mark wins when there are several.
-local DEALT = {
-    group_join = "together", trade = "trade",
-    whisper_in = "talk", whisper_out = "talk", say = "talk", yell = "talk",
-    party = "talk",
-}
+-- Interactions that mark a row (their kind's `dealt`, Core/Rows.lua), and
+-- which mark wins when there are several.
 local DEALT_RANK = { together = 3, trade = 2, talk = 1 }
 
 local function ZoneName(row)
@@ -425,7 +421,7 @@ local function Dealt(guid, from, to)
     local rows = ns.Interactions.For(guid) or {}
     for i = 1, #rows do
         local row = rows[i]
-        local k = row.time >= from and row.time < to and DEALT[row.type]
+        local k = row.time >= from and row.time < to and ns.Rows.Get(row.type).dealt
         if k and (not kind or DEALT_RANK[k] > DEALT_RANK[kind]) then kind, at = k, row.time end
     end
     return kind, at
