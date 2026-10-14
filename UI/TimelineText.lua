@@ -118,6 +118,24 @@ ROW_TEXT.saved_you = function(row, guid)
     return them .. " saved you" .. (foe and (" from " .. foe) or "") .. health .. Place(row)
 end
 
+-- A campfire sat by with them (Capture/Campfire.lua): "You and Bram sat
+-- by a campfire together in Lushwater Oasis, The Barrens". The user's own
+-- words (14 Oct), the place "Subzone, Zone" as everywhere; the zone alone
+-- where the client gave no subzone, or one with the zone's own name.
+ROW_TEXT.campfire = function(row, guid)
+    local them = guid and ns.Characters.Name(guid)
+    local subZone = row.context and row.context.subZone
+    if subZone == "" then subZone = nil end
+    local place = row.zone
+    if subZone and place and subZone ~= place then
+        place = subZone .. ", " .. place
+    elseif subZone then
+        place = subZone
+    end
+    return (them and ("You and " .. them .. " sat") or "Sat") .. " by a campfire together"
+        .. (place and (" in " .. place) or "")
+end
+
 local ROW_ICON = {
     trade = "trade",
     whisper_in = "whisper",
@@ -132,6 +150,7 @@ local ROW_ICON = {
     watched_death = "around",
     tried_to_help = "together",
     saved_you = "together",
+    campfire = "campfire",
 }
 
 -- "You died to Plainstrider (3 attackers) near Red Cloud Mesa", "Gunther

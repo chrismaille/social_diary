@@ -46,6 +46,9 @@ Style.ART = {
     sortArrow = { "Interface\\Buttons\\UI-SortArrow" },
     -- SES-9's "seen around": something glimpsed, not done.
     around = { "Interface\\Icons\\INV_Misc_Spyglass_03", "Interface\\Icons\\Ability_Tracking" },
+    -- A campfire sat by together (Capture/Campfire.lua): Basic Campfire's
+    -- own spell icon.
+    campfire = { "Interface\\Icons\\Spell_Fire_Fire", "Interface\\Icons\\INV_Sword_04" },
     -- An inventory icon, so it keeps its dark square (fine at 14 px).
     added = { "Interface\\Icons\\INV_Feather_05" },
     -- A note the user wrote (DIA-11), standing on its own on the timeline.

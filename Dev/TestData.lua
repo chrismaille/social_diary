@@ -242,6 +242,12 @@ function TestData.WriteJourney(now)
         j.deaths[#j.deaths + 1] = d
         return d
     end
+    -- Campfires sat by (WoW Forever's camps), as capture keeps them
+    -- (Journey.Campfire): one a sitting, where its first minute was done.
+    j.campfires = {}
+    local function Campfire(at, map, x, y, sub, zone)
+        j.campfires[#j.campfires + 1] = { t = at, mapID = map, x = x, y = y, subZone = sub, zone = zone }
+    end
     local witnessed = {}
     local function Witness(who, kind, at, zone, map, context)
         witnessed[#witnessed + 1] = { who = who, kind = kind, at = at, zone = zone, map = map, context = context }
@@ -291,6 +297,9 @@ function TestData.WriteJourney(now)
     Stop(900, ORGRIMMAR, 0.54, 0.68, 150, { resting = 900 }, "Valley of Strength")
     -- First Aid at its first cap, bandaging in the city.
     SkillCap(t - 300, ORGRIMMAR, 0.55, 0.67, 129, "First Aid", 75)
+    -- And a campfire in the valley, on FL's print, where its slip has no
+    -- room under the caption: the words say it (the user's Rule B, 14 Oct).
+    Campfire(t - 500, ORGRIMMAR, 0.53, 0.69, "Valley of Strength", "Orgrimmar")
     Flight(240, ORGRIMMAR, 0.45, 0.64, BARRENS, 0.51, 0.30)
     Road(500, BARRENS, { 0.51, 0.30, 0.55, 0.25, 0.58, 0.20, 0.60, 0.16 })
     Stop(1500, BARRENS, 0.60, 0.15, 50, { combat = 800, questsOut = 2 }, "The Sludge Fen")
@@ -320,6 +329,9 @@ function TestData.WriteJourney(now)
         4024, "Bloodfury Ripper", { expected = 9 })
     -- Mining at its second cap, off the crag's veins.
     SkillCap(t - 700, STONETALON, 0.73, 0.59, 186, "Mining", 150)
+    -- A campfire at the crag, on the full plate: its slip in the narrowest
+    -- column (122 px), after the lucky card.
+    Campfire(t - 1000, STONETALON, 0.70, 0.58, "Windshear Crag", "Stonetalon Mountains")
     Ding(STONETALON, 0.72, 0.60, "Windshear Crag")
 
     -- Level 13: back to The Barrens and into the Wailing Caverns.
@@ -347,6 +359,10 @@ function TestData.WriteJourney(now)
     t = t + 3600
     Hunt(t - 1800, BARRENS, 0.16, 0.25, { 907, "Enraged Thunder Lizards", "Thunder Lizard Blood" }, 3, 4, 3239,
         "Thunder Lizard", { expected = 33 })
+    -- A campfire by the lizards, on FL's print, where its slip has no room
+    -- under the caption, and the words, long already, have no room to say
+    -- it either: left to its mark (Plated's filler rule, 14 Oct).
+    Campfire(t - 1500, BARRENS, 0.17, 0.27, nil, "The Barrens")
     Ding(BARRENS, 0.52, 0.30, "The Crossroads")
 
     -- Level 14: one long evening at Camp Taurajo.
@@ -391,6 +407,11 @@ function TestData.WriteJourney(now)
         "Sunscale Scytheclaw", { expected = 12, itemID = 5055,
             byKind = { [3256] = { n = 17, name = "Sunscale Scytheclaw" },
                 [3254] = { n = 9, name = "Sunscale Lashtail" } } })
+    -- Two campfires about thirty yards apart, the first sat by twice: two
+    -- marks, one slip, its leader to the nearer.
+    Campfire(t - 1900, BARRENS, 0.42, 0.84, "Raptor Grounds", "The Barrens")
+    Campfire(t - 1000, BARRENS, 0.47, 0.81, "Raptor Grounds", "The Barrens")
+    Campfire(t - 300, BARRENS, 0.42, 0.84, "Raptor Grounds", "The Barrens")
     Road(600, BARRENS, { 0.44, 0.82, 0.48, 0.74, 0.50, 0.64 })
     Stop(900, BARRENS, 0.50, 0.63, 35, { questsOut = 2 })
     Ding(BARRENS, 0.50, 0.63)
@@ -411,9 +432,15 @@ function TestData.WriteJourney(now)
     t = now - 9 * DAY
     Flight(260, BARRENS, 0.51, 0.30, ORGRIMMAR, 0.45, 0.64)
     Stop(1200, ORGRIMMAR, 0.50, 0.70, 150, { resting = 1200 }, "Valley of Strength")
+    -- A campfire on the week's light plate: its slip under the print's
+    -- caption.
+    Campfire(t - 600, ORGRIMMAR, 0.51, 0.69, "Valley of Strength", "Orgrimmar")
     t = now - 6 * DAY + 200
     Road(100, BARRENS, { 0.52, 0.36, 0.55, 0.41 })
     Stop(2700, BARRENS, 0.55, 0.42, 50, { combat = 1500, questsOut = 5 }, "Lushwater Oasis")
+    -- Sat by a fire with Tester (TestData.Write's row), on the spot of your
+    -- time together: the ring keeps its place and the fire steps aside.
+    Campfire(now - 6 * DAY + 300 + 41 * MIN, BARRENS, 0.55, 0.42, "Lushwater Oasis", "The Barrens")
     J.Fight(j, "won", GUID, now - 6 * DAY + 1500, { mapID = BARRENS, x = 0.57, y = 0.44 })
     t = now - DAY - 5 * HOUR
     Stop(3600, BARRENS, 0.50, 0.35, 60, { combat = 2000 }, "Razormane Grounds")
@@ -507,6 +534,8 @@ function TestData.Write(now)
         { "<", "centaur over there" }, { ">", "got it" }, { "<", "nice pull" },
         { ">", "need water?" }, { "<", "all good" }, { ">", "next camp" },
     })
+    -- Sat by a campfire together at the oasis (Capture/Campfire.lua's row).
+    Row("campfire", t1 + 300 + 41 * MIN, "The Barrens", { context = { subZone = "Lushwater Oasis" } }, s1)
 
     -- Yesterday: three hours of questing with a dungeon in the middle, a rare
     -- and a green trade (TLN-3: three activities named; TLN-4: the dungeon

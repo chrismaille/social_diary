@@ -50,11 +50,16 @@ local MATTERS = { group_join = true, trade = true, whisper_in = true, whisper_ou
 -- longest stays (one a zone), the longest road when there was nothing
 -- else, and last the level-up spot: a level is reached anyway, so a place
 -- is worth a plate for what happened there, not for the ding (12 Oct).
+-- A campfire sat by (WoW Forever's camps) opens a plate too, but last of
+-- everything that does: after a dungeon's door, before a stay. It is
+-- filler, "kind of unimportant, just filler if we don't have anything
+-- better" (the user, 14 Oct), so 5.5 puts it between the two without
+-- moving anything else; ranks are only ever compared, never counted.
 local PLATES = { max = 3, inset = 0.8, window = 0.3 }
 local RANK = { session = 1, fight = 1, note = 1, first = 1, gift = 1, find = 2, finale = 2, skill = 2,
     death = 3,
     close = 3, luck = 3, fortune = 3, arrive = 4,
-    dungeon = 5, stay = 6, road = 7, level = 8 }
+    dungeon = 5, campfire = 5.5, stay = 6, road = 7, level = 8 }
 Recap.RANK = RANK
 -- A plate's weight (plate-weight proposal, 13 Oct): it is light when all it
 -- holds is a place, nothing for the margin and a line of words at most, and
@@ -62,12 +67,15 @@ Recap.RANK = RANK
 -- (UI/JournalJourney.lua's LAYOUT). A first visit, a dungeon's door, a
 -- stay, the road, a level's pin; and a chain's finale, a profession's cap
 -- and good luck with a quest's drops, which are words only, with no card
--- in the margin (the user's choice, 13 Oct). Anything else is full: a kind
--- that puts a note in the margin (people, a first found, a death with its
--- killer, a close call, bad luck) or one no one has weighed yet, so a new
--- kind of moment is given a full plate until someone says otherwise.
+-- in the margin (the user's choice, 13 Oct); and a campfire sat by,
+-- filler, with only a small slip ("sat by a campfire") under the caption,
+-- or the words saying it where there is no room (the user's choice, 14
+-- Oct). Anything else is full: a kind that puts a note in the margin
+-- (people, a first found, a death with its killer, a close call, bad luck)
+-- or one no one has weighed yet, so a new kind of moment is given a full
+-- plate until someone says otherwise.
 local LIGHT = { arrive = true, dungeon = true, stay = true, road = true, level = true,
-    finale = true, skill = true, fortune = true }
+    finale = true, skill = true, fortune = true, campfire = true }
 Recap.LIGHT = LIGHT
 
 -- A moment's rank: a find that was a gift ranks with the people.
@@ -160,7 +168,7 @@ end
 local function Gather(j, a, b, ctx)
     local e = { from = a, to = b, places = {}, stops = {}, dungeons = {}, flights = {},
         people = {}, fights = {}, notes = {}, deaths = {}, finds = {}, closeCalls = {}, hunts = {}, fortunes = {},
-        finales = {}, skillCaps = {}, roads = {}, seconds = 0 }
+        finales = {}, skillCaps = {}, campfires = {}, roads = {}, seconds = 0 }
     local byMap = {}
 
     for _, seg in ipairs(Journey.All(j)) do
@@ -276,6 +284,11 @@ local function Gather(j, a, b, ctx)
         if cap.t >= a and cap.t < b then e.skillCaps[#e.skillCaps + 1] = cap end
     end
 
+    -- The campfires sat by (WoW Forever's camps, Capture/Campfire.lua).
+    for _, fire in ipairs(Journey.Campfires(j)) do
+        if fire.t >= a and fire.t < b then e.campfires[#e.campfires + 1] = fire end
+    end
+
     return e
 end
 Recap.Gather = Gather
@@ -367,7 +380,8 @@ function Recap.Build(j, ctx)
             local e = Gather(j, a, math.min(nextWeek, now + 1), ctx)
             e.kind, e.week = "week", week
             if e.seconds > 0 or #e.people > 0 or #e.fights > 0 or #e.notes > 0 or #e.flights > 0 or #e.finds > 0
-                or #e.closeCalls > 0 or #e.hunts > 0 or #e.fortunes > 0 or #e.finales > 0 or #e.skillCaps > 0 then
+                or #e.closeCalls > 0 or #e.hunts > 0 or #e.fortunes > 0 or #e.finales > 0 or #e.skillCaps > 0
+                or #e.campfires > 0 then
                 if a == capAt and first < maxLevel then e.reached, e.level = Reached(j, maxLevel), maxLevel end
                 recap.entries[#recap.entries + 1] = e
             end
@@ -764,6 +778,12 @@ function Recap.Moments(j, e, ctx)
     for _, cap in ipairs(e.skillCaps or {}) do
         local map, x, y = Own(j, cap.mapID, cap.x, cap.y, cap.t)
         Add({ kind = "skill", t = cap.t, cap = cap }, map, x, y)
+    end
+    -- A campfire sat by, where its first minute was done. Its spot is
+    -- zone-level only; without one, the route's at its time.
+    for _, fire in ipairs(e.campfires or {}) do
+        local map, x, y = Own(j, fire.mapID, fire.x, fire.y, fire.t)
+        Add({ kind = "campfire", t = fire.t, campfire = fire }, map, x, y)
     end
     -- A zone new to the road: its first spot, when this entry holds it.
     local firsts = {}

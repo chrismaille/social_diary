@@ -1916,12 +1916,13 @@ Section("a plate's weight: light where it holds only a place (plate-weight propo
 
 -- The light kinds, a whitelist: a place and a line of words, nothing for
 -- the margin; finales, profession caps and good luck too (the user's
--- choice, 13 Oct). Whatever puts a note in the margin is full.
+-- choice, 13 Oct), and a campfire sat by (14 Oct: filler, its slip under
+-- the caption at most). Whatever puts a note in the margin is full.
 do
     local light = {}
     for kind in pairs(R.LIGHT) do light[#light + 1] = kind end
     table.sort(light)
-    Eq(table.concat(light, ","), "arrive,dungeon,finale,fortune,level,road,skill,stay", "the light kinds")
+    Eq(table.concat(light, ","), "arrive,campfire,dungeon,finale,fortune,level,road,skill,stay", "the light kinds")
     for _, kind in ipairs({ "session", "fight", "note", "first", "gift", "find", "death", "close", "luck" }) do
         Check(R.LIGHT[kind] == nil, kind .. " counts as light")
     end
@@ -1973,6 +1974,65 @@ do
     Check(not R.Holds(box, 0.18, 0.1), "0.15 across holds in 0.18 (0.144)")
     Check(not R.Holds(box, 0.2, 0.08), "0.07 down holds in 0.08 (0.064)")
     Check(R.Holds({ x0 = 0.3, x1 = 0.3, y0 = 0.3, y1 = 0.3 }, 0.01, 0.01), "one spot does not hold anywhere")
+end
+
+--------------------------------------------------------------------------
+Section("campfires: a plate's filler, light, last of what opens one (14 Oct)")
+
+do
+    j = Fresh(4, MULGORE, d0)
+    -- Level 4: a quest stop, then a fire on the far side of Mulgore, one
+    -- with no zone spot (on the route at its time), and one after the level.
+    Seg2("stop", d0, d0 + 600, MULGORE, { x = 0.20, y = 0.70, r = 30, seconds = 600 })
+    Seg2("road", d0 + 600, d0 + 1200, MULGORE, { pts = { 0.20, 0.70, 0.60, 0.30 } })
+    Seg2("stop", d0 + 1200, d0 + 1800, MULGORE, { x = 0.60, y = 0.30, r = 30, seconds = 600 })
+    j.campfires = {
+        { t = d0 + 900, mapID = MULGORE, x = 0.85, y = 0.20, subZone = "Red Rocks", zone = "Mulgore" },
+        { t = d0 + 1500, subZone = "Bloodhoof Village", zone = "Mulgore" },
+    }
+    J.Touch()
+    local ctxC = { now = d0 + 2000, level = 4, maxLevel = 60 }
+    local e = R.Build(j, ctxC).entries[1]
+    Eq(#e.campfires, 2, "the level's campfires gathered")
+    Eq(#R.Gather(j, d0 + 1000, d0 + 2000, ctxC).campfires, 1, "a campfire outside the span was gathered")
+    local fires = {}
+    for _, m in ipairs(R.Moments(j, e, ctxC)) do
+        if m.kind == "campfire" then fires[#fires + 1] = m end
+    end
+    Eq(#fires, 2, "a campfire moment each")
+    Eq(fires[1].x, 0.85, "a fire with a zone spot is where it was")
+    Eq(fires[2].mapID, MULGORE, "a fire with no spot is on the route")
+    Check(fires[2].campfire == j.campfires[2], "a fire's moment keeps its record")
+
+    -- Its rank: it opens a plate of its own, last of what does (after a
+    -- dungeon's door, before a stay); the others keep their order.
+    local rank = R.Rank({ kind = "campfire" })
+    Check(rank > R.RANK.dungeon and rank < R.RANK.stay, "a campfire's rank is not between a door and a stay")
+    Check(R.RANK.arrive < R.RANK.dungeon and R.RANK.dungeon < R.RANK.stay and R.RANK.stay < R.RANK.road,
+        "the other kinds' order changed")
+    local plates = R.Plates(j, e, ctxC, Cover)
+    local alone
+    for _, p in ipairs(plates) do
+        if p.moments[1].kind == "campfire" and math.abs(p.cx - 0.85) < 0.01 then alone = p end
+    end
+    Check(alone ~= nil, "the far fire opened no plate of its own")
+    Eq(alone and alone.light, true, "a plate with only a campfire is full")
+
+    -- Light with a stay; full with a session.
+    local stayed = { moments = { { kind = "stay" }, { kind = "campfire" } } }
+    local light = true
+    for _, m in ipairs(stayed.moments) do light = light and R.LIGHT[m.kind] == true end
+    Check(light, "a stay and a campfire do not make a light plate")
+
+    -- A week past the cap with nothing but a campfire still has an entry.
+    local k = Fresh(60, MULGORE, d0)
+    k.levels = { [60] = { at = d0 } }
+    k.campfires = { { t = d0 + 8 * 86400, mapID = MULGORE, x = 0.5, y = 0.5 } }
+    J.Touch()
+    local weeks = R.Build(k, { now = d0 + 9 * 86400, level = 60, maxLevel = 60 }).entries
+    local found = false
+    for _, w in ipairs(weeks) do found = found or (w.kind == "week" and #w.campfires == 1) end
+    Check(found, "a week with only a campfire had no entry")
 end
 
 --------------------------------------------------------------------------

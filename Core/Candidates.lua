@@ -120,13 +120,15 @@ end
 -- makes "trade first, decide later" reach past the current session's Recent
 -- entries.
 -- Said in words where the row type would not be: a fight (Core/Fights.lua),
--- for flow 5's ganker; a witness to one of the user's (Capture/Witnesses.lua).
+-- for flow 5's ganker; a witness to one of the user's (Capture/Witnesses.lua);
+-- someone who sat by a campfire with the user (Capture/Campfire.lua).
 local BUFFER_REASONS = {
     pvp_kill = "you killed them",
     pvp_death = "they killed you",
     watched_death = "they watched you die",
     tried_to_help = "they tried to save you",
     saved_you = "they saved you",
+    campfire = "sat by a campfire together",
 }
 
 local function GatherBuffer(add, now)

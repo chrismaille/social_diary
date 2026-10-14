@@ -21,7 +21,7 @@
 --
 -- db.journey[charGUID] = { startedAt, startLevel, startMapID, levels,
 -- segments, marks, deaths, firsts, closeCalls, hunts, hunting, finales,
--- chainStarts, skillCaps, open }
+-- chainStarts, skillCaps, campfires, open }
 -- (prd.md section 7). `open` is the working state:
 -- the stop or road being built, saved so that a /reload carries on where it
 -- was (JRN-20), and never read by the UI.
@@ -71,6 +71,7 @@ local T = {
                         -- chance is taken for wrong, and the next source tried
     finales = 200,      -- chain finales kept a character, the oldest first (JRN-28)
     skillCaps = 100,    -- profession caps kept a character, the oldest first (JRN-29)
+    campfires = 300,    -- campfires sat by kept a character, the oldest first
 }
 Journey.T = T
 
@@ -1543,6 +1544,43 @@ end
 -- A character's profession caps, oldest first.
 function Journey.SkillCaps(j)
     return j and j.skillCaps or {}
+end
+
+--------------------------------------------------------------------------
+-- Campfires: a minute sat by one, and its benefits had
+--------------------------------------------------------------------------
+--
+-- WoW Forever's campfires give camp benefits after a minute sat nearby
+-- (Capture/Campfire.lua). Only a minute sat out counts; a sitting that
+-- renews the buff minute after minute is one campfire, not one a minute.
+--
+-- j.campfires holds each, oldest first: { t, mapID, x, y, subZone, zone }.
+-- `t` is when the first minute was done; the rest is where.
+
+-- A campfire sat by, here and now unless `where` says otherwise (in
+-- ns.Where's shape).
+function Journey.Campfire(j, t, where)
+    if not j then return nil end
+    local spot = Spot(where)
+    local rec = { t = t or ns.Now(), mapID = spot.mapID, x = spot.x, y = spot.y,
+        subZone = where and where.subZone or nil, zone = where and where.zone or nil }
+    j.campfires = j.campfires or {}
+    j.campfires[#j.campfires + 1] = rec
+    while #j.campfires > T.campfires do table.remove(j.campfires, 1) end
+    Touch()
+    return rec
+end
+
+-- The logged-in character's, while the route is kept.
+function Journey.Campfired(t, where)
+    local j = Kept()
+    if not j then return nil end
+    return Journey.Campfire(j, t, where)
+end
+
+-- A character's campfires, oldest first.
+function Journey.Campfires(j)
+    return j and j.campfires or {}
 end
 
 --------------------------------------------------------------------------

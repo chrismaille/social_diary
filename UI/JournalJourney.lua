@@ -209,6 +209,12 @@ local function Snap(x, y, t, corners, lift, cap)
 end
 -- The print a light plate must fit to be drawn light (LayoutFor).
 local SNAPSHOT = Snap(0, 0, 0, {})
+-- A light plate's campfire slip ("sat by a campfire", UI/CampfireSlip.lua)
+-- goes under its print's caption where there is room (LF, LFF, LFL, FLF;
+-- FFL with the route kept). Under FL's print (its caption from y 474) and
+-- often F+L's tucked one there is none: the slip is left off there and the
+-- caption's words say it. The layouts stay as they are for it, never FL
+-- turned FF for a campfire, which is filler (the user's choice, 14 Oct).
 LAYOUT.FL = { { x = 8, y = -2, w = 260, h = 318, t = -1.4, pad = 8, pc = 24, corners = FOUR,
         cap = { x = 282, y = 18, w = 176, limit = 528 } },
     Snap(40, 336, 2.2, LOST, "br", { x = 42, y = 474, w = 200, limit = 528 }) }
@@ -1160,7 +1166,12 @@ end
 -- witness before the killer): with the killer's, ahead of the close call's
 -- (UI/JourneyPlate.lua clears the one they replace, plate.killer for a
 -- death's witness, plate.foe for a rescue).
--- Each { kind = "person", "find", "witness", "killer", "foe", "lucky" or "hunt", top (its mark's
+-- A campfire sat by (UI/CampfireSlip.lua: one slip, "sat by a campfire")
+-- comes last of all, after the people only seen, so it is the first left
+-- off: filler (the user, 14 Oct), and the caption's words say it then. It
+-- goes in a light plate's margin too (under its caption), never on the
+-- print.
+-- Each { kind = "person", "find", "witness", "killer", "foe", "lucky", "hunt" or "campfire", top (its mark's
 -- height on the page), x (where across the page its leader likeliest
 -- goes, for a row of notes under the plate), rank (its place in that
 -- order) }.
@@ -1206,6 +1217,9 @@ local function MarginOrder(plate, groups)
     end
     for i, g in ipairs(groups) do
         if Tier(g) > 1 then Add({ kind = "person", g = g, index = i, top = g.top, x = Across(g) }) end
+    end
+    if plate.campfire then
+        Add({ kind = "campfire", campfire = plate.campfire, top = plate.campfire.mark[2], x = plate.campfire.mark[1] })
     end
     return order
 end
@@ -1255,6 +1269,12 @@ local function MarginNote(plate, e, it, named)
         card:SetHunt(it.lucky, table.concat({ "lucky", hunt.questID or hunt.item or "", plate.mapID or 0, level }, ":"),
             page.now)
         return card
+    elseif it.kind == "campfire" then
+        local slip = page.campfirePool:Next()
+        local first = it.campfire.list[1]
+        slip:SetCampfire(it.campfire, table.concat({ "campfire", first and first.t or 0, plate.mapID or 0, level }, ":"),
+            page.now)
+        return slip
     elseif it.kind == "witness" then
         -- Their name opens their page, as a person's strip does.
         local card = page.witnessPool:Next()
@@ -1277,9 +1297,10 @@ end
 
 -- Where a note's leader goes: a person's likeliest mark (LeaderMark), a
 -- find's pouch, the killer's cross, a close call's cross in outline, a
--- hunt's tally, good luck's star.
+-- hunt's tally, good luck's star, the campfire nearest the slip.
 local function MarginMark(plate, it, note)
     if it.kind == "person" then return LeaderMark(it.g, note, plate) end
+    if it.kind == "campfire" then return ns.UI.CampfireSlip.Mark(it.campfire, note) end
     if it.kind == "find" then return it.item.mark end
     if it.kind == "hunt" then return it.hunt.mark end
     if it.kind == "lucky" then return it.lucky.mark end
@@ -1438,8 +1459,8 @@ end
 
 -- What the right page's pools and leaders hold now, and back to it: a
 -- margin laid again from there.
-local MARGIN_POOLS = { "notePool", "findPool", "killerPool", "huntPool", "luckyPool", "witnessPool", "leaderPool",
-    "dotPool" }
+local MARGIN_POOLS = { "notePool", "findPool", "killerPool", "huntPool", "luckyPool", "witnessPool", "campfirePool",
+    "leaderPool", "dotPool" }
 
 local function Mark()
     local at = { links = #page.links }
@@ -1588,9 +1609,11 @@ local function Plated(ctx, slot, over)
     -- told there whatever the margin does; on a lucky card it is taken as
     -- shown, as the hunt's is, until the card is left off.
     local printed = plate.print and { hunt = plate.print.hunt, print = true } or nil
-    local function Words(named, killer, shown, foe, hunted, lucky, witness)
+    -- A campfire's slip is taken as shown until it is left off; then the
+    -- words say it (`camped`).
+    local function Words(named, killer, shown, foe, hunted, lucky, witness, camped)
         local text = Text.PlateCaption(p, ctx.began, named, killer and Text.KillerName(killer), shown or allFinds,
-            foe, hunted, printed or lucky, witness)
+            foe, hunted, printed or lucky, witness, camped)
         return day and (day:sub(1, 1):upper() .. day:sub(2) .. ". " .. text) or text
     end
     -- The margin (WriteMargin) under the words, and the words naming
@@ -1611,7 +1634,7 @@ local function Plated(ctx, slot, over)
         cap.w, cap.align)
     if over and not Short(tall) then return false end
     local at, shown, all = Mark(), nil, 0
-    local people, finds, killer, foe, hunted, lucky, witness, named
+    local people, finds, killer, foe, hunted, lucky, witness, named, fire, rewrite, quiet
     for pass = 1, 4 do
         -- Its notes: in their own column first and then under the
         -- caption, or under the caption; over the plate, in the row
@@ -1626,7 +1649,7 @@ local function Plated(ctx, slot, over)
             boxes = slot.notes and { slot.notes, under } or { under }
         end
         shown, all = WriteMargin(plate, e, groups, boxes)
-        people, finds, killer, foe, hunted, lucky, witness, named = {}, {}, nil, nil, nil, nil, nil, false
+        people, finds, killer, foe, hunted, lucky, witness, named, fire = {}, {}, nil, nil, nil, nil, nil, false, false
         for _, it in ipairs(shown) do
             if it.kind == "person" then
                 people[#people + 1] = it.g
@@ -1641,6 +1664,8 @@ local function Plated(ctx, slot, over)
             elseif it.kind == "witness" then
                 witness = it.witness
                 named = it.note ~= nil and it.note.plan ~= nil and it.note.plan.foe ~= nil
+            elseif it.kind == "campfire" then
+                fire = true
             else
                 killer = it.killer
             end
@@ -1651,10 +1676,19 @@ local function Plated(ctx, slot, over)
         -- rescue's, as the close call's).
         local dropped = plate.killer ~= killer and plate.killer or nil
         if seen and seen.death and not named then dropped = dropped or WitnessKiller(seen) end
-        local again = Write(words, FONT.body, Words(Named(people, #people), dropped, finds,
-            foe ~= nil or (named and seen.call ~= nil), hunted, lucky, seen ~= witness and seen or nil), cap.x, top,
-            cap.w, cap.align)
+        rewrite = function(camped)
+            return Write(words, FONT.body, Words(Named(people, #people), dropped, finds,
+                foe ~= nil or (named and seen.call ~= nil), hunted, lucky, seen ~= witness and seen or nil,
+                camped), cap.x, top, cap.w, cap.align)
+        end
+        local again = rewrite(plate.campfire ~= nil and not fire)
         if over or again <= tall or pass == 4 then
+            -- Over the plate, a campfire's words never cost the caption its
+            -- place there: filler (the user, 14 Oct) is left to its mark.
+            if over and not Short(again) and plate.campfire ~= nil and not fire then
+                local plain = rewrite(false)
+                if Short(plain) then again, quiet = plain, true end
+            end
             tall = math.max(tall, again)
             if over and (not Short(again) or (slot.whole and #shown < all)) then
                 Undo(at)
@@ -1665,12 +1699,22 @@ local function Plated(ctx, slot, over)
         tall = again
         Undo(at)
     end
+    -- A campfire is filler (the user, 14 Oct): where saying it would run
+    -- the words past their foot, they leave it to its mark on the plate
+    -- and its tooltip. (14 Oct, rasterised: level 13's FL print, whose
+    -- caption has two lines, ran a third off the page.)
+    plate.camped = plate.campfire ~= nil and not fire and not quiet
+    if plate.camped and not over and top + tall > (cap.limit or CAPTION.limit) then
+        tall = math.min(tall, rewrite(false))
+        plate.camped = false
+    end
     page.notesWritten = page.notesWritten + #people
     page.killersWritten = page.killersWritten + (killer and 1 or 0)
     page.foesWritten = page.foesWritten + (foe and 1 or 0)
     page.huntsWritten = page.huntsWritten + (hunted and 1 or 0)
     page.luckyWritten = page.luckyWritten + ((lucky or printed) and 1 or 0)
     page.witnessesWritten = page.witnessesWritten + (witness and 1 or 0)
+    page.campfiresWritten = page.campfiresWritten + (fire and 1 or 0)
     for _, it in ipairs(shown) do
         if it.kind == "find" then page.findsWritten = page.findsWritten + 1 end
     end
@@ -1689,7 +1733,7 @@ local function DrawPlates(e)
     local plates, layout, pattern = PlatesOf(e)
     page.layout, page.pattern = #plates, pattern
     page.notesWritten, page.killersWritten, page.findsWritten, page.foesWritten = 0, 0, 0, 0
-    page.huntsWritten, page.luckyWritten, page.witnessesWritten = 0, 0, 0
+    page.huntsWritten, page.luckyWritten, page.witnessesWritten, page.campfiresWritten = 0, 0, 0, 0
     if #plates == 0 then
         -- JRN-21: a level whose road was not kept says so, faded.
         page.nothing:SetText("Nothing of this level's road was kept.")
@@ -2214,8 +2258,14 @@ function ns.UI.BuildJourneyPage(parent)
         card:SetFrameLevel(page.right:GetFrameLevel() + STRIPS.level)
         return card
     end)
+    -- The campfire slips: one a plate at most (UI/CampfireSlip.lua).
+    page.campfirePool = Handout(function()
+        local slip = ns.UI.CampfireSlip.New(page.right)
+        slip:SetFrameLevel(page.right:GetFrameLevel() + STRIPS.level)
+        return slip
+    end)
     page.rightPools = { page.leaderPool, page.dotPool, page.headingPool, page.captionPool, page.notePool,
-        page.killerPool, page.findPool, page.huntPool, page.luckyPool, page.witnessPool }
+        page.killerPool, page.findPool, page.huntPool, page.luckyPool, page.witnessPool, page.campfirePool }
 
     page.nothing = Style.Text(page.right, FONT.faded)
     page.nothing:SetPoint("TOPLEFT", NOTHING.x, -NOTHING.y)

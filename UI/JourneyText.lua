@@ -703,14 +703,22 @@ end
 -- Lashtail. Grisha mercilessly watched you die."). With the card beside
 -- the plate the words say nothing of them; the creature the card names
 -- is the caller's to leave out (`killer`, `foe`), as with the killer's.
-function Text.PlateCaption(plate, began, named, killer, shown, foe, hunted, lucky, witness)
+-- `camped` (optional): the plate's campfire slip ("sat by a campfire",
+-- UI/CampfireSlip.lua) found no room in the margin, so the words say it,
+-- last of everything and as short as the rest of the list (", and a
+-- campfire"), or lead where nothing else does ("By a campfire in Lushwater
+-- Oasis."). With the slip beside the plate the words say nothing of it,
+-- but where the fire is all there is they name its place ("Lushwater
+-- Oasis.") for the slip to finish.
+function Text.PlateCaption(plate, began, named, killer, shown, foe, hunted, lucky, witness, camped)
     named = named or {}
     shown = shown or {}
     local function Shown(m) return shown[m] or (m.find ~= nil and shown[m.find]) or false end
     local someone = named.someone or 0
     local of, deaths, people, strangers, company, finds = {}, 0, {}, {}, nil, {}
-    local calls, hunts, fortunes, finales, caps = {}, {}, {}, {}, {}
+    local calls, hunts, fortunes, finales, caps, fires = {}, {}, {}, {}, {}, {}
     for _, m in ipairs(plate.moments) do
+        if m.kind == "campfire" and m.campfire then fires[#fires + 1] = m.campfire end
         of[m.kind] = of[m.kind] or m
         if m.kind == "death" then deaths = deaths + 1 end
         if m.kind == "find" then finds[#finds + 1] = m end
@@ -791,6 +799,19 @@ function Text.PlateCaption(plate, began, named, killer, shown, foe, hunted, luck
         return said
     end
     local luckyWords = Lucky()
+    -- The campfires, where their slip had no room: "a campfire", sat by
+    -- once or more at one place; "campfires" at several. As short as the
+    -- deaths and close calls beside them: FL's print has two lines for its
+    -- words (14 Oct, rasterised: "and a rest by a campfire" ran a third
+    -- line past the page's foot). Where they were: the subzone they share,
+    -- if it is not the zone's own name.
+    local camping, told = camped and #fires > 0, false
+    local function Camped()
+        told = true
+        if #fires == 1 or Text.CampfireAt(fires) then return "a campfire" end
+        return "campfires"
+    end
+    local spot = #fires > 0 and Text.CampfireAt(fires, MapName(plate.mapID)) or nil
     -- A chain's end (JRN-28): "the end of “Crown of the Earth”"; "two
     -- chains finished".
     local function Ended()
@@ -831,6 +852,7 @@ function Text.PlateCaption(plate, began, named, killer, shown, foe, hunted, luck
             for _, words in ipairs(luckyWords) do tail[#tail + 1] = words end
         end
         for _, words in ipairs(after or {}) do tail[#tail + 1] = words end
+        if camping and not told then tail[#tail + 1] = Camped() end
         if #tail == 0 then return text end
         if #tail == 1 then return text .. ", and " .. tail[1] end
         return text .. ", " .. table.concat(tail, ", ", 1, #tail - 1) .. ", and " .. tail[#tail]
@@ -889,11 +911,18 @@ function Text.PlateCaption(plate, began, named, killer, shown, foe, hunted, luck
         text = "Where the fighting was"
     elseif company then
         text = "In good company"
+    elseif of.campfire and camping then
+        text = "By " .. Camped() .. (spot and (" in " .. spot) or "")
+    elseif of.campfire and spot then
+        text = spot
     elseif of.level then
         text = "Level " .. of.level.level
     else
         text = "On the road"
     end
+    -- A lead with nothing after it (a first visit, a stay, ...) takes the
+    -- campfire on as the only thing more.
+    if camping and not told then text = text .. ", and " .. Camped() end
     return text .. "." .. (witness and (" " .. Text.WitnessCaption(witness)) or "")
 end
 
@@ -1747,4 +1776,40 @@ function Text.ZoneFoot(z, names, fights)
     if list then parts[#parts + 1] = "with " .. list end
     if (fights or 0) > 0 then parts[#parts + 1] = fights == 1 and "a fight" or (fights .. " fights") end
     return table.concat(parts, "  \194\183  ")
+end
+
+--------------------------------------------------------------------------
+-- Campfires (WoW Forever's camps, Capture/Campfire.lua)
+--------------------------------------------------------------------------
+
+-- The margin's slip for a campfire on a plate (UI/CampfireSlip.lua): the
+-- user's own words (14 Oct), exactly, lower case and all, however many
+-- fires the plate has. Not to be reworded.
+Text.CAMPFIRE_SLIP = "sat by a campfire"
+
+-- The subzone a plate's campfires (records { t, subZone, ... }) all share,
+-- or nil where they differ, where one has none, or where it is only the
+-- zone's own name (`zone`).
+function Text.CampfireAt(fires, zone)
+    local at
+    for _, fire in ipairs(fires) do
+        local sub = fire.subZone
+        if type(sub) ~= "string" or sub == "" or (at and sub ~= at) then return nil end
+        at = sub
+    end
+    if at == zone then return nil end
+    return at
+end
+
+-- The fire's mark and its slip, under the mouse: "Sat by a campfire", then
+-- where ("In Lushwater Oasis", where there is a subzone that is not the
+-- zone's name) and when ("Yesterday, 21:40, at level 12").
+function Text.CampfireTip(fire, now)
+    local lines = {}
+    local sub = fire.subZone
+    if type(sub) == "string" and sub ~= "" and sub ~= MapName(fire.mapID) then lines[#lines + 1] = "In " .. sub end
+    local j = ns.Journey.For and ns.Journey.For(ns.ownGUID)
+    local level = j and ns.JourneyRecap and ns.JourneyRecap.LevelAt(j, fire.t or 0) or nil
+    lines[#lines + 1] = When(fire.t or 0, level, now)
+    return Capital(Text.CAMPFIRE_SLIP), lines
 end

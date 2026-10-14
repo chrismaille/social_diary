@@ -48,6 +48,7 @@ UI/FindCard.lua
 UI/HuntCard.lua
 UI/LuckyCard.lua
 UI/WitnessCard.lua
+UI/CampfireSlip.lua
 UI/Entry.lua
 UI/Picker.lua
 UI/LooseSheet.lua
@@ -88,6 +89,7 @@ Capture/Sightings.lua
 Capture/Journey.lua
 Capture/Combat.lua
 Capture/Witnesses.lua
+Capture/Campfire.lua
 
 #@do-not-package@
 # Development tooling: diagnostics, /sd art, /sd journey and /sd testdata. They

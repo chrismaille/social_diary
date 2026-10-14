@@ -46,8 +46,10 @@
 --              cross in outline for a close call (JRN-25: out of a fight
 --              alive with a tenth of your health or less), a tally for
 --              bad luck with a quest's drops (JRN-26) and a star for good
---              luck with them (EXT-3), and a tailpiece where a long quest
---              chain ended (JRN-28)
+--              luck with them (EXT-3), a tailpiece where a long quest
+--              chain ended (JRN-28), a flight of stairs where a profession
+--              reached its cap (JRN-29), and a flame on two crossed logs
+--              where a campfire was sat by (CAMPFIRE)
 --              Each has a tooltip (UI/JourneyText.lua)
 -- The page writes the margin notes and draws their pencil leaders (they
 -- cross the plate's edge, and the page does not turn): plate.where has each
@@ -299,6 +301,28 @@ local FINALE = { rules = { { w = 14, t = 2.5, y = -3.2 }, { w = 7.5, t = 2.1, y 
 -- unclimbed steps blurred into a slash at the book's size; closed, they
 -- read as stairs.)
 local SKILL = { steps = 4, w = 3.2, rise = 2.9, line = 1.0, per = 75, halo = 17 }
+-- A campfire sat by till its buffs came (WoW Forever's camps,
+-- Capture/Campfire.lua; .claude/ui-proposal/campfire.md): a flame on two
+-- logs. The `logs`, two strokes `w` long and `width` px, crossed at
+-- ±`angle` radians about a point `y` below the middle, so their ends show
+-- either side of the flame's foot as an X of logs; the `flame`, solid ink,
+-- a round `belly` (`size` across, its middle `y` down) drawn up into a
+-- point at `tip` (leaning `lean` px, as a flame licks), its sides meeting
+-- the belly where they touch it, so it is one smooth drop; inside it a
+-- `tongue` of paper, a small drop of its own (a dot of `dot` px `foot`
+-- down, drawn up to a point at `tip`), so it reads as a flame in a flame,
+-- never the pouch's solid mass with ears. Where corners cannot move: the
+-- belly's dot, a diamond for the point, the tongue's dot alone. Ink only
+-- (the user's choice, 14 Oct): rubric is the level's pin, red-brown fights
+-- and flights, and a warm tint would read as a pouch's quality. About 14 px
+-- tall (`h`), set on its middle, a hair more than the star and the tally,
+-- on a halo of `halo` that takes in the logs' ends.
+-- (14 Oct, rasterised: the proposal's flame, 6.4 px of belly under a
+-- point 7.6 px up on logs at 0.2 rad, read as a "Δ" on a bar; a rounder
+-- belly, a shorter point and the logs crossed steeper read as a fire.)
+local CAMPFIRE = { logs = { w = 12, width = 1.5, angle = 0.40, y = 3.6 },
+    flame = { belly = { size = 7.6, y = 0.2 }, tip = -7.0, lean = 1.2 },
+    tongue = { tip = -1.4, foot = 1.6, dot = 2.6 }, halo = 18, h = 14 }
 -- The quality a first of each kind is, at least; a bag or shoulders say
 -- theirs in their link.
 local FIND_QUALITY = { uncommon = 2, rare = 3, epic = 4 }
@@ -311,7 +335,7 @@ local DOOR = { body = { y = 0.18, w = 0.8, h = 0.62 }, head = { y = -0.1, size =
 -- What a plate marks at most; past it, the rest is left off. The trail's
 -- own caps are InkTrail's.
 local CAP = { meetings = 150, flights = 40, dashes = 600, dungeons = 30, pins = 80, firsts = 60, finds = 10,
-    closeCalls = 20, hunts = 20, fortunes = 20, finales = 10, skills = 10 }
+    closeCalls = 20, hunts = 20, fortunes = 20, finales = 10, skills = 10, campfires = 20 }
 -- A point this far past the art's edge (px) is still on it; a piece of ink
 -- may reach `SPILL` px past it (onto the neat line), and is left off past
 -- that: the window cuts a pool its edge crosses, as the art is cut.
@@ -903,6 +927,38 @@ local function New(parent, slot)
             local left, right = x0 + (i - 1) * w + t, x0 + i * w + (i < n and t or -t)
             Box(inner, (left + right) / 2, base - h / 2, right - left, h - 2 * t, P, 1)
         end
+    end
+    -- A campfire (CAMPFIRE): the logs, then the flame over their crossing,
+    -- then the paper of its tongue.
+    function SHAPES.campfire(ink, inner, x, y)
+        local L, F, T = CAMPFIRE.logs, CAMPFIRE.flame, CAMPFIRE.tongue
+        local dx, dy = L.w / 2 * math.cos(L.angle), L.w / 2 * math.sin(L.angle)
+        local ly = y + L.y
+        Stroke(ink, x - dx, ly - dy, x + dx, ly + dy, L.width, INK_STRONG, 1)
+        Stroke(ink, x - dx, ly + dy, x + dx, ly - dy, L.width, INK_STRONG, 1)
+        local B = F.belly
+        Dot(ink, x, y + B.y, B.size, INK_STRONG, 1)
+        local light = Light(x, y)
+        local c = INK_STRONG
+        local point = ink:Next()
+        Fill(point, c[1] * light, c[2] * light, c[3] * light, 1)
+        -- The point's sides meet the belly where they touch it.
+        local r, tx, ty = B.size / 2, x + F.lean, y + F.tip
+        local d = math.sqrt(F.lean * F.lean + (F.tip - B.y) ^ 2)
+        local up, out = r * r / d, r * math.sqrt(math.max(0, 1 - (r / d) ^ 2))
+        if Quad(point, tx, ty, tx, ty, x + out, y + B.y - up, x - out, y + B.y - up) then
+            local tongue = inner:Next()
+            Fill(tongue, P[1], P[2], P[3], 1)
+            local hw = T.dot / 2 * 0.95
+            if not Quad(tongue, x + F.lean / 2, y + T.tip, x + F.lean / 2, y + T.tip, x + hw, y + T.foot - 0.3,
+                x - hw, y + T.foot - 0.3) then
+                tongue:Hide()
+            end
+        else
+            local side = r * 1.1
+            Place(point, x + F.lean / 2 - side / 2, y + (F.tip + B.y) / 2 - 1 - side / 2, side, side, math.pi / 4)
+        end
+        Dot(inner, x, y + T.foot, T.dot, P, 1)
     end
 
     -- The paper round a mark, so it reads over the art.
@@ -1600,6 +1656,7 @@ local function New(parent, slot)
         if kind == "fortune" then return FORTUNE.r + 1 end
         if kind == "finale" then return FINALE.rules[1].w / 2 end
         if kind == "skill" then return SKILL.steps * SKILL.w / 2 + 1 end
+        if kind == "campfire" then return CAMPFIRE.h / 2 + 1 end
         return MARK.together / 2 + 1
     end
 
@@ -1966,6 +2023,25 @@ local function New(parent, slot)
             local seg = h.m.seg
             crosses[#crosses + 1] = { x = x, y = y, segs = { seg }, count = seg.act and seg.act.deaths or 1 }
         end
+
+        -- The campfires sat by, drawn last of the marks: filler (the user,
+        -- 14 Oct), so every other mark keeps its place and a fire landing
+        -- on one steps aside (Apart, with its tether), as one by a group's
+        -- ring does. One fire sat by again is one mark (MARK.merge), its
+        -- tooltip telling each sitting. Kept (plate.campfireMarks) for the
+        -- plate's one slip in the margin (UI/CampfireSlip.lua, plate.campfire).
+        plate.campfireMarks = {}
+        for _, c in ipairs(Spots("campfire", CAP.campfires)) do
+            local x, y = Apart(c.x, c.y, Radius("campfire"))
+            Halo(x, y, CAMPFIRE.halo, true)
+            SHAPES.campfire(markPool, markInnerPool, x, y)
+            hoverPool:Next(x, y, Tell(c.list, function(m) return Text.CampfireTip(m.campfire, now) end),
+                CAMPFIRE.halo)
+            local px, py = OnPage(x, y)
+            plate.campfireMarks[#plate.campfireMarks + 1] = { x = x, y = y, list = c.list, at = { px, py } }
+        end
+        counts.campfires = #plate.campfireMarks
+        plate.campfire = ns.UI.CampfireSlip.Choose(plate.campfireMarks)
         counts.dungeons, counts.pins, counts.pinsMoved = doors, pins, moved
         counts.meetings, counts.firsts, counts.marks = meetings, firsts, marks
     end
@@ -2420,6 +2496,7 @@ end
 
 Plate.MOUNT, Plate.GLUE, Plate.LIFT, Plate.SHARE, Plate.MARK = MOUNT, GLUE, LIFT, SHARE, MARK
 Plate.PRIORITY, Plate.DOOR, Plate.POUCH = PRIORITY, DOOR, POUCH
+Plate.CAMPFIRE, Plate.CAP = CAMPFIRE, CAP
 Plate.ZOOM, Plate.FULLZOOM, Plate.DRAG = ZOOM, FULLZOOM, DRAG
 Plate.PLATE, Plate.SHADOW, Plate.THICKNESS, Plate.VIGNETTE = PLATE, SHADOW, THICKNESS, VIGNETTE
 

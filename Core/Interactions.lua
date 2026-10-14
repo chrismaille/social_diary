@@ -57,6 +57,7 @@ local PROXIMITY = {
     trade = true,
     say = true,
     yell = true,
+    campfire = true,
 }
 
 --------------------------------------------------------------------------

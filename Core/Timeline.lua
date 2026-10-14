@@ -72,6 +72,9 @@ local TYPES = {
     watched_death = { moment = function() return true end },
     tried_to_help = { moment = function() return true end },
     saved_you = { moment = function() return true end },
+    -- A campfire sat by together (Capture/Campfire.lua): always a line, one
+    -- a sitting, however many minutes it was renewed.
+    campfire = { moment = function() return true end },
 }
 local OTHER = { activity = "other" }
 

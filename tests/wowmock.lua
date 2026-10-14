@@ -341,6 +341,12 @@ local function NewWidget(frameType, name, parent, template)
         M.registered[event] = true
     end
 
+    -- The units are not kept: fire delivers to every frame, and a handler
+    -- that asked for "player" checks its unit anyway.
+    function w:RegisterUnitEvent(event)
+        self:RegisterEvent(event)
+    end
+
     function w:UnregisterEvent(event)
         self.events[event] = nil
         for i = 1, #M.frames do

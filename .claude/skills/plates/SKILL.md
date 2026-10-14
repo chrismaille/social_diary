@@ -52,15 +52,17 @@ Recap.Holds(plate, w, h)  ◄────────────────  L
 ```
 
 - **Moment kinds** (all of them): `session fight note first find death
-  close luck fortune finale skill arrive dungeon stay road level`.
+  close luck fortune finale skill arrive dungeon campfire stay road level`.
   `Recap.RANK` orders which open plates; a pin (`level`) never opens a
-  plate alone unless nothing else exists.
+  plate alone unless nothing else exists. A campfire (`RANK.campfire =
+  5.5`, 14 Oct) opens a plate, but last of all that do: after a dungeon's
+  door, before a stay. Ranks are only compared, so fractions are fine.
 - **Grouping**: a moment joins the first plate whose window it fits
   (`Fits`: the box spans ≤ `PLATES.inset` = 0.8 of the window). Windows are
   the slot's art box at **1 screen px per px of map art** (Decision 3;
   `Plate.Cover`), so a smaller slot = a smaller window = more plates.
 - **Weight**: `plate.light` when every moment is in `Recap.LIGHT`
-  (`arrive dungeon stay road level finale skill fortune`). It's a whitelist,
+  (`arrive dungeon stay road level finale skill fortune campfire`). It's a whitelist,
   so a new kind counts as full until someone weighs it.
 
 ## 2. Layouts (`UI/JournalJourney.lua`, `LAYOUT` and the comment above it)
@@ -134,8 +136,11 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   killer card, or a rescue the close call's) → killer → close call
   (`foe`) → lucky (good luck, `UI/LuckyCard.lua`; on a light plate's print
   it is the print's S instead, never in the margin) → hunt (bad luck, the
-  first to go) → tier-2/3 people (first
-  sightings, crossed). `WriteMargin` tries quoted notes at 3/2/1 lines
+  mildest card) → tier-2/3 people (first
+  sightings, crossed) → campfire (`UI/CampfireSlip.lua`: one slip a plate,
+  exactly "sat by a campfire", no count however many fires; filler, last
+  of all, so the first left off; it goes in a light plate's margin under
+  its caption too, never on the print). `WriteMargin` tries quoted notes at 3/2/1 lines
   (`QUOTES`) before dropping items; in a row, notes are re-sorted by their
   mark's x.
 - **Notes** are laid by `LayNotes` into `boxes` (column under the caption,
@@ -143,7 +148,16 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   (`UI/PaperStrip.lua`), `findPool` (`UI/FindCard.lua`), `killerPool`
   (`UI/KillerCard.lua`, also the close-call card via `KillerCard.Foe`),
   `huntPool` (`UI/HuntCard.lua`), `witnessPool` (`UI/WitnessCard.lua`), `luckyPool` (`UI/LuckyCard.lua`: a card
-  and its tag, a second slip, `card.tag`), `leaderPool`, `dotPool`.
+  and its tag, a second slip, `card.tag`), `campfirePool` (`UI/CampfireSlip.lua`),
+  `leaderPool`, `dotPool`.
+- **Campfire slip left off** (Rule B, the user's choice 14 Oct): where it
+  has no room (always under FL's print, whose caption starts at y 474; often
+  under F+L's tucked print; first to go in a full margin), the caption's
+  words say it (`Text.PlateCaption`'s `camped`: ", and a campfire", or "By
+  a campfire in Lushwater Oasis." as the lead). FL is never turned FF for
+  it. Filler never runs the words past their foot: where saying it would,
+  `Plated` leaves it out of the words too and the mark alone tells it
+  (`plate.camped` false then).
 - **S, good luck on a light print** (`LuckyCard.Print`, drawn by the plate in
   `DrawPrint` through its own toolkit, `PRINT_LAYERS` on the `over` frame,
   under the lift's shade): `plate.print` (form, polys, leader). F+L is not
@@ -165,7 +179,9 @@ card. Look tables: `PLATE` (stock, desaturate, tint), `FRAME`, `VIGNETTE`,
 `SHARE` (a smaller plate gets a share of the trail caps by area). Marks:
 `MARK`, `PRIORITY`, `POUCH` (find), `CLOSE` (close call), `TALLY` (bad
 luck), `FORTUNE` (good luck star), `FINALE`, `SKILL` (stairs), `DOOR`,
-`DEATH`, `PIN`, `FLIGHT`; `SHAPES[kind]` draws them; `Radius`/`Apart` keep
+`DEATH`, `PIN`, `FLIGHT`, `CAMPFIRE` (ink only: a flame with a paper tongue
+on two crossed logs, drawn last of the marks, so it steps aside with a
+tether; `plate.campfireMarks`, `plate.campfire`); `SHAPES[kind]` draws them; `Radius`/`Apart` keep
 them apart. The ink trail is `UI/InkTrail.lua`; map art and explored
 overlays are `UI/MapArt.lua`. "Flat paper only" lays everything flat (no
 turn, shadow, lift, glue, vignette). Drawing is pooled, deterministic
@@ -204,7 +220,8 @@ turn, shadow, lift, glue, vignette). Drawing is pooled, deterministic
   `tests/journey.lua` (Recap: grouping, weights, Holds),
   `tests/killer_card.lua`, `tests/combat_ui.lua` (close-call/foe cards on
   testdata pages), `tests/hunt_card.lua`, `tests/lucky_card.lua`,
-  `tests/firsts.lua`.
+  `tests/firsts.lua`, `tests/campfire_ui.lua` (the People row, the
+  caption's campfire words, the slip and its testdata pages).
 - Useful handles: `ns.UI.JourneyPage()` (page: `.plates`, `.links`,
   `.recap.entries`, `.layout`, `.pattern`, pools), `ns.UI.RedrawJourneyPage()`,
   `ns.UI.JourneyLook` (LAYOUT, CAPTION, LEADER, ROW, FOOT, SNAPSHOT,
@@ -245,7 +262,15 @@ turn, shadow, lift, glue, vignette). Drawing is pooled, deterministic
   XL in the row, L in the mock), lv15–16 one plate, week 1 LF, week 2 FFF. Witness cards (14 Oct): lv10 tried
   (M, F+L row), lv11 saved (L), lv13 watched (L), lv14 saw + two others (M),
   the cap's oasis mercilessly watched (XL on lv16's page, smaller on a week's),
-  the crag on the last week tried (XL); the weeks fall by the calendar. None of FLF/FFL/LFF/LFL
+  the crag on the last week tried (XL); the weeks fall by the calendar.
+  Campfires (14 Oct): lv11's FL print (no room: "First Aid at 75, and a
+  campfire."), lv12's 122 px column (slip after the lucky card), lv13's FL
+  print (its words long already: left to the mark), lv15 two fires, one
+  sat by twice (two marks; margin full, so the words say it), and on the
+  mock's day the oasis week LF: Orgrimmar's print with its slip under the
+  caption, and the oasis fire stepped aside from Tester's ring (slip after
+  the person). The glyph's render: `.claude/ui-proposal/render_plate_marks.py`
+  (local). None of FLF/FFL/LFF/LFL
   occur naturally; they're only seen forced. If a change needs them for
   real, add a testdata entry in `Dev/TestData.lua` (`TestData.WriteJourney`).
 

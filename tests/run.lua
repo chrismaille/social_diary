@@ -47,6 +47,8 @@ local FILES = {
     "sounds",
     "witnesses",
     "witness_card",
+    "campfire",
+    "campfire_ui",
 }
 
 dofile(here .. "/harness.lua").Run(here, FILES, arg)

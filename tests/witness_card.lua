@@ -402,7 +402,9 @@ Eq(table.concat(seen, ", "), "10:Wenna:tried to save you:M, 11:Numa:saved you:L,
 Check(Any(margins, "^11:person,find,witness,lucky$"), "level 11's margin: " .. table.concat(margins, "; "))
 Check(Any(margins, "^14:witness,foe,lucky$"), "level 14's margin: " .. table.concat(margins, "; "))
 Check(Any(margins, "^13:find,witness$"), "level 13's margin: " .. table.concat(margins, "; "))
-Check(Any(margins, "^week:person,witness,foe$"), "the oasis week's margin: " .. table.concat(margins, "; "))
+-- (The oasis week's campfire, sat by with Tester, comes last of all: its
+-- slip, UI/CampfireSlip.lua, 14 Oct.)
+Check(Any(margins, "^week:person,witness,foe,campfire$"), "the oasis week's margin: " .. table.concat(margins, "; "))
 
 -- Level 13: the card's leader goes to the death's cross; the caption says
 -- "a death" and leaves the creature and the watcher to the card.

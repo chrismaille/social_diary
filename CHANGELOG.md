@@ -5,6 +5,11 @@ All notable changes to Social Diary. Versions follow the `## Version` line in
 
 ## [Unreleased]
 
+### Shiny new Things
+
+- Profiles now remember who sat by a campfire with you
+  - Campfires also appear on _Your Diary_'s _Plates_
+
 ### Fixes
 
 - Zone map pen strokes in _Your Diary_ keep their width while zooming
