@@ -61,6 +61,19 @@ mock.SetUnit("self", F.SELF)
 Eq(#mock.OpenMenu("MENU_UNIT_PLAYER", { unit = "self" }), 0, "offered to remember the user")
 Eq(#mock.OpenMenu("MENU_UNIT_PLAYER", { isSelf = true }), 0, "isSelf context not honoured")
 
+-- Anything added to a menu on a secret unit taints its layout, and Blizzard's
+-- arithmetic on the (secret) menu size then errors. So the menu is left
+-- alone on a secret unit, and on anybody the addon cannot identify.
+mock.SetUnit("target", { guid = mock.secret(GUID), name = { mock.secret("Bram") } })
+Eq(#mock.OpenMenu("MENU_UNIT_PLAYER", { unit = "target", name = "Bram", surname = "Redfen" }), 0,
+    "the menu on a secret unit was touched (the name fallback must not rescue it)")
+Eq(#mock.OpenMenu("MENU_UNIT_PLAYER", { name = mock.secret("Bram") }), 0,
+    "the menu on a secret name was touched")
+mock.SetUnit("target", { guid = "Creature-0-4620-1-6-3098-1", name = { "Kobold Vermin" }, isPlayer = false })
+Eq(#mock.OpenMenu("MENU_UNIT_TARGET", { unit = "target" }), 0, "an NPC was offered an entry")
+Eq(#mock.OpenMenu("MENU_UNIT_PLAYER", { name = "Nobody" }), 0, "an unidentified character was offered an entry")
+mock.SetUnit("target", F.STRANGER)
+
 --------------------------------------------------------------------------
 Section("candidates and the picker (DIA-3)")
 
