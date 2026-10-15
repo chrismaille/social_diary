@@ -97,7 +97,38 @@
 --                              before the close call is kept; never for a
 --                              fight the meter never read, nor while dead,
 --                              nor while the route is not kept (the
---                              judge's own gate, ns.Journey.Kept).
+--                              judge's own gate, ns.Journey.Kept), nor
+--                              for a duel's fight (SD_DUEL_FINISHED).
+--   SD_DUEL_STARTED (guid)     a duel the user fights was accepted: its
+--                              countdown began. `guid` the opponent, nil
+--                              when they could not be read. From here to
+--                              SD_DUEL_FINISHED the opponent reads as an
+--                              enemy in every way the client has
+--                              (UnitCanAttack, UnitIsEnemy, reaction 2;
+--                              probe 15 Oct), yet is none. Fired by the
+--                              feature that captures duels; kept as
+--                              ns.Duelling (below).
+--   SD_DUEL_FINISHED (guid, outcome)  a duel the user fought came to an
+--                              end: `outcome` "won", "lost", "fled" (the
+--                              user ran out of bounds), "they_fled", or
+--                              nil when it ended with no winner; `guid`
+--                              the opponent, nil when they could not be
+--                              read. Fired once for every
+--                              SD_DUEL_STARTED, by the feature that
+--                              captures duels as the client tells the
+--                              result (its system line). A knockout's
+--                              comes before combat ends; a flight's can
+--                              come long after (probe 15 Oct: 18 s), so
+--                              a fight is a duel's when it is still open
+--                              at this message or ends while ns.Duelling
+--                              says one is on. Such a fight is no close
+--                              call (a lost duel ends at 1 hp, alive;
+--                              Features/CloseCalls/Capture.lua), no
+--                              fighting on the route (Capture/Journey.lua,
+--                              Journey.FightDrop), and the opponent is not
+--                              marked hostile by the sightings for it
+--                              (Capture/Sightings.lua). Never for a duel
+--                              called off (declined, timed out) or refused.
 --
 -- Dispatch is synchronous: SD_REUNION's toast has read "last met" before
 -- ns.Fire returns, which is what lets Group fire it ahead of Sessions.
@@ -273,6 +304,43 @@ function ns.Fire(msg, ...)
         error(("ns.Fire: %s is not an SD_ message"):format(tostring(msg)), 2)
     end
     Dispatch(msg, ...)
+end
+
+--------------------------------------------------------------------------
+-- A duel under way
+--------------------------------------------------------------------------
+
+-- What SD_DUEL_STARTED and SD_DUEL_FINISHED say, kept for whoever a duel's
+-- fight would fool: the close-call judge, the route's fighting, the
+-- sightings' hostility. Hearing the end is not enough: fleeing, the user's
+-- combat ended 18 s before the "fled" line (probe, 15 Oct), so they ask
+-- whether one is on as their fight ends. Registered here, in Core, ahead
+-- of every listener of the same messages.
+local DUEL = {
+    grace = 5,          -- seconds after the end a reading may still say enemy
+    most = 10 * 60,     -- no duel lasts this long: an end never heard frees
+                        -- what it held
+}
+local duel  -- the latest: { guid, since, ended }
+
+ns.On("SD_DUEL_STARTED", function(_, guid)
+    duel = { guid = guid, since = ns.Now() }
+end)
+
+ns.On("SD_DUEL_FINISHED", function()
+    if duel and not duel.ended then duel.ended = ns.Now() end
+end)
+
+-- Whether a duel is on now; with `guid`, one with them (a duel whose
+-- opponent was not read counts for anyone). With `grace`, also the few
+-- seconds after it ended, while the opponent may still read as an enemy.
+function ns.Duelling(guid, grace)
+    if not duel then return false end
+    if guid and duel.guid and duel.guid ~= guid then return false end
+    local now = ns.Now()
+    if now - duel.since > DUEL.most then return false end
+    if duel.ended then return grace == true and now - duel.ended <= DUEL.grace end
+    return true
 end
 
 ns.On("ADDON_LOADED", function(_, loaded)

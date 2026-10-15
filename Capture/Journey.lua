@@ -236,9 +236,20 @@ ns.On("PLAYER_REGEN_DISABLED", function()
     if j then Journey.FightStart(j, ns.Now()) end
 end)
 
+-- A duel's fight is no fighting on the route (SD_DUEL_FINISHED,
+-- Core/Events.lua's header): one that ends while a duel is on (a flight:
+-- combat can end long before the "fled" line), or is still open when the
+-- result comes (a knockout). A duel with mobs joining in goes with it, as
+-- it does for the close-call judge.
 ns.On("PLAYER_REGEN_ENABLED", function()
     local j = Journey.Kept()
-    if j then Journey.FightEnd(j, ns.Now()) end
+    if not j then return end
+    if ns.Duelling() then Journey.FightDrop(j) else Journey.FightEnd(j, ns.Now()) end
+end)
+
+ns.On("SD_DUEL_FINISHED", function()
+    local j = Journey.Kept()
+    if j then Journey.FightDrop(j) end
 end)
 
 ns.On("PLAYER_LOGIN", function()

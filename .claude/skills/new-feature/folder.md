@@ -64,7 +64,8 @@ pcall, so its error is logged and doesn't unwind the sender.
 | `SD_LEVEL_ROSE (guid, from, level)` | a character read at a higher level, the user's own included |
 | `SD_YOU_DIED (death)`, `SD_DEATH_RECAP (death, killer)` | the user died; the recap named who did it |
 | `SD_TRADE_COMPLETED (guid, received)` | a trade completed |
-| `SD_FIGHT_SURVIVED (started, ended, taken, max, foe)` | every fight the close-call judge read |
+| `SD_FIGHT_SURVIVED (started, ended, taken, max, foe)` | every fight the close-call judge read (never a duel's) |
+| `SD_DUEL_STARTED (guid)`, `SD_DUEL_FINISHED (guid, outcome)` | a duel's countdown began / it ended (outcome nil: no winner); fired by Duels. Kept by core as `ns.Duelling(guid, grace)`, which Close calls' judge, the route (no fighting) and the sightings (not hostile) read: a flight's end can come long after combat |
 | `SD_REUNION`, `SD_DIARY_CHANGED`, `SD_PAPER_CHANGED` | core's own; rarely a feature's |
 
 Core helpers a feature calls:

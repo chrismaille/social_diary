@@ -926,6 +926,13 @@ function Journey.FightEnd(j, now)
     if start and now > start then Journey.Act(j, "combat", now - start) end
 end
 
+-- A fight that was none on the road: a duel's (SD_DUEL_FINISHED, told
+-- before combat ends). Its time is not kept, so the stop is not drawn or
+-- told as fighting for it (probe, 15 Oct: a lost duel left a red splat).
+function Journey.FightDrop(j)
+    Open(j).fight = nil
+end
+
 --------------------------------------------------------------------------
 -- Levels (JRN-7)
 --------------------------------------------------------------------------

@@ -132,9 +132,14 @@ local function Enqueue(guid, unit, source, sender)
     return true
 end
 
--- SIG-2's "attackable at that moment".
-local function Hostile(unit)
+-- SIG-2's "attackable at that moment". A duel's opponent reads as an enemy
+-- in every way the client has while it lasts (probe, 15 Oct:
+-- UnitCanAttack, UnitIsEnemy, reaction 2), yet is no foe: not hostile
+-- while ns.Duelling says a duel with them is on, or just ended
+-- (Core/Events.lua).
+local function Hostile(unit, guid)
     if not UnitCanAttack then return nil end
+    if ns.Duelling(guid, true) then return false end
     return ns.Plain(UnitCanAttack("player", unit)) == true
 end
 
@@ -151,7 +156,7 @@ local function Process(item, where)
         -- What ObserveUnit just read. A level it could not read (-1, "too
         -- high to tell") leaves the one on record, which is the last read.
         data.level = record and record.level
-        data.hostile = Hostile(unit)
+        data.hostile = Hostile(unit, item.guid)
     elseif item.sender then
         local first, surname = ns.NormalizeName(item.sender)
         record = ns.Characters.Observe(item.guid, { first = first, surname = surname })

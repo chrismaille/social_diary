@@ -387,6 +387,40 @@ ns.ZoneWhere = where
 mock.inCombat = false
 Eq(reads, 0, "the position was read in combat")
 
+-- A duel's fight is no fighting on the route: its result comes before
+-- combat ends (SD_DUEL_FINISHED), and its time is not kept. The next
+-- fight's is.
+do
+    local function Fought()
+        local o = mine.open
+        local into = o.dungeon or o.c or o.road
+        return (into and into.act and into.act.combat or 0) + (o.loose and o.loose.combat or 0)
+    end
+    local before = Fought()
+    mock.fire("PLAYER_REGEN_DISABLED")
+    mock.now = mock.now + 30
+    ns.Fire("SD_DUEL_FINISHED", F.STRANGER.guid, "lost")
+    mock.fire("PLAYER_REGEN_ENABLED")
+    Eq(Fought(), before, "a duel's fight kept as fighting")
+    mock.fire("PLAYER_REGEN_DISABLED")
+    mock.now = mock.now + 20
+    mock.fire("PLAYER_REGEN_ENABLED")
+    Eq(Fought(), before + 20, "the fight after a duel not kept")
+    -- Fleeing, combat can end long before the "fled" line (probe, 15 Oct:
+    -- 18 s): a fight that ends while a duel is on is the duel's.
+    ns.Fire("SD_DUEL_STARTED", F.STRANGER.guid)
+    mock.fire("PLAYER_REGEN_DISABLED")
+    mock.now = mock.now + 10
+    mock.fire("PLAYER_REGEN_ENABLED")
+    mock.now = mock.now + 18
+    ns.Fire("SD_DUEL_FINISHED", F.STRANGER.guid, "fled")
+    Eq(Fought(), before + 20, "a fight in a duel not yet over kept as fighting")
+    mock.fire("PLAYER_REGEN_DISABLED")
+    mock.now = mock.now + 5
+    mock.fire("PLAYER_REGEN_ENABLED")
+    Eq(Fought(), before + 25, "the fight after a flight not kept")
+end
+
 -- AFK is a pause.
 mock.afk = true
 Step()

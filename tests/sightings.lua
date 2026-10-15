@@ -661,3 +661,48 @@ ns.ownGUID = SELF.guid
 local mine = ns.Sessions.Around(SEEN, mock.now + 180, "Mulgore")
 Check(mine ~= stretch and mine.me == SELF.guid, "a character took over an alt's stretch")
 ns.Characters.Forget(SEEN)
+
+
+--------------------------------------------------------------------------
+Section("a duel's opponent is no foe (SD_DUEL_STARTED, SD_DUEL_FINISHED)")
+
+mock.mapID, mock.zone, mock.inInstance = 1412, "Mulgore", false
+mock.fire("ZONE_CHANGED_NEW_AREA")
+Eq((Capture.Evaluate()), "active", "setup: not listening in the open world")
+
+-- A duel's opponent reads as an enemy while it lasts, and is none: not
+-- marked hostile from its start (SD_DUEL_STARTED) until a moment after its
+-- end (SD_DUEL_FINISHED). After that, an enemy reading counts again.
+do
+    local SPARRER = F.Player{ guid = "Player-4620-00AAAA0D", "Dara", "Quill", level = 9, hostile = true }
+    -- Each reading 61 s after the last, past the sightings' throttle, into
+    -- the same row: it turns hostile once any reading is.
+    local function Read()
+        mock.now = mock.now + 61
+        mock.SetUnit("target", SPARRER)
+        mock.fire("PLAYER_TARGET_CHANGED")
+        Drain()
+        local list = ns.db.sightings[SPARRER.guid]
+        return list and list[#list].hostile
+    end
+    ns.Fire("SD_DUEL_STARTED", SPARRER.guid)
+    Eq(Read(), nil, "a duel's opponent marked hostile")
+    -- The duel ends 3 s before the next reading: their reaction may not
+    -- have turned back yet.
+    mock.now = mock.now + 58
+    ns.Fire("SD_DUEL_FINISHED", SPARRER.guid, "won")
+    mock.now = mock.now - 58
+    local throttled = Capture.Stats().throttled
+    Eq(Read(), nil, "the opponent marked hostile as the duel ended")
+    Eq(Capture.Stats().throttled, throttled, "setup: the reading at the duel's end was throttled")
+    Eq(Read(), true, "an enemy after the duel not marked hostile")
+    -- A duel whose end never came frees them in the end.
+    local LOST = F.Player{ guid = "Player-4620-00AAAA0E", "Ivo", "Thatch", level = 9, hostile = true }
+    ns.Fire("SD_DUEL_STARTED", LOST.guid)
+    mock.now = mock.now + 11 * 60
+    mock.SetUnit("target", LOST)
+    mock.fire("PLAYER_TARGET_CHANGED")
+    Drain()
+    Eq(ns.db.sightings[LOST.guid][1].hostile, true, "a duel never ended kept them friendly for good")
+    mock.SetUnit("target", nil)
+end

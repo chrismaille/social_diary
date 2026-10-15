@@ -14,6 +14,8 @@
 -- Every fight judged is told as SD_FIGHT_SURVIVED (Core/Events.lua's
 -- header), close or not, before a close call is kept: the witnesses keep
 -- who pulled the user through it (Features/Witnesses/Capture.lua).
+-- A duel's fight (SD_DUEL_FINISHED) is neither: a lost duel leaves the
+-- user at 1 hp by the rules (probe, 15 Oct: it was kept as a close call).
 --
 -- Moved out of Capture/Combat.lua (15 Oct), which kept the hunts
 -- (Features/Hunts/Capture.lua since). The two shared nothing but small client reads (the user's level, a unit's
@@ -229,6 +231,13 @@ local function Judge(f, now, tries)
     -- taken off: what is left is how far the fight brought them down.
     taken = Since(j, "taken", taken, id)
     healed = Since(j, "received", healed, hid)
+    -- A duel ends at 1 hp by the rules, alive: no close call, and no fight
+    -- survived. The meter is still read first, so the next fight in the
+    -- same session counts only its own damage.
+    if f.duel then
+        ns.Debug("close call: a duel's fight, left")
+        return
+    end
     ns.Debug("close call: %d damage taken, %d healing received", taken, healed)
     taken = math.max(0, taken - healed)
     local npcID, kind = Main(f.kinds)
@@ -256,9 +265,18 @@ ns.On("PLAYER_TARGET_CHANGED", function()
     Foe("target")
 end)
 
+-- A duel's fight (SD_DUEL_FINISHED, Core/Events.lua's header): one still
+-- open when the result comes (a knockout's comes before combat ends), or
+-- one that ends while a duel is on (a flight's can come long after). A
+-- duel with mobs joining in goes with it.
+ns.On("SD_DUEL_FINISHED", function()
+    if fight then fight.duel = true end
+end)
+
 ns.On("PLAYER_REGEN_ENABLED", function()
     local f = fight
     fight = nil
+    if f and ns.Duelling() then f.duel = true end
     if f and Journey.Kept() then
         local now = ns.Now()
         -- The meter takes the last blows in a moment after.

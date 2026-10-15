@@ -91,6 +91,8 @@ local function Fight(targets, left, opts)
     if opts.healed then s.heals[#s.heals + 1] = { from = SELF.guid, to = "Ulverston Nye", amount = opts.healed } end
     for _, heal in ipairs(opts.heals or {}) do s.heals[#s.heals + 1] = heal end
     if opts.secret then s.taken = mock.secret(s.taken) end
+    -- A duel's result comes before combat ends (SD_DUEL_FINISHED).
+    if opts.duel then ns.Fire("SD_DUEL_FINISHED", STRANGER.guid, opts.duel) end
     mock.inCombat = false
     mock.SetUnit("target", nil)
     mock.fire("PLAYER_REGEN_ENABLED")
@@ -219,6 +221,34 @@ ns.db.settings.keepRoute = true
 Eq(#ns.CloseCalls.List(j), 4, "a close call kept with the route off")
 Fight({ Mob(STRIDER1, "Plainstrider") }, 4)
 Eq(#ns.CloseCalls.List(j), 5, "setup: a fifth")
+table.remove(j.closeCalls)
+
+-- A duel lost ends at 1 hp by the rules: no close call, no fight
+-- survived. Its damage is still read off the meter, so the next fight in
+-- the session counts only its own (50 of 100: no close call either).
+do
+    local survived = 0
+    ns.On("SD_FIGHT_SURVIVED", function() survived = survived + 1 end)
+    local duel = Fight({}, 1, { duel = "lost" })
+    Eq(#ns.CloseCalls.List(j), 4, "a lost duel was a close call")
+    Eq(survived, 0, "a duel was told as a fight survived")
+    Fight({ Mob(STRIDER1, "Plainstrider") }, 50, { session = duel })
+    Eq(#ns.CloseCalls.List(j), 4, "the duel's damage was counted in the next fight")
+    Eq(survived, 1, "the next fight was not told")
+    -- The duel's mark goes with its fight: the next is judged again.
+    Fight({ Mob(STRIDER1, "Plainstrider") }, 4)
+    Eq(#ns.CloseCalls.List(j), 5, "a fight after a duel was left too")
+    table.remove(j.closeCalls)
+    -- Fleeing, combat can end long before the "fled" line (probe, 15 Oct:
+    -- 18 s): a fight that ends while a duel is on is the duel's.
+    ns.Fire("SD_DUEL_STARTED", STRANGER.guid)
+    Fight({}, 2)
+    Eq(#ns.CloseCalls.List(j), 4, "a fight in a duel not yet over was a close call")
+    mock.now = mock.now + 18
+    ns.Fire("SD_DUEL_FINISHED", STRANGER.guid, "fled")
+    Fight({ Mob(STRIDER1, "Plainstrider") }, 4)
+    Eq(#ns.CloseCalls.List(j), 5, "a fight after a flight was left too")
+end
 
 --------------------------------------------------------------------------
 Section("what an objective wants")

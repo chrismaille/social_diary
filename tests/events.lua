@@ -117,3 +117,27 @@ Check(tostring(caught[1]):find("boom") ~= nil, "the error handler got something 
 ns.Off("SD_TEST_GUARD", Boom)
 ns.Off("SD_TEST_GUARD", Next)
 _G.geterrorhandler = nil
+
+--------------------------------------------------------------------------
+Section("a duel under way (ns.Duelling)")
+
+-- SD_DUEL_STARTED to SD_DUEL_FINISHED, kept for the readers a duel's fight
+-- would fool (close calls, the route, the sightings).
+local A, B = "Player-4620-00AAAA0D", "Player-4620-00AAAA0E"
+Eq(ns.Duelling(), false, "a duel before any")
+ns.Fire("SD_DUEL_STARTED", A)
+Eq(ns.Duelling(), true, "a duel begun is not on")
+Eq(ns.Duelling(A), true, "a duel with them is not on")
+Eq(ns.Duelling(B), false, "a duel with someone else")
+mock.now = mock.now + 60
+ns.Fire("SD_DUEL_FINISHED", A, "won")
+Eq(ns.Duelling(), false, "a duel over is still on")
+Eq(ns.Duelling(A, true), true, "no grace just after the end")
+mock.now = mock.now + 6
+Eq(ns.Duelling(A, true), false, "the grace never ends")
+-- An opponent not read counts for anyone; an end never heard frees them.
+ns.Fire("SD_DUEL_STARTED", nil)
+Eq(ns.Duelling(B), true, "a duel with someone unread is not on for them")
+mock.now = mock.now + 10 * 60 + 1
+Eq(ns.Duelling(), false, "a duel whose end never came lasts for ever")
+
