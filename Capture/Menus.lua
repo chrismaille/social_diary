@@ -63,9 +63,8 @@ local function Resolve(contextData)
     return nil, nil, "failed"
 end
 
--- The probe that answers the open question. Under /sd debug it reports every
--- menu open and which path won; a failure is reported either way, because a
--- menu entry that silently does nothing is the hardest kind of bug to notice.
+-- The probe that answers the open question: under /sd debug, every menu open
+-- and which path won, or what the context held when none did.
 local function Report(tag, contextData, path)
     if path ~= "failed" then
         ns.Debug("%s resolved via %s", tag, path)
@@ -76,33 +75,42 @@ local function Report(tag, contextData, path)
     for key in pairs(contextData or {}) do keys[#keys + 1] = key end
     table.sort(keys)
 
-    ns.Print("|cffc04040could not identify that character|r from %s"
-        .. " (context: %s). Please report this.",
+    ns.Debug("%s: could not identify that character (context: %s)",
         tag, #keys > 0 and table.concat(keys, ", ") or "empty")
+end
+
+-- Whether the menu is on somebody the client keeps secret (instanced maps).
+local function Secret(contextData)
+    if ns.IsSecret(contextData.name) then return true end
+    local unit = ns.Plain(contextData.unit)
+    return unit ~= nil and ns.Plain(UnitExists(unit)) and ns.IsSecret(UnitGUID(unit)) or false
 end
 
 --------------------------------------------------------------------------
 -- The menu entry
 --------------------------------------------------------------------------
 
+-- The menu is only touched when there is a player to offer. On a secret
+-- unit the menu's title is secret, and so is its size; Blizzard may do
+-- arithmetic on that size, but not once anything this addon added to the
+-- menu has tainted the layout (FrameUtil's GetUnscaledFrameRect errors on
+-- every right-click of the target frame in a dungeon). So a secret or
+-- unidentified unit, NPCs included, gets the menu exactly as Blizzard
+-- built it.
 local function OnMenu(tag, _, rootDescription, contextData)
+    if not contextData then return end
     -- Never offer to remember yourself.
-    if contextData and ns.Plain(contextData.isSelf) then return end
+    if ns.Plain(contextData.isSelf) then return end
 
-    local guid, unit, path = Resolve(contextData)
-    if not guid then
-        -- Reported on click rather than on open, so opening a menu on a
-        -- character the addon cannot identify does not spam the chat frame.
-        rootDescription:CreateDivider()
-        rootDescription:CreateButton("Social Diary: remember this", function()
-            Report(tag, contextData, path)
-        end)
+    if Secret(contextData) then
+        ns.Debug("%s on a secret unit, left alone", tag)
         return
     end
 
-    if guid == ns.ownGUID then return end
+    local guid, unit, path = Resolve(contextData)
+    Report(tag, contextData, path)
+    if not guid or guid == ns.ownGUID then return end
 
-    ns.Debug("%s resolved via %s", tag, path)
     rootDescription:CreateDivider()
 
     if ns.Diary.IsDiary(guid) then

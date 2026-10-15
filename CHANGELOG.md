@@ -13,6 +13,7 @@ All notable changes to Social Diary. Versions follow the `## Version` line in
 ### Fixes
 
 - Zone map pen strokes in _Your Diary_ keep their width while zooming
+- Right-clicking a target in dungeons no longer throws Lua errors
 
 ## [1.6.0]
 
