@@ -185,6 +185,47 @@ end
 -- The colours are the Style files', which load after this one: ns.Style is
 -- read when a line is written, never at load.
 
+-- The user in a record's words. A record one of the user's characters
+-- wrote keeps who (`me`, `addedBy`, a death's `guid`); in a shared diary
+-- another character's "you" is not the one playing, so it is named. Write
+-- the sentence as it reads for the one playing, each "you" word in braces:
+--
+--   You(row.me, "{You} killed Bram")        "You killed Bram", "Thrall killed Bram"
+--   You(row.me, "Bram saved {you}")         "Bram saved you", "Bram saved Thrall"
+--   You(row.me, "{Your} group killed Bram") "Your group ...", "Thrall's group ..."
+--   You(row.me, "{You've} met twice")       "You've met ...", "Thrall has met ..."
+--
+-- "You" stays for the character playing, a diary of its own, a record from
+-- before characters were kept apart (no `me`), and a character without a
+-- name. Totals over every character (the score with someone, times met)
+-- are the player's and keep a plain "you".
+
+-- Each brace word for another character, its name in place of %s.
+local YOU_FOR = {
+    ["you"] = "%s", ["your"] = "%s's", ["yours"] = "%s's",
+    ["you've"] = "%s has", ["you're"] = "%s is", ["you were"] = "%s was",
+}
+
+-- Whether `me` is "you": the character playing, or as good as.
+function Format.IsYou(me)
+    return not ns.diaryShared or me == nil or me == ns.ownGUID or Format.YouName(me) == nil
+end
+
+-- The first name of the user's character `me`, or nil.
+function Format.YouName(me)
+    local own = me and ns.OwnCharacters()[me]
+    return own and own.first or (me and ns.Characters.Name(me)) or nil
+end
+
+function Format.You(me, text)
+    if Format.IsYou(me) then return (text:gsub("{(.-)}", "%1")) end
+    local name = Format.YouName(me)
+    return (text:gsub("{(.-)}", function(word)
+        local form = YOU_FOR[word:lower()]
+        return form and form:format(name) or word
+    end))
+end
+
 local RACE_NAMES = { Scourge = "Undead", NightElf = "Night Elf" }
 
 function Format.RaceName(record)

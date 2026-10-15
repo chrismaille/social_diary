@@ -103,15 +103,15 @@ ns.Rows.Register(WATCHED, { witness = "watched", moment = Always, reason = "they
         local them = guid and ns.Characters.Name(guid) or "They"
         local c = row.context or {}
         local watching = Witnesses.WATCHING
-        local verb = " watched you die"
+        local verb = " watched {you} die"
         if c.watched and c.watched < watching.saw then
-            verb = " saw you die"
+            verb = " saw {you} die"
         elseif c.watched and c.watched >= watching.merciless then
-            verb = " mercilessly watched you die"
+            verb = " mercilessly watched {you} die"
         end
         local foe = Foe(row)
         local place = c.subZone or row.zone
-        return them .. verb .. (foe and (" to " .. foe) or "") .. (place and (" in " .. place) or "")
+        return them .. ns.UI.Format.You(row.me, verb) .. (foe and (" to " .. foe) or "") .. (place and (" in " .. place) or "")
     end,
     icon = "around" })
 
@@ -119,7 +119,7 @@ ns.Rows.Register(HELPED, { witness = "helped", moment = Always, reason = "they t
     text = function(row, guid)
         local them = guid and ns.Characters.Name(guid) or "They"
         local foe = Foe(row)
-        return them .. " tried to save you" .. (foe and (" from " .. foe) or "") .. Place(row)
+        return them .. ns.UI.Format.You(row.me, " tried to save {you}") .. (foe and (" from " .. foe) or "") .. Place(row)
     end,
     icon = "together" })
 
@@ -129,7 +129,7 @@ ns.Rows.Register(SAVED, { witness = "helped", moment = Always, reason = "they sa
         local foe = Foe(row)
         local pct = row.context and row.context.pct
         local health = pct and (" at " .. pct .. "%\194\160health") or ""
-        return them .. " saved you" .. (foe and (" from " .. foe) or "") .. health .. Place(row)
+        return them .. ns.UI.Format.You(row.me, " saved {you}") .. (foe and (" from " .. foe) or "") .. health .. Place(row)
     end,
     icon = "together" })
 

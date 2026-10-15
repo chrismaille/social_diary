@@ -2026,7 +2026,7 @@ do
     local Plate = ns.UI.JourneyPlate
     local kinds = {}
     for _, spec in ipairs(Plate.MARK_ORDER) do kinds[#kinds + 1] = spec.kind end
-    Eq(table.concat(kinds, " "), "find finale skill close luck fortune campfire", "the registered marks' draw order")
+    Eq(table.concat(kinds, " "), "find finale skill close luck fortune duel campfire", "the registered marks' draw order")
     Check(Plate.MARKS.fortune.order < Plate.ROAD_DEATHS and Plate.ROAD_DEATHS < Plate.MARKS.campfire.order,
         "the deaths on the road are not drawn between good luck and the fires")
     for kind, key in pairs({ find = "finds", finale = "finales", skill = "skills", close = "closeCalls",
@@ -2091,7 +2091,7 @@ do
     Plate.RemoveMark("tested")
     kinds = {}
     for _, spec in ipairs(Plate.MARK_ORDER) do kinds[#kinds + 1] = spec.kind end
-    Eq(table.concat(kinds, " "), "find finale skill close luck fortune campfire", "the kind taken out stayed")
+    Eq(table.concat(kinds, " "), "find finale skill close luck fortune duel campfire", "the kind taken out stayed")
     Eq(Plate.MARKS.tested, nil, "the kind taken out is still registered")
     Eq(Plate.CAP.tested, nil, "the kind taken out left its cap")
     drawn = {}

@@ -32,6 +32,8 @@ Never commit images (`*.png` is gitignored) or anything recorded from real playe
 
 ## Rules
 
+The addon is live, so players' saved data has to survive every update. Never drop, move or reinterpret saved fields without a migration: bump the matching schema in `Core/DB.lua`, add a `STEPS` entry, and test it on an old-shaped table.
+
 When working on UI, invoke a subagent and supply it with the /frontend-design skill, as this agent has the expertise to design the UI.
 
 Work on Your Diary's plates (layouts, captions, margin notes and cards, marks, the full zone page) goes to a subagent that loads /plates (`.claude/skills/plates/`) as well as /frontend-design.

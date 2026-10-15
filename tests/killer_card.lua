@@ -509,7 +509,7 @@ do
         for _, spec in ipairs(Plate.PASS_ORDER) do list[#list + 1] = spec.key .. " " .. spec.order end
         return table.concat(list, ", ")
     end
-    Eq(Passes(), "killer 10, foe 20, witness 30, print 90", "the passes")
+    Eq(Passes(), "killer 10, foe 20, witness 30, print 90, duelPrint 95", "the passes")
     Open(10)
     local seen
     Plate.RegisterPass("probe", { order = 15, draw = function(p, c)
@@ -517,7 +517,7 @@ do
         for _, cross in ipairs(c.crosses) do deaths = deaths + #(cross.deaths or {}) end
         seen = { plate = p, killer = p.killer, crosses = c.crosses, deaths = deaths, mapID = c.mapID }
     end })
-    Eq(Passes(), "killer 10, probe 15, foe 20, witness 30, print 90", "the probe's pass is out of place")
+    Eq(Passes(), "killer 10, probe 15, foe 20, witness 30, print 90, duelPrint 95", "the probe's pass is out of place")
     ns.UI.RedrawJourneyPage()
     local plate = page.plates[1]
     Check(seen and seen.plate == plate, "the probe's pass did not run on the plate")
@@ -526,7 +526,7 @@ do
     Check(seen.killer ~= nil and seen.killer == plate.killer, "the killer was not chosen before the next pass")
     Eq(seen.mapID, 1412, "a pass's map")
     Plate.RemovePass("probe")
-    Eq(Passes(), "killer 10, foe 20, witness 30, print 90", "the probe's pass stayed")
+    Eq(Passes(), "killer 10, foe 20, witness 30, print 90, duelPrint 95", "the probe's pass stayed")
 
     -- Without the killer's pass, no cross knows its killers and no card is
     -- drawn (what a pass leaves on the plate is its own to set each time,
@@ -542,7 +542,7 @@ do
     Plate.RegisterPass("killer", killer)
     ns.UI.RedrawJourneyPage()
     Check(page.plates[1].killer ~= nil and #Cards() == 1, "the killer's pass back, no card")
-    Eq(Passes(), "killer 10, foe 20, witness 30, print 90", "the passes once the killer's is back")
+    Eq(Passes(), "killer 10, foe 20, witness 30, print 90, duelPrint 95", "the passes once the killer's is back")
 
     -- A pass that lays something over the picture (its `new`, as good
     -- luck's S does, Features/Hunts/LuckyCard.lua): asked once for each
@@ -593,7 +593,7 @@ do
     probe.Press = Press
     Eq(pressed, "LeftButton", "a press on a pass's button not the plate's")
     Plate.RemovePass("overprobe")
-    Eq(Passes(), "killer 10, foe 20, witness 30, print 90", "the over-picture probe stayed")
+    Eq(Passes(), "killer 10, foe 20, witness 30, print 90, duelPrint 95", "the over-picture probe stayed")
 end
 
 --------------------------------------------------------------------------

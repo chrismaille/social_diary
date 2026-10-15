@@ -394,8 +394,9 @@ Check(Any(margins, "^11:person,find,witness,lucky$"), "level 11's margin: " .. t
 Check(Any(margins, "^14:witness,foe,lucky$"), "level 14's margin: " .. table.concat(margins, "; "))
 Check(Any(margins, "^13:find,witness$"), "level 13's margin: " .. table.concat(margins, "; "))
 -- (The oasis week's campfire, sat by with Tester, comes last of all: its
--- slip, Features/Campfire/Slip.lua, 14 Oct.)
-Check(Any(margins, "^week:person,witness,foe,campfire$"), "the oasis week's margin: " .. table.concat(margins, "; "))
+-- slip, Features/Campfire/Slip.lua, 14 Oct; the duels with Tester just
+-- before it, Features/Duels/Slip.lua, 15 Oct.)
+Check(Any(margins, "^week:person,witness,foe,duel,campfire$"), "the oasis week's margin: " .. table.concat(margins, "; "))
 
 -- Level 13: the card's leader goes to the death's cross; the caption says
 -- "a death" and leaves the creature and the watcher to the card.

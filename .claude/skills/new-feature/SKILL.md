@@ -264,12 +264,14 @@ for phase 8 and say so.
 
 **5b. Subagent: the UI proposal.** Use the "UI proposal" brief below. It
 writes `.claude/ui-proposal/<name>.md` and `<name>-mockup.html`, the mockup
-copied from the plates skill's template and filled in. It writes no Lua.
+copied from the plates skill's template: three variants, each at the sizes
+decided in scope, nothing more; the .md short (decisions and open
+questions). It writes no Lua.
 
 ### 6. Sign-off
 
-Relay the proposal and the mockup's path. The user picks variants and
-sizes and comments in the mockup itself, then pastes its **"Copy
+Relay the proposal and the mockup's path. The user picks one of the three
+variants and its sizes and comments in the mockup itself, then pastes its **"Copy
 handover"** text back. Pass that text on unchanged to **the same
 subagent** (SendMessage to its id, so it keeps its context). Each
 round's handover and decisions go into the dossier, then the user's
@@ -373,10 +375,11 @@ It doesn't get the conversation. All briefs share these rules:
 > Start the mockup from the template: copy
 > `.claude/skills/plates/tools/proposal-template.html` to
 > `.claude/ui-proposal/<name>-mockup.html` and write only its DESIGN
-> block. Its boards show every variant at each size, in every real box
-> and on whole pages. Keep the HTML free of prose; reasoning goes in the
-> .md. Each round, the user sends back the mockup's handover text (picks
-> and comments): act on it, and say in the .md what changed.
+> block: three variants (A, B, C), each at the sizes decided in scope,
+> nothing more (no extra boards, layout code or render scripts). Keep the
+> HTML free of prose; the .md is short: decisions and open questions, not
+> essays. Each round, the user sends back the mockup's handover text
+> (picks and comments): act on it, and say in the .md what changed.
 >
 > The model to learn from is the hunt cards: `Features/Hunts/`
 > (`HuntCard.lua`, `LuckyCard.lua`, `Mark.lua`, the lucky print's pass)

@@ -9,8 +9,13 @@ All notable changes to Social Diary. Versions follow the `## Version` line in
 
 - Profiles now remember who sat by a campfire with you
   - Campfires also appear on _Your Diary_'s _Plates_
+- Profiles now remember your duels, won or lost
+  - Duels also appear on _Your Diary_'s _Plates_
 
 ### Fixes
+
+- Duels no longer count as close calls, fighting or hostility
+- Diary entries no longer show "you" but the character's name instead if you have `shared diary`active
 
 - Zone map pen strokes in _Your Diary_ keep their width while zooming
 - Right-clicking a target in dungeons no longer throws Lua errors

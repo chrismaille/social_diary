@@ -34,7 +34,7 @@ TOC order follows it.
 
 | Registry | Spec comment above it in | Notes |
 |---|---|---|
-| `ns.Rows.Register(kind, spec)` | `Core/Rows.lua` (header) | Flags core reads instead of naming kinds: `climb`, `fight`, `witness`, `dealt` (from `Rows.DEALT` only). Words (`text`), `icon`, `reason`, `moment` in the same call. |
+| `ns.Rows.Register(kind, spec)` | `Core/Rows.lua` (header) | Flags core reads instead of naming kinds: `climb`, `fight`, `witness`, `dealt` (from `Rows.DEALT` only). Words (`text`), `icon`, `reason`, `moment` in the same call. A `text` that says "you" goes through `ns.UI.Format.You(row.me, "{You} killed ")`, so a shared diary names the alt that wrote it (`UI/Words/Format.lua`). |
 | `ns.Journey.RegisterList(name, spec)` | `Core/Journey.lua` | `cap` (goes into `Journey.T`), `named`, `readNames` (`true` or a function: the list reads its own creature names), `prune(j, now)`, `forget(j, guid)`. A keyed table registers with no `cap`, for `prune` / `forget` alone (Firsts). Write with `Journey.Append(j, name, rec, where)`, read with `Journey.List(j, name)`. |
 | `ns.JourneyRecap.RegisterMoment(kind, spec)` | `Core/JourneyRecap.lua` | `order`, `list` or `gather`, `entry`, `field`, `rank`, `light`, `rankAs`, `moment`, `person` (a moment that is also someone's: a gift). Needs a mark of the same kind (kinds.lua). |
 | `ns.UI.JourneyPlate.RegisterMark(kind, spec)` | `UI/Journey/Plate.lua` | `order` (not the road deaths' turn), `cap` + `count` (in `Plate.CAP`), `radius`, `halo`, `hover`, `draw(kit, x, y, arg)`, `arg`, `tip`, `keep`, `join`, `chosen`, `choose`. |

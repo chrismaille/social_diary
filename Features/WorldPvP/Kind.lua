@@ -80,9 +80,10 @@ ns.Rows.Register(KILL, { fight = "kill", moment = Always, reason = "you killed t
     text = function(row, guid)
         local them = guid and ns.Characters.Name(guid) or "them"
         local by = row.context and row.context.by
-        if not by then return "You killed " .. them .. Place(row) end
+        local You = ns.UI.Format.You
+        if not by then return You(row.me, "{You} killed ") .. them .. Place(row) end
         local blow = ns.Characters.Name(by)
-        return "Your group killed " .. them .. Place(row) .. (blow and (" (" .. blow .. "'s killing blow)") or "")
+        return You(row.me, "{Your} group killed ") .. them .. Place(row) .. (blow and (" (" .. blow .. "'s killing blow)") or "")
     end,
     icon = "hostile" })
 
@@ -91,7 +92,8 @@ ns.Rows.Register(DEATH, { fight = "death", moment = Always, reason = "they kille
         local c = row.context or {}
         local them = guid and ns.Characters.Name(guid) or "They"
         local with = c.spell and (" with " .. c.spell) or ""
-        return them .. (c.probable and " probably killed you" or " killed you") .. with .. Place(row)
+        local killed = c.probable and " probably killed {you}" or " killed {you}"
+        return them .. ns.UI.Format.You(row.me, killed) .. with .. Place(row)
     end,
     icon = "death" })
 

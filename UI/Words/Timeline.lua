@@ -65,7 +65,7 @@ for kind, icon in pairs(ROW_ICON) do ns.Rows.Register(kind, { icon = icon }) end
 -- `there`: the line above named the place already, so this one says
 -- "there" instead of naming it again.
 local function DeathText(death, guid, there)
-    local who = death.guid == guid and (ns.Characters.Name(guid) or "They") or "You"
+    local who = death.guid == guid and (ns.Characters.Name(guid) or "They") or Format.You(death.guid, "{You}")
     local text = who .. " died"
 
     local killer = death.killer

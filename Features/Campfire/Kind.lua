@@ -52,7 +52,7 @@ ns.Rows.Register("campfire", {
         elseif subZone then
             place = subZone
         end
-        return (them and ("You and " .. them .. " sat") or "Sat") .. " by a campfire together"
+        return (them and (ns.UI.Format.You(row.me, "{You} and ") .. them .. " sat") or "Sat") .. " by a campfire together"
             .. (place and (" in " .. place) or "")
     end,
     icon = "campfire",

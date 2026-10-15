@@ -445,41 +445,21 @@ own kit stays inside `Plate.lua`'s `New` for now. `Clamp` is the pen's
   (`TestData.Register("route" | "tester", fn)`, spec above it in
   TestData.lua).
 
-**Proposals**: mockups go to `.claude/ui-proposal/<name>-mockup.html` with a
-`<name>-proposal.md`, drawn to the real 466×534 page.
-- **Start from the template** for margin notes and cards:
-  `cp .claude/skills/plates/tools/proposal-template.html .claude/ui-proposal/<name>-mockup.html`,
-  then edit only its DESIGN block (`@@DESIGN-BEGIN@@`; its comment is the
-  API: `proposal({ name, feature, date })`, `variant({ id, label, order,
-  sizes: { S, M, L, XL }, smaller, wants, mark, filler, print })`, each size
-  `(box, ctx) => K.slip(...)`), and delete its example. The kit `K` has the
-  house drawing (slips, tape, the pen, underline, scribble, tally, marks).
-  The page builds three boards from the variants: **Sizes** (each size at
-  its band's real widths, with its steps), **Slots** (every real box from
-  `LAYOUT`, with a caption and stand-in neighbours in margin order, laid as
-  `LayNotes`/`Columns`/`Shared` do, what each took or that it was left
-  off) and **Pages** (every layout, the variant on a plate you choose).
-  Toggles: flat paper, zoom 1/2/4×, route kept (528 or 506), caption lines,
-  neighbours, hints. Sizes by the box's width: XL ≥ 190, L 150–189,
-  M 122–149, S one line in the hand at 14 px (filler under a light
-  caption; a light print with `print`). No prose in the HTML: reasoning
-  goes in the .md.
-- **Geometry** is generated, never retyped: `.claude/skills/plates/tools/layout.sh
-  [mockup.html …]` runs `layout_json.lua` in the mock (a farm, as
-  `plates.sh`) and rewrites the block between `@@LAYOUT-BEGIN@@` and
-  `@@LAYOUT-END@@` (no file: the template). Run it after a `LAYOUT`,
-  `CAPTION`, `ROW` or margin-order change, and commit the template.
-- **Handover**: the user picks variants and sizes and comments in the page
-  (saved in localStorage per proposal name), then "Copy handover" gives
-  Markdown: the view toggles, the picks, and each comment with what it is
-  attached to and what the note took there. Act on it; record each round
-  in the .md.
-- Older mockups to learn from: `lucky-card-mockup.html` (the house look the
-  template's kit comes from), `plate-weight-mockup.html` (`#boxes`, `#flat`). Older plate
-mockups: `journey-moments-mockup.html`, `journey-plate-mockup.html`,
-`hunt-card-mockup.html`, `killer-models-mockup.html`. Specs:
-`.claude/journey-goal.md` (decisions D1–D11), `.claude/prd.md` (JRN-*),
-`.claude/journey-revamp-plan.md`.
+**Proposals** (margin notes and cards): two files, `.claude/skills/plates/tools/proposal-template.html`
+(well under 100 lines) and `proposal-kit.js` (the library: the kit `K`, the board, the review; never edited for a proposal).
+- `cp .claude/skills/plates/tools/proposal-template.html .claude/ui-proposal/<name>-mockup.html`, then write
+  **exactly three variants (A, B, C)** in its DESIGN block (its comment is the API) in place of the example.
+- Each variant's sizes are shown at one real width each: **XL 220 · L 176 · M 142 · S 122** (bands: XL ≥190,
+  L 150–189, M 122–149, S one line in the hand at 14 px), plus its mark at 2×. Toggles: flat paper, zoom 1×/2×.
+- **Handover**: the user picks variants and sizes and comments (saved in localStorage per proposal name);
+  "Copy handover" gives short Markdown: title, `## Picks` (`- B · L`), `## Comments` (each with what it is on).
+  Act on it; record each round in `<name>-proposal.md`.
+- **Keep it lean**: no extra boards, no layout code, no render scripts in or beside the mockup. Reasoning goes
+  in a short .md (decisions and open questions). Placement on real plates is checked with `plates.sh` and tests.
+- Don't read the older, large mockups in `.claude/ui-proposal/` for a
+  proposal: the kit already carries their look. Specs, only where a decision
+  needs them: `.claude/journey-goal.md` (decisions D1–D11), `.claude/prd.md`
+  (JRN-*), `.claude/journey-revamp-plan.md`.
 
 ## 7. In the client
 

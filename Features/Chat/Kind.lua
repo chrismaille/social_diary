@@ -67,7 +67,7 @@ ns.Rows.Register("whisper_in", { chat = true, dealt = "talk", matters = true, ac
     text = function(row) return Quote(row.excerpt, "They whispered") end,
     icon = "whisper" })
 ns.Rows.Register("whisper_out", { chat = true, dealt = "talk", matters = true, activity = "chat",
-    text = function(row) return Quote(row.excerpt, "You whispered") end,
+    text = function(row) return Quote(row.excerpt, ns.UI.Format.You(row.me, "{You} whispered")) end,
     icon = "whisper" })
 ns.Rows.Register("say", { chat = true, proximity = true, opens = true, dealt = "talk", matters = true,
     activity = "chat",
