@@ -1,6 +1,6 @@
 -- Level-ups (others'): someone seen at a higher level than last time, a
 -- row on them ("Tester is now level 16"). A feature in a folder of its own
--- (.claude/registry-refactor.md, "A feature's folder"), and a People row
+-- (.claude/skills/new-feature/folder.md), and a People row
 -- and nothing else, as Chat and Trade are: no route list, no moment on the
 -- plates, no mark, no margin note, no caption words. Not the user's own
 -- levels: those are the route's (Your Diary's level pins, the sessions'

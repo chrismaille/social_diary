@@ -1,6 +1,6 @@
 -- World PvP: who you killed, and who killed you (prd.md, "Killed them, or
 -- killed by them"). A feature in a folder of its own
--- (.claude/registry-refactor.md, "A feature's folder"): People rows, like
+-- (.claude/skills/new-feature/folder.md): People rows, like
 -- Chat, Trade and Level-ups, and a fight mark on the user's own route for
 -- each.
 --

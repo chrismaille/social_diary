@@ -27,7 +27,9 @@ client as well.
 `social_diary.toc`. It also holds the rules for AI-assisted work, so it is
 worth reading whether you use an assistant or not.
 
-- `.claude/skills/` holds the copywriter, plates and release skills.
+- `.claude/skills/` holds the copywriter, plates, release and new-feature
+  skills. To add a detection, follow `.claude/skills/new-feature/`: the
+  pipeline in `SKILL.md`, the folder and its registries in `folder.md`.
 - `.claude/rules/` holds the project rules, such as how to write the changelog
   and whether a new setting is per character or per account.
 - `.impeccable.md` describes the look and feel of the book.

@@ -108,7 +108,7 @@ end
 --
 -- Their words and icons are UI/Words/Timeline.lua's. A feature in
 -- Features/<Name>/ declares its kind whole there, words and icon included
--- (its Kind.lua; .claude/registry-refactor.md, "A feature's folder").
+-- (its Kind.lua; .claude/skills/new-feature/folder.md).
 
 Rows.Register("group_join", { structural = true, meeting = true, dealt = "together", matters = true,
     activity = "group" })

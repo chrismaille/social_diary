@@ -446,9 +446,36 @@ own kit stays inside `Plate.lua`'s `New` for now. `Clamp` is the pen's
   TestData.lua).
 
 **Proposals**: mockups go to `.claude/ui-proposal/<name>-mockup.html` with a
-`<name>-proposal.md`, drawn to the real 466×534 page. Reuse the
-plate-weight mockup's page/slot drawing (`plate-weight-mockup.html`;
-`#boxes` shows slot boxes, `#flat` lays everything flat). Older plate
+`<name>-proposal.md`, drawn to the real 466×534 page.
+- **Start from the template** for margin notes and cards:
+  `cp .claude/skills/plates/tools/proposal-template.html .claude/ui-proposal/<name>-mockup.html`,
+  then edit only its DESIGN block (`@@DESIGN-BEGIN@@`; its comment is the
+  API: `proposal({ name, feature, date })`, `variant({ id, label, order,
+  sizes: { S, M, L, XL }, smaller, wants, mark, filler, print })`, each size
+  `(box, ctx) => K.slip(...)`), and delete its example. The kit `K` has the
+  house drawing (slips, tape, the pen, underline, scribble, tally, marks).
+  The page builds three boards from the variants: **Sizes** (each size at
+  its band's real widths, with its steps), **Slots** (every real box from
+  `LAYOUT`, with a caption and stand-in neighbours in margin order, laid as
+  `LayNotes`/`Columns`/`Shared` do, what each took or that it was left
+  off) and **Pages** (every layout, the variant on a plate you choose).
+  Toggles: flat paper, zoom 1/2/4×, route kept (528 or 506), caption lines,
+  neighbours, hints. Sizes by the box's width: XL ≥ 190, L 150–189,
+  M 122–149, S one line in the hand at 14 px (filler under a light
+  caption; a light print with `print`). No prose in the HTML: reasoning
+  goes in the .md.
+- **Geometry** is generated, never retyped: `.claude/skills/plates/tools/layout.sh
+  [mockup.html …]` runs `layout_json.lua` in the mock (a farm, as
+  `plates.sh`) and rewrites the block between `@@LAYOUT-BEGIN@@` and
+  `@@LAYOUT-END@@` (no file: the template). Run it after a `LAYOUT`,
+  `CAPTION`, `ROW` or margin-order change, and commit the template.
+- **Handover**: the user picks variants and sizes and comments in the page
+  (saved in localStorage per proposal name), then "Copy handover" gives
+  Markdown: the view toggles, the picks, and each comment with what it is
+  attached to and what the note took there. Act on it; record each round
+  in the .md.
+- Older mockups to learn from: `lucky-card-mockup.html` (the house look the
+  template's kit comes from), `plate-weight-mockup.html` (`#boxes`, `#flat`). Older plate
 mockups: `journey-moments-mockup.html`, `journey-plate-mockup.html`,
 `hunt-card-mockup.html`, `killer-models-mockup.html`. Specs:
 `.claude/journey-goal.md` (decisions D1–D11), `.claude/prd.md` (JRN-*),
