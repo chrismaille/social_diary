@@ -28,101 +28,28 @@ local function Quote(text, fallback)
 end
 
 local ROW_TEXT = {
-    trade = function(row)
-        local c = row.context or {}
-        local parts = {}
-        if c.given then parts[#parts + 1] = "gave " .. Items(c.given) end
-        if c.moneyGiven then parts[#parts + 1] = "gave " .. ns.UI.Money(c.moneyGiven) end
-        if c.received then parts[#parts + 1] = "got " .. Items(c.received) end
-        if c.moneyReceived then parts[#parts + 1] = "got " .. ns.UI.Money(c.moneyReceived) end
-        if #parts == 0 then return "Traded" end
-        return "Traded: " .. table.concat(parts, "; ")
-    end,
     group_join = function(row)
         return (row.context and row.context.raid) and "Raided together" or "Grouped"
     end,
-    -- "Tester is now level 16", the name being the profile's.
-    level_up = function(row, guid)
-        local first = guid and ns.Characters.Name(guid)
-        local level = tostring(row.context and row.context.level or "?")
-        return first and (first .. " is now level " .. level) or ("Now level " .. level)
-    end,
 }
 
--- World PvP (Core/Fights.lua). "You killed Bram", "Your group killed Bram
--- (Koko's killing blow)", "Bram killed you with Ambush", "Bram probably
--- killed you", each "in Hillsbrad Foothills". The name is the profile's.
+-- " in Hillsbrad Foothills", the row's zone, or "" (a feature's row,
+-- through ns.UI.TimelineText.Place).
 local function Place(row)
     return row.zone and (" in " .. row.zone) or ""
 end
 
-ROW_TEXT.pvp_kill = function(row, guid)
-    local them = guid and ns.Characters.Name(guid) or "them"
-    local by = row.context and row.context.by
-    if not by then return "You killed " .. them .. Place(row) end
-    local blow = ns.Characters.Name(by)
-    return "Your group killed " .. them .. Place(row) .. (blow and (" (" .. blow .. "'s killing blow)") or "")
-end
-
-ROW_TEXT.pvp_death = function(row, guid)
-    local c = row.context or {}
-    local them = guid and ns.Characters.Name(guid) or "They"
-    local with = c.spell and (" with " .. c.spell) or ""
-    return them .. (c.probable and " probably killed you" or " killed you") .. with .. Place(row)
-end
-
--- Witnesses to the user's fights (Capture/Witnesses.lua). "Bram watched
--- you die to a Sunscale Lashtail", "Bram tried to save you from a
--- Sunscale Lashtail", "Bram saved you at 6% health", each "in Hillsbrad
--- Foothills". The creature as Your Diary names a killer.
+-- The creature a row's context names ({ name, rank }, as a witness's row
+-- keeps it) as Your Diary names a killer ("a Sunscale Lashtail",
+-- Text.KillerName), or nil.
 local function Foe(row)
     local c = row.context or {}
     return ns.UI.JourneyText.KillerName({ name = c.name, rank = c.rank })
 end
 
--- "Bram mercilessly watched you die to a Kobold Vermin in Coldridge
--- Valley": by how long they watched (Witnesses.WATCHING), under 1.5 s only
--- "saw you die", from 5 s on "mercilessly". In the subzone where there is
--- one; a row kept before the watching was timed is plain "watched".
-ROW_TEXT.watched_death = function(row, guid)
-    local them = guid and ns.Characters.Name(guid) or "They"
-    local c = row.context or {}
-    local watching = ns.Witnesses.WATCHING
-    local verb = " watched you die"
-    if c.watched and c.watched < watching.saw then
-        verb = " saw you die"
-    elseif c.watched and c.watched >= watching.merciless then
-        verb = " mercilessly watched you die"
-    end
-    local foe = Foe(row)
-    local place = c.subZone or row.zone
-    return them .. verb .. (foe and (" to " .. foe) or "") .. (place and (" in " .. place) or "")
-end
-
-ROW_TEXT.tried_to_help = function(row, guid)
-    local them = guid and ns.Characters.Name(guid) or "They"
-    local foe = Foe(row)
-    return them .. " tried to save you" .. (foe and (" from " .. foe) or "") .. Place(row)
-end
-
-ROW_TEXT.saved_you = function(row, guid)
-    local them = guid and ns.Characters.Name(guid) or "They"
-    local foe = Foe(row)
-    local pct = row.context and row.context.pct
-    local health = pct and (" at " .. pct .. "%\194\160health") or ""
-    return them .. " saved you" .. (foe and (" from " .. foe) or "") .. health .. Place(row)
-end
-
 -- Each kind's icon, a Style.ART key.
 local ROW_ICON = {
-    trade = "trade",
     group_join = "together",
-    level_up = "levelup",
-    pvp_kill = "hostile",
-    pvp_death = "death",
-    watched_death = "around",
-    tried_to_help = "together",
-    saved_you = "together",
 }
 
 -- Told to each kind (Core/Rows.lua: `text`, `icon`), where the page reads
@@ -404,7 +331,9 @@ function ns.UI.DescribeItem(item, guid)
         return when, text, sub, icon, full
     elseif item.kind == "climb" then
         -- "Tester went from level 1 to 6", each level and its time in the
-        -- tooltip.
+        -- tooltip. The climb is the timeline's (Core/Rows.lua's `climb`),
+        -- so its words and icon stay here; its rows' context { from, level }
+        -- is that flag's contract.
         local ups = item.ups
         local first, last = ups[1].row.context or {}, ups[#ups].row.context or {}
         local from, to = first.from or ((first.level or 1) - 1), last.level or "?"

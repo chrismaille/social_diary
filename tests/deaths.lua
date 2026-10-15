@@ -238,7 +238,7 @@ for _, d in ipairs(s.deathLog) do Check(d.guid ~= GUID, "a forgotten character's
 --------------------------------------------------------------------------
 Section("the user's deaths on their route, with what killed them")
 
-local route = ns.Journey.Deaths(ns.Journey.Mine())
+local route = ns.Deaths.List(ns.Journey.Mine())
 Check(#route > 0, "the user's deaths above left nothing on their route")
 local function Latest() return route[#route] end
 local KOBOLD = "Creature-0-4615-1-72-6-0000AAAA01"
@@ -403,6 +403,77 @@ Check(j.names and j.names[30], "a name read today forgotten")
 J.Prune(mock.now + 4 * 24 * 60 * 60)
 Eq(j.names and j.names[30], nil, "a name read four days ago still kept")
 Eq(spider.name, "Forest Spider", "a death put right lost its name with the name read")
+
+-- Through the list's `named` (Journey.RegisterList): any list registered
+-- so is put right the same way; one that is not, never.
+J.RegisterList("scrapsNamed", { named = true })
+J.RegisterList("scrapsPlain", {})
+j.scrapsNamed = { { t = mock.now, npcID = 3100, name = "Mottled Boar Grunwald" } }
+j.scrapsPlain = { { t = mock.now, npcID = 3100, name = "Mottled Boar Grunwald" } }
+J.NoteName(3100, "Mottled Boar", mock.now)
+Eq(j.scrapsNamed[1].name, "Mottled Boar", "a list registered `named` was not put right")
+Eq(j.scrapsPlain[1].name, "Mottled Boar Grunwald", "a list not registered `named` was put right")
+j.scrapsNamed, j.scrapsPlain = nil, nil
+
+-- A list's `readNames` may be a function (Journey.RegisterList): the list
+-- reads its names itself (the hunts: oldest first, then the ones under
+-- way, kept beside the list), asked in its turn. And its `prune` runs at
+-- login, for each route, before the names are put right: what it gives
+-- up there names no creature any more, so an old death is not mended
+-- from it. Registered again without them, the list is asked for neither.
+do
+    local asked = 0
+    J.RegisterList("scrapsRead", {
+        readNames = function(route, npcID)
+            asked = asked + 1
+            return route.scrapsOpen and route.scrapsOpen[npcID] or nil
+        end,
+        prune = function(route, now)
+            if route.scrapsOpen and now > route.scrapsOpen.stale then route.scrapsOpen = nil end
+        end })
+    j.scrapsOpen = { [3101] = "Bristleback Quilboar", stale = mock.now - 1 }
+    Eq(J.NameOf(j, 3101), "Bristleback Quilboar", "a list's own reading of its names not asked")
+    local older = { t = mock.now - 100, npcID = 3101, name = "Bristleback Quilboar Hamm" }
+    table.insert(j.deaths, 1, older)
+    J.Prune(mock.now)
+    Eq(j.scrapsOpen, nil, "a list's prune not run at login")
+    Eq(older.name, "Bristleback Quilboar Hamm", "an old death put right from what a prune gave up first")
+    j.scrapsOpen = { [3101] = "Bristleback Quilboar", stale = mock.now - 1 }
+    J.RegisterList("scrapsRead", {})
+    asked = 0
+    Eq(J.NameOf(j, 3101), nil, "a list registered again without its reading still read")
+    Eq(asked, 0, "a list registered again without its reading still asked")
+    J.Prune(mock.now)
+    Check(j.scrapsOpen ~= nil, "a list registered again without its prune still pruned")
+    table.remove(j.deaths, 1)
+    j.scrapsOpen = nil
+end
+
+-- A table a feature keeps on the route that is not a list (keyed) is
+-- registered for its `forget` (and `prune`) alone: forgetting someone
+-- (PRV-3, the "journey" store) asks it for each route, with their GUID or
+-- nil for everyone; registered again without it, it is not asked.
+do
+    local SOMEONE = "Player-0000-SCRAP001"
+    local forgot = {}
+    J.RegisterList("scrapsKeyed", { forget = function(route, guid)
+        forgot[#forgot + 1] = guid or "everyone"
+        for _, rec in pairs(route.scrapsKeyed or {}) do
+            if guid == nil or rec.guid == guid then rec.guid = nil end
+        end
+    end })
+    j.scrapsKeyed = { a = { t = mock.now, guid = SOMEONE }, b = { t = mock.now, guid = "Player-0000-SCRAP002" } }
+    ns.ForgetEverywhere(SOMEONE)
+    Eq(j.scrapsKeyed.a.guid, nil, "a keyed table's forget not asked when someone is forgotten")
+    Eq(j.scrapsKeyed.b.guid, "Player-0000-SCRAP002", "a keyed table's forget let go of someone else")
+    Check(#forgot >= 1 and forgot[1] == SOMEONE, "the forget not told who: " .. tostring(forgot[1]))
+    Eq(J.T.scrapsKeyed, nil, "a table registered with no cap has a cap")
+    J.RegisterList("scrapsKeyed", {})
+    j.scrapsKeyed.a.guid = SOMEONE
+    ns.ForgetEverywhere(SOMEONE)
+    Eq(j.scrapsKeyed.a.guid, SOMEONE, "a table registered again without its forget still forgot")
+    j.scrapsKeyed = nil
+end
 
 -- At most sixty, the least recent dropped.
 for id = 1001, 1061 do J.NoteName(id, "Mob " .. id, mock.now + id) end

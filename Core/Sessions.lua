@@ -438,7 +438,7 @@ end
 --
 -- Each death also gets a record in `session.deathLog` -- { guid, time, zone,
 -- subZone, killer } -- which the timeline shows as a line. `killer` is
--- whatever Capture/Deaths.lua could tell at the moment of death; it may be
+-- whatever the deaths' capture could tell at the moment of death; it may be
 -- nil, and the death recap can replace it later (SetKiller). Returns the
 -- record, or nil when the death did not count.
 function Sessions.Death(guid, killer)

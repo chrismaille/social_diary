@@ -7,7 +7,7 @@ local mock, F = T.mock, T.F
 local Section, Check, Eq = T.Section, T.Check, T.Eq
 local ns = T.Boot()
 
-local J, R, Combat = ns.Journey, ns.JourneyRecap, ns.CombatCapture
+local J, R, Combat = ns.Journey, ns.JourneyRecap, ns.Hunts
 local SELF, STRANGER = F.SELF, F.STRANGER
 
 local STRIDER1 = "Creature-0-4615-1-832-2955-00004B69A3"
@@ -106,20 +106,20 @@ Check(j, "setup: no route")
 --------------------------------------------------------------------------
 Section("a close call: a fight that took all but a little of the health")
 
-Eq(J.IsCloseCall(90, 100), true, "90% taken is a close call")
-Eq(J.IsCloseCall(89, 100), false, "89% is not")
-Eq(J.IsCloseCall(130, 100), true, "more than all of it, healed through")
-Eq(J.IsCloseCall(95, 0), false, "no maximum")
+Eq(ns.CloseCalls.Is(90, 100), true, "90% taken is a close call")
+Eq(ns.CloseCalls.Is(89, 100), false, "89% is not")
+Eq(ns.CloseCalls.Is(130, 100), true, "more than all of it, healed through")
+Eq(ns.CloseCalls.Is(95, 0), false, "no maximum")
 
 Fight({ Mob(STRIDER1, "Plainstrider") }, 50)
-Eq(#J.CloseCalls(j), 0, "half the health taken was a close call")
+Eq(#ns.CloseCalls.List(j), 0, "half the health taken was a close call")
 -- Any foe's name read off a unit is kept a while (Journey.NoteName), for
 -- a death recap that gives its kind a surname.
 Eq(j.names and j.names[2955] and j.names[2955][1], "Plainstrider", "a foe's name read off its target was not kept")
 
 local before = mock.now
 Fight({ Mob(STRIDER1, "Plainstrider"), Mob(WOLF, "Prairie Wolf"), Mob(STRIDER2, "Plainstrider") }, 6)
-local call = J.CloseCalls(j)[1]
+local call = ns.CloseCalls.List(j)[1]
 Check(call, "94% taken was no close call")
 Eq(call.pct, 6, "the health left")
 Eq(call.took, 94, "the damage taken")
@@ -132,39 +132,39 @@ Check(call.t >= before, "when")
 
 -- The same creature targeted twice is one foe; one foe keeps no count.
 Fight({ Mob(STRIDER3, "Plainstrider"), Mob(STRIDER3, "Plainstrider") }, 1)
-Eq(J.CloseCalls(j)[2].foes, nil, "one foe was counted as more")
-Eq(J.CloseCalls(j)[2].pct, 1, "1% left")
+Eq(ns.CloseCalls.List(j)[2].foes, nil, "one foe was counted as more")
+Eq(ns.CloseCalls.List(j)[2].pct, 1, "1% left")
 
 -- An elite keeps its rank.
 Fight({ Mob(CHIEF, "Kolkar Chief", { classification = "elite", level = 14 }) }, 8)
-Eq(J.CloseCalls(j)[3].rank, "elite", "the elite's rank")
-Eq(J.CloseCalls(j)[3].foeLevel, 14, "the elite's level")
+Eq(ns.CloseCalls.List(j)[3].rank, "elite", "the elite's rank")
+Eq(ns.CloseCalls.List(j)[3].foeLevel, 14, "the elite's level")
 Fight({ Mob(CHIEF, "Kolkar Chief", { classification = "worldboss", level = -1 }) }, 8)
-Eq(J.CloseCalls(j)[4].foeLevel, -1, "the skull")
+Eq(ns.CloseCalls.List(j)[4].foeLevel, -1, "the skull")
 table.remove(j.closeCalls)
 
 -- A fight nobody was targeted in keeps no creature.
 Fight({}, 4)
-Eq(J.CloseCalls(j)[4].npcID, nil, "a creature made up")
-Eq(J.CloseCalls(j)[4].name, nil, "a name made up")
+Eq(ns.CloseCalls.List(j)[4].npcID, nil, "a creature made up")
+Eq(ns.CloseCalls.List(j)[4].name, nil, "a name made up")
 
 -- Dead is no close call, though the fight ended.
 mock.dead = true
 Fight({ Mob(STRIDER1, "Plainstrider") }, 0)
 mock.dead = false
-Eq(#J.CloseCalls(j), 4, "a death was a close call")
+Eq(#ns.CloseCalls.List(j), 4, "a death was a close call")
 
 -- More damage than there was health: healing carried the user through.
 Fight({ Mob(STRIDER1, "Plainstrider") }, -30)
-Eq(J.CloseCalls(j)[5].pct, 1, "healed through is 1% from full")
-Eq(J.CloseCalls(j)[5].took, 130, "the damage taken past the maximum")
+Eq(ns.CloseCalls.List(j)[5].pct, 1, "healed through is 1% from full")
+Eq(ns.CloseCalls.List(j)[5].took, 130, "the damage taken past the maximum")
 table.remove(j.closeCalls)
 
 -- The user's own healing, alone, is taken off the damage.
 Fight({ Mob(STRIDER1, "Plainstrider") }, -10, { healed = 30 })
-Eq(#J.CloseCalls(j), 4, "a fight healed through by oneself was a close call")
+Eq(#ns.CloseCalls.List(j), 4, "a fight healed through by oneself was a close call")
 Fight({ Mob(STRIDER1, "Plainstrider") }, 5, { healed = 0 })
-Eq(#J.CloseCalls(j), 5, "setup: a close call with no healing")
+Eq(#ns.CloseCalls.List(j), 5, "setup: a close call with no healing")
 table.remove(j.closeCalls)
 
 -- A group's healers: what they put on the user is taken off; what they
@@ -177,18 +177,18 @@ Fight({ Mob(STRIDER1, "Plainstrider") }, -20, { heals = {
     { from = STRANGER.guid, to = "Ulverston", amount = 115 },
     { from = STRANGER.guid, to = "Bram", amount = 500 },
     { from = SELF.guid, to = "Bram", amount = 300 } } })
-Eq(#J.CloseCalls(j), 4, "a fight a healer carried was a close call")
+Eq(#ns.CloseCalls.List(j), 4, "a fight a healer carried was a close call")
 Fight({ Mob(STRIDER1, "Plainstrider") }, -20, { heals = {
     { from = STRANGER.guid, to = "Ulverston", amount = 25 },
     { from = SELF.guid, to = "Bram", amount = 300 } } })
-Eq(#J.CloseCalls(j), 5, "healing on others was taken off")
-Eq(J.CloseCalls(j)[5].pct, 5, "the healer's heals on the user, taken off")
+Eq(#ns.CloseCalls.List(j), 5, "healing on others was taken off")
+Eq(ns.CloseCalls.List(j)[5].pct, 5, "the healer's heals on the user, taken off")
 table.remove(j.closeCalls)
 Fight({ Mob(STRIDER1, "Plainstrider") }, -40, { heals = {
     { from = STRANGER.guid, amount = 60, list = { { unitName = "Ulverston Nye", amount = 45 },
         { unitName = "Bram Redfen", amount = 15 } } } } })
-Eq(#J.CloseCalls(j), 5, "a heal on a list of targets was not read by its share")
-Eq(J.CloseCalls(j)[5].pct, 5, "the user's share of the list")
+Eq(#ns.CloseCalls.List(j), 5, "a heal on a list of targets was not read by its share")
+Eq(ns.CloseCalls.List(j)[5].pct, 5, "the user's share of the list")
 table.remove(j.closeCalls)
 mock.groupSize = 0
 mock.fire("GROUP_ROSTER_UPDATE")
@@ -196,19 +196,19 @@ mock.fire("GROUP_ROSTER_UPDATE")
 -- One session over several fights: each counts what it added.
 local long = Fight({ Mob(STRIDER1, "Plainstrider") }, 60)
 Fight({ Mob(STRIDER1, "Plainstrider") }, 55, { session = long })
-Eq(#J.CloseCalls(j), 4, "two fights in one session were added together")
+Eq(#ns.CloseCalls.List(j), 4, "two fights in one session were added together")
 Fight({ Mob(STRIDER1, "Plainstrider") }, 7, { session = long })
-Eq(#J.CloseCalls(j), 5, "the third fight in the session was not one")
-Eq(J.CloseCalls(j)[5].pct, 7, "the third fight's own damage")
+Eq(#ns.CloseCalls.List(j), 5, "the third fight in the session was not one")
+Eq(ns.CloseCalls.List(j)[5].pct, 7, "the third fight's own damage")
 table.remove(j.closeCalls)
 
 -- The meter still secret as combat ends: read again a moment later.
 do
     local id = Fight({ Mob(STRIDER1, "Plainstrider") }, 5, { secret = true })
-    Eq(#J.CloseCalls(j), 4, "a secret was read")
+    Eq(#ns.CloseCalls.List(j), 4, "a secret was read")
     meter.sessions[id].taken = 95
     mock.RunTimers()
-    Eq(#J.CloseCalls(j), 5, "the meter was not read again")
+    Eq(#ns.CloseCalls.List(j), 5, "the meter was not read again")
     table.remove(j.closeCalls)
 end
 
@@ -216,9 +216,9 @@ end
 ns.db.settings.keepRoute = false
 Fight({ Mob(STRIDER1, "Plainstrider") }, 3)
 ns.db.settings.keepRoute = true
-Eq(#J.CloseCalls(j), 4, "a close call kept with the route off")
+Eq(#ns.CloseCalls.List(j), 4, "a close call kept with the route off")
 Fight({ Mob(STRIDER1, "Plainstrider") }, 4)
-Eq(#J.CloseCalls(j), 5, "setup: a fifth")
+Eq(#ns.CloseCalls.List(j), 5, "setup: a fifth")
 
 --------------------------------------------------------------------------
 Section("what an objective wants")
@@ -244,13 +244,13 @@ local HALF_DONE = { questID = 782, title = "Half Done", objectives = {
 mock.quests = { MEAT_QUEST, HALF_DONE }
 mock.fire("QUEST_ACCEPTED", 781)
 mock.RunTimers()
-local hunt = J.Hunting(j, 781, 1)
+local hunt = ns.Hunts.Hunting(j, 781, 1)
 Check(hunt, "the item objective is not being counted")
 Eq(hunt.item, "Plainstrider Meat", "the item")
 Eq(hunt.need, 2, "how many")
 Eq(hunt.title, "Break Sharptusk!", "the quest")
-Eq(J.Hunting(j, 781, 2), nil, "a kill objective is counted")
-Eq(J.Hunting(j, 782, 1), nil, "a want already under way is counted from the middle")
+Eq(ns.Hunts.Hunting(j, 781, 2), nil, "a kill objective is counted")
+Eq(ns.Hunts.Hunting(j, 782, 1), nil, "a want already under way is counted from the middle")
 
 -- Kills: the user's and their group's, every kind.
 mock.groupSize = 2
@@ -275,15 +275,15 @@ MEAT_QUEST.objectives[1].numFulfilled = 1
 MEAT_QUEST.objectives[1].text = "Plainstrider Meat: 1/2"
 mock.fire("QUEST_LOG_UPDATE")
 mock.RunTimers()
-Check(J.Hunting(j, 781, 1), "a hunt ended with one of two")
+Check(ns.Hunts.Hunting(j, 781, 1), "a hunt ended with one of two")
 
 mock.fire("PARTY_KILL", SELF.guid, STRIDER1)
 MEAT_QUEST.objectives[1].numFulfilled = 2
 MEAT_QUEST.objectives[1].finished = true
 mock.fire("QUEST_LOG_UPDATE")
 mock.RunTimers()
-Eq(J.Hunting(j, 781, 1), nil, "the hunt did not end with both")
-local done = J.Hunts(j)[1]
+Eq(ns.Hunts.Hunting(j, 781, 1), nil, "the hunt did not end with both")
+local done = ns.Hunts.List(j)[1]
 Check(done, "the hunt kept nothing")
 Eq(done.kills, 13, "kills of the kind that dropped it, the group's too")
 Eq(done.need, 2, "how many it wanted")
@@ -293,7 +293,7 @@ Eq(done.item, "Plainstrider Meat", "the item")
 Eq(done.itemID, 4739, "the item's id, off its loot link, for its icon")
 Eq(done.title, "Break Sharptusk!", "the quest")
 Eq(done.mapID, mock.mapID, "where the last came")
-Eq(J.BadLuck(j, done), true, "13 kills for 2 was not bad luck")
+Eq(ns.Hunts.BadLuck(j, done), true, "13 kills for 2 was not bad luck")
 
 -- A quest abandoned gives its hunt up, once its turn-in had the chance.
 local PELTS = { questID = 790, title = "Pelts", objectives = {
@@ -301,13 +301,13 @@ local PELTS = { questID = 790, title = "Pelts", objectives = {
 mock.quests = { PELTS }
 mock.fire("QUEST_LOG_UPDATE")
 mock.RunTimers()
-Check(J.Hunting(j, 790, 1), "setup: pelts not counted")
+Check(ns.Hunts.Hunting(j, 790, 1), "setup: pelts not counted")
 mock.quests = {}
 mock.fire("QUEST_REMOVED", 790)
-Check(J.Hunting(j, 790, 1), "given up before the turn-in could come")
+Check(ns.Hunts.Hunting(j, 790, 1), "given up before the turn-in could come")
 mock.RunTimers()
-Eq(J.Hunting(j, 790, 1), nil, "an abandoned quest still counted")
-Eq(#J.Hunts(j), 1, "an abandoned quest kept a hunt")
+Eq(ns.Hunts.Hunting(j, 790, 1), nil, "an abandoned quest still counted")
+Eq(#ns.Hunts.List(j), 1, "an abandoned quest kept a hunt")
 
 -- Handed in before the log said it was met: the turn-in ends it.
 mock.quests = { PELTS }
@@ -320,9 +320,9 @@ mock.quests = {}
 mock.fire("QUEST_TURNED_IN", 790)
 mock.fire("QUEST_REMOVED", 790)
 mock.RunTimers()
-Eq(#J.Hunts(j), 2, "the turn-in did not end the hunt")
-Eq(J.Hunts(j)[2].kills, 1, "the pelts' kills")
-Eq(J.BadLuck(j, J.Hunts(j)[2]), false, "one kill for four was bad luck")
+Eq(#ns.Hunts.List(j), 2, "the turn-in did not end the hunt")
+Eq(ns.Hunts.List(j)[2].kills, 1, "the pelts' kills")
+Eq(ns.Hunts.BadLuck(j, ns.Hunts.List(j)[2]), false, "one kill for four was bad luck")
 
 -- Items that never came off a creature keep nothing.
 mock.quests = { PELTS }
@@ -330,15 +330,31 @@ mock.fire("QUEST_LOG_UPDATE")
 mock.RunTimers()
 mock.fire("PARTY_KILL", SELF.guid, WOLF)
 mock.fire("QUEST_TURNED_IN", 790)
-Eq(#J.Hunts(j), 2, "a hunt with no source kept")
+Eq(#ns.Hunts.List(j), 2, "a hunt with no source kept")
 
 -- A hunt open too long is given up at login.
 mock.quests = { PELTS }
 mock.fire("QUEST_LOG_UPDATE")
 mock.RunTimers()
-J.Hunting(j, 790, 1).since = mock.now - J.T.huntAge - 1
+ns.Hunts.Hunting(j, 790, 1).since = mock.now - ns.Hunts.T.huntAge - 1
 J.Prune(mock.now)
-Eq(J.Hunting(j, 790, 1), nil, "a month-old hunt kept")
+Eq(ns.Hunts.Hunting(j, 790, 1), nil, "a month-old hunt kept")
+
+-- A creature's name from the hunts, where none was read lately (j.names)
+-- and no QuestieDB says it: their list is registered `readNames` with a
+-- reading of its own (Features/Hunts/Kind.lua), as Journey.NameOf read
+-- them before they moved: the finished hunts oldest first (a list's
+-- default is newest first), then the hunts under way.
+do
+    local names, hunts, hunting = j.names, j.hunts, j.hunting
+    j.names = nil
+    j.hunts = { { t = 1, npcID = 4901, name = "Plainstrider" }, { t = 2, npcID = 4901, name = "Elder Plainstrider" } }
+    j.hunting = { ["1:1"] = { names = { [4902] = "Kolkar Marauder" } } }
+    Eq(J.NameOf(j, 4901), "Plainstrider", "two hunts of one creature not read oldest first")
+    Eq(J.NameOf(j, 4902), "Kolkar Marauder", "a hunt under way did not name its creature")
+    Eq(J.NameOf(j, 4903), nil, "a creature no hunt kept named")
+    j.names, j.hunts, j.hunting = names, hunts, hunting
+end
 
 --------------------------------------------------------------------------
 Section("bad luck, against the character's usual")
@@ -347,15 +363,15 @@ local function Hunt(kills, need)
     return { kills = kills, need = need }
 end
 local k = { hunts = {} }
-Eq(J.BadLuck(k, Hunt(9, 2)), false, "fewer than eight extra kills")
-Eq(J.BadLuck(k, Hunt(10, 2)), true, "eight extra, five an item")
-Eq(J.BadLuck(k, Hunt(20, 8)), false, "two and a half an item")
-Eq(J.BadLuck(k, Hunt(24, 8)), true, "three an item")
+Eq(ns.Hunts.BadLuck(k, Hunt(9, 2)), false, "fewer than eight extra kills")
+Eq(ns.Hunts.BadLuck(k, Hunt(10, 2)), true, "eight extra, five an item")
+Eq(ns.Hunts.BadLuck(k, Hunt(20, 8)), false, "two and a half an item")
+Eq(ns.Hunts.BadLuck(k, Hunt(24, 8)), true, "three an item")
 -- A character whose drops always take long: twice its usual, or no luck.
 for _ = 1, 5 do k.hunts[#k.hunts + 1] = Hunt(16, 4) end
-Eq(J.UsualLuck(k), 4, "the usual")
-Eq(J.BadLuck(k, Hunt(28, 4)), false, "under twice the usual")
-Eq(J.BadLuck(k, Hunt(32, 4)), true, "twice the usual")
+Eq(ns.Hunts.UsualLuck(k), 4, "the usual")
+Eq(ns.Hunts.BadLuck(k, Hunt(28, 4)), false, "under twice the usual")
+Eq(ns.Hunts.BadLuck(k, Hunt(32, 4)), true, "twice the usual")
 
 --------------------------------------------------------------------------
 Section("on the plates")

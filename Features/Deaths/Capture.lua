@@ -1,4 +1,5 @@
--- Deaths in a together session, and what killed them (SES-4).
+-- Deaths capture (Kind.lua): deaths in a together session, and what killed
+-- them (SES-4); and the user's own, on their route.
 --
 -- PLAYER_DEAD and UNIT_DIED say who died and nothing more: the combat log
 -- that used to say who did it is closed to addons since 12.0. Two sources
@@ -18,18 +19,36 @@
 -- few seconds of the recorded death, so a stale or unrelated one never is.
 -- Whatever cannot be read leaves the guess, or no killer, in place.
 --
--- The user's own death is also a fight when a player killed them
--- (Core/Fights.lua), in a session or not: the ganker finds you alone. The
--- guess writes it down at once, and the recap corrects it.
+-- The user's own death is told as SD_YOU_DIED at the moment, with the
+-- guess, and SD_DEATH_RECAP when the recap names the killer (Core/
+-- Events.lua's header), in a session or not, for whatever keeps it: a
+-- player who killed you is a fight (the ganker finds you alone), written
+-- down at once and corrected by the recap.
 --
--- And every death of the user's goes on their route (Core/Journey.lua),
+-- And every death of the user's goes on their route (Kind.lua's list),
 -- with the creature or the world that did it and the creature's display,
--- read off a model frame, for the diary to draw it later.
+-- read off a model frame, for the diary to draw it later. A session's
+-- deaths are the session's (Sessions.Death, SetKiller: core).
+--
+-- This file loads before Capture/ now (features come first), so its
+-- handlers run before any there on the same event: Capture/Journey.lua
+-- (PLAYER_DEAD, PLAYER_REGEN_ENABLED), Features/CloseCalls/Capture.lua
+-- (after this folder in the TOC; the judge was in Capture/Combat.lua,
+-- since the hunts' alone, Features/Hunts/Capture.lua) and
+-- Features/Witnesses/Capture.lua (listed after Capture/ in the TOC, where
+-- its file was) all registered after it before as well, and
+-- Capture/Menus.lua, Group.lua and Together.lua, which came before it,
+-- listen to none of PLAYER_DEAD, UNIT_DIED or PLAYER_REGEN_ENABLED; the UI's
+-- PLAYER_REGEN_ENABLED handlers (UI/Settings.lua, UI/Reunion.lua,
+-- UI/Intro.lua) still run before it. So the order is what it was.
+--
+-- Features/CloseCalls/Capture.lua and Features/Hunts/Capture.lua (the
+-- hunts, listed after Capture/) reach LookUp (below) at call time for a close call's or a hunt's
+-- creature's display, guarded by `ns.Deaths`.
 
 local addonName, ns = ...
 
-local Deaths = {}
-ns.Deaths = Deaths
+local Deaths = ns.Deaths
 
 -- How far the killing blow may be from the death as recorded.
 local RECAP_SLACK = 10
@@ -301,7 +320,7 @@ local function Look()
     if item.tries == 0 and not SetCreature(model, item.npcID) then item.tries = LOOK_TRIES end
     local display = item.tries > 0 and DisplayOf(model)
     if display or item.tries >= LOOK_TRIES then
-        if display then ns.Journey.Display(death, item.npcID, display) end
+        if display then Deaths.Display(death, item.npcID, display) end
         table.remove(looks, 1)
         return Look()
     end
@@ -346,8 +365,8 @@ local function Try()
             end
             if item.death then ns.Sessions.SetKiller(item.death, killer) end
             if item.guid == ns.ownGUID then
-                ns.Fights.Resolve(item.fight, killer, item.time, item.where)
-                ns.Journey.Killer(item.slain, Ranked(killer, item.ranks))
+                ns.Fire("SD_DEATH_RECAP", item.told, killer)
+                Deaths.Killer(item.slain, Ranked(killer, item.ranks))
                 Deaths.LookUp(item.slain)
             end
             ns.Debug("death of %s: killed by %s (death recap)", item.guid, tostring(killer.name or killer.environment))
@@ -370,8 +389,9 @@ local function Step()
     end
 end
 
--- A death in a session is the session's; the user's own is also a fight
--- when a player killed them, session or not.
+-- A death in a session is the session's; the user's own is told as well
+-- (SD_YOU_DIED), session or not. `told` is the death as the messages carry
+-- it, the same table at the moment and with the recap.
 local function Died(guid)
     local death = ns.Sessions.Death(guid) or nil
     local own = guid == ns.ownGUID
@@ -382,10 +402,11 @@ local function Died(guid)
         time = death and death.time or ns.Now(), where = ns.Where() }
     if death then ns.Sessions.SetKiller(death, guess) end
     if own then
-        item.fight = ns.Fights.Died(guess, item.time, item.where)
-        item.slain = ns.Journey.Died(item.time, item.where)
+        item.told = { guess = guess, time = item.time, where = item.where }
+        ns.Fire("SD_YOU_DIED", item.told)
+        item.slain = Deaths.Died(item.time, item.where)
         item.ranks = Ranks()
-        ns.Journey.Killer(item.slain, Ranked(guess, item.ranks))
+        Deaths.Killer(item.slain, Ranked(guess, item.ranks))
     end
     pending[#pending + 1] = item
     if not waiting then

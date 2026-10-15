@@ -36,7 +36,8 @@ Style.ART = {
     -- A death in a session: a timeline moment.
     death = { "Interface\\TargetingFrame\\UI-TargetingFrame-Skull", "Interface\\Icons\\Ability_Rogue_FeignDeath",
         "Interface\\Icons\\INV_Sword_04" },
-    -- A diary entry's level-up: a timeline moment.
+    -- A diary entry's level-up: a timeline moment, its row's icon and a
+    -- climb of them's (UI/TimelineText.lua).
     levelup = { "Interface\\Icons\\Spell_Holy_SurgeOfLight", "Interface\\Icons\\Spell_Holy_Restoration",
         "Interface\\Icons\\INV_Sword_04" },
     -- The Recently nearby table: attackable when seen, and the sort direction.

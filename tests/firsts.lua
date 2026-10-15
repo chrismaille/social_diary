@@ -9,7 +9,8 @@ local DAY = T.DAY
 local ns = T.Boot()
 
 local J, R, Text = ns.Journey, ns.JourneyRecap, ns.UI.JourneyText
-local FC = ns.UI.FindCard
+local Firsts = ns.Firsts
+local FC = Firsts.Card
 local SELF = F.SELF
 local MULGORE = 1412
 
@@ -41,7 +42,7 @@ end
 Section("what an item is a first of")
 
 local function Kinds(item)
-    return table.concat(J.FirstKinds(item), ",")
+    return table.concat(Firsts.Kinds(item), ",")
 end
 Eq(Kinds({ classID = 1, subclassID = 0, quality = 1 }), "bag", "a plain bag")
 Eq(Kinds({ classID = 1, subclassID = 0, quality = 2 }), "bag,uncommon", "a green bag")
@@ -65,17 +66,17 @@ mock.RunTimers()
 Check(j.firsts, "the bags were not read after entering the world")
 Eq(j.firsts.shoulder, false, "shoulders held at the start became a first")
 Eq(j.firsts.bag, nil, "a kind not held is not looked for")
-Check(J.Looking(j), "nothing looked for")
+Check(Firsts.Looking(j), "nothing looked for")
 
 -- An empty backpack is not read: the bags have not loaded.
 do
     local saved = mock.bags[0].size
     mock.bags[0].size = 0
     j.firsts = nil
-    ns.JourneyCapture.ReadFirsts()
+    Bags()
     Eq(j.firsts, nil, "an unloaded backpack was read as empty")
     mock.bags[0].size = saved
-    ns.JourneyCapture.ReadFirsts()
+    Bags()
     Eq(j.firsts.shoulder, false, "setup: the reading again")
 end
 
@@ -126,7 +127,11 @@ ns.Diary.Add(KOKO, { source = "test" })
 mock.now = mock.now + 300
 local EPIC = Link(1263, "Brain Hacker", "a335ee")
 mock.itemInfo[1263] = { classID = 2, subclassID = 1, equipLoc = "INVTYPE_2HWEAPON" }
-ns.lastTrade = { guid = KOKO, t = mock.now - 2, received = { { link = EPIC, count = 1 } } }
+-- The trade's capture says so as it stores the trade (SD_TRADE_COMPLETED),
+-- two seconds before the bags change.
+mock.now = mock.now - 2
+ns.Fire("SD_TRADE_COMPLETED", KOKO, { { link = EPIC, count = 1 } })
+mock.now = mock.now + 2
 Put(5, EPIC, 4)
 Bags()
 Eq(j.firsts.epic.from, "trade", "an epic received in a trade")
@@ -136,7 +141,7 @@ Eq(j.firsts.epic.guid, KOKO, "who gave it")
 do
     local saved = j.firsts.shoulder
     j.firsts.shoulder = nil
-    ns.lastTrade = { guid = KOKO, t = mock.now, received = { { link = POUCH, count = 1 } } }
+    ns.Fire("SD_TRADE_COMPLETED", KOKO, { { link = POUCH, count = 1 } })
     Put(6, Link(4254, "Rough Shoulders"))
     mock.itemInfo[4254] = { classID = 4, subclassID = 2, equipLoc = "INVTYPE_SHOULDER" }
     Bags()
@@ -144,7 +149,7 @@ do
     Eq(j.firsts.shoulder.guid, nil, "an item the trade did not hold has a giver")
     j.firsts.shoulder = saved
 end
-Eq(J.Looking(j), false, "still looking with every kind found or had")
+Eq(Firsts.Looking(j), false, "still looking with every kind found or had")
 
 --------------------------------------------------------------------------
 Section("not watching: what came in meanwhile is had, not found")
@@ -217,20 +222,26 @@ Eq(#R.Gather(r, d0 + 50, d0 + 150, {}).finds, 1, "a first not in its stretch")
 --------------------------------------------------------------------------
 Section("firsts in words")
 
-local function Find(what, rec) return { kind = "find", what = what, t = rec.t, find = rec, gift = rec.from == "trade" or nil, guid = rec.guid } end
+-- A first's moment, as the recap makes it (Kind.lua's `moment`): a gift
+-- carries how it stands on its giver's margin note (Firsts.PERSON).
+local function Find(what, rec)
+    local gift = rec.from == "trade" or nil
+    return { kind = "find", what = what, t = rec.t, find = rec, gift = gift, guid = rec.guid,
+        person = gift and Firsts.PERSON or nil }
+end
 local loot = { t = d0, mapID = MULGORE, link = BRACERS, from = "loot", level = 6 }
 local gift = { t = d0, mapID = MULGORE, link = POUCH, from = "trade", guid = KOKO, level = 5 }
 local stranger = { t = d0, mapID = MULGORE, link = POUCH, from = "trade", level = 5 }
 
-Eq(Text.Find("uncommon", loot), "Found your first green in Mulgore: Wolfskin Bracers.", "a green found")
-Eq(Text.Find("bag", gift), "Koko Skybluff gave you your first bag: Small Brown Pouch.", "a bag given")
-Eq(Text.Find("bag", stranger), "Your first bag was a gift: Small Brown Pouch.", "a bag from someone gone")
-Eq(Text.Find("rare", { t = d0, link = BLUE, from = "quest" }), "A quest gave you your first blue: Pathfinder Footpads.",
+Eq(Firsts.Sentence("uncommon", loot), "Found your first green in Mulgore: Wolfskin Bracers.", "a green found")
+Eq(Firsts.Sentence("bag", gift), "Koko Skybluff gave you your first bag: Small Brown Pouch.", "a bag given")
+Eq(Firsts.Sentence("bag", stranger), "Your first bag was a gift: Small Brown Pouch.", "a bag from someone gone")
+Eq(Firsts.Sentence("rare", { t = d0, link = BLUE, from = "quest" }), "A quest gave you your first blue: Pathfinder Footpads.",
     "a quest's blue")
-Eq(Text.Find("bag", { t = d0, mapID = MULGORE, link = POUCH, from = "vendor" }),
+Eq(Firsts.Sentence("bag", { t = d0, mapID = MULGORE, link = POUCH, from = "vendor" }),
     "Bought your first bag in Mulgore: Small Brown Pouch.", "a bag bought")
-Eq(Text.Find("shoulder", { t = d0, from = "mail" }), "Your first shoulders came by mail.", "shoulders by mail")
-Eq(Text.Find("epic", { t = d0 }), "Found your first epic.", "an epic found nowhere known")
+Eq(Firsts.Sentence("shoulder", { t = d0, from = "mail" }), "Your first shoulders came by mail.", "shoulders by mail")
+Eq(Firsts.Sentence("epic", { t = d0 }), "Found your first epic.", "an epic found nowhere known")
 
 local plate = { mapID = MULGORE, t = d0, moments = { Find("uncommon", loot) } }
 Eq(Text.PlateCaption(plate), "A first green: Wolfskin Bracers.", "a plate with a first alone")
@@ -254,10 +265,10 @@ Eq(Text.MarginWhat({ Find("bag", gift) }), "gave you your\194\160first\194\160ba
 Check(Text.MarginWhat({ { kind = "session", seconds = 2700 }, { kind = "note" }, Find("bag", gift) })
     :find("^gave you your\194\160first\194\160bag and "), "a gift is not first on a busy margin note")
 
-local head, line = Text.FindTip(Find("bag", gift), d0)
+local head, line = Firsts.Tip(Find("bag", gift), d0)
 Eq(head, "Your first bag", "a first's tooltip heading")
 Check(line:find("^Small Brown Pouch, from Koko Skybluff, at level 5, "), "a first's tooltip line: " .. line)
-head, line = Text.FindTip(Find("uncommon", loot), d0)
+head, line = Firsts.Tip(Find("uncommon", loot), d0)
 Check(line:find("^Wolfskin Bracers, looted, at level 6, "), "a looted first's tooltip line: " .. line)
 
 -- The entry's prose ends with its firsts.
@@ -363,8 +374,8 @@ do
 end
 -- Plain ink for a white bag; a blue's pouch leans to its colour, a little.
 local INK = ns.Style.INK_STRONG
-Eq(table.concat(byWhat.bag.colour, ","), table.concat(INK, ","), "a white bag's pouch is not in plain ink")
-local blue = byWhat.rare.colour
+Eq(table.concat(byWhat.bag.arg, ","), table.concat(INK, ","), "a white bag's pouch is not in plain ink")
+local blue = byWhat.rare.arg
 Check(blue[3] > INK[3] + 0.1 and blue[3] < 0.5, "a blue's pouch is not a hint of blue: " .. table.concat(blue, ","))
 
 -- Tika gave the blue: she has a margin note saying so, its leader on her
@@ -390,6 +401,18 @@ for _, link in ipairs(page.links) do
     end
 end
 Check(led, "the giver's leader does not go to her pouch")
+-- Her gift is something done together (Firsts.PERSON's tier 1): her note
+-- is laid with the people who did something with you, before the cards,
+-- not with those only seen after them.
+do
+    local personAt, cardAt
+    for i, it in ipairs(plateOf[byWhat.rare].margin or {}) do
+        if it.kind == "person" and it.g.guid == TIKA then personAt = personAt or i end
+        if it.kind == "find" then cardAt = cardAt or i end
+    end
+    Check(personAt and cardAt and personAt < cardAt, ("the giver's note is not before the cards: %s, %s")
+        :format(tostring(personAt), tostring(cardAt)))
+end
 local captions = {}
 for i = 1, page.captionPool.used do
     local caption = page.captionPool[i]
@@ -410,18 +433,18 @@ ns.UI.CloseJournal()
 --------------------------------------------------------------------------
 Section("a first found card's words")
 
-Eq(Text.FindHeading("uncommon"), "Your first green item!", "a green's heading")
-Eq(Text.FindHeading("rare"), "Your first blue item!", "a blue's heading")
-Eq(Text.FindHeading("epic"), "Your first epic item!", "an epic's heading")
-Eq(Text.FindHeading("bag"), "Your first bag!", "a bag's heading")
-Eq(Text.FindHeading("shoulder"), "Your first shoulders!", "shoulders' heading")
-Eq(Text.FindHeading({ "uncommon", "bag" }), "Your first bag and first green item!", "a green bag's heading")
-Eq(Text.FindHeading("rare", true), "Your first blue!", "a blue's short heading")
+Eq(Firsts.Heading("uncommon"), "Your first green item!", "a green's heading")
+Eq(Firsts.Heading("rare"), "Your first blue item!", "a blue's heading")
+Eq(Firsts.Heading("epic"), "Your first epic item!", "an epic's heading")
+Eq(Firsts.Heading("bag"), "Your first bag!", "a bag's heading")
+Eq(Firsts.Heading("shoulder"), "Your first shoulders!", "shoulders' heading")
+Eq(Firsts.Heading({ "uncommon", "bag" }), "Your first bag and first green item!", "a green bag's heading")
+Eq(Firsts.Heading("rare", true), "Your first blue!", "a blue's short heading")
 local fromTika = { t = d0, mapID = MULGORE, link = POUCH, from = "trade", guid = TIKA, level = 5 }
-Eq(Text.FindGift(fromTika, {}), "from Tika", "a giver with no note of her own")
-Eq(Text.FindGift(fromTika, { [TIKA] = true }), nil, "a giver whose note says so already")
-Eq(Text.FindGift(stranger, {}), "a gift", "a gift from someone gone")
-Eq(Text.FindGift(loot, {}), nil, "a find looted is a gift")
+Eq(Firsts.GiftLine(fromTika, {}), "from Tika", "a giver with no note of her own")
+Eq(Firsts.GiftLine(fromTika, { [TIKA] = true }), nil, "a giver whose note says so already")
+Eq(Firsts.GiftLine(stranger, {}), "a gift", "a gift from someone gone")
+Eq(Firsts.GiftLine(loot, {}), nil, "a find looted is a gift")
 
 -- The caption with the card shown names no item; without it, as before.
 do
@@ -507,7 +530,7 @@ local card = cards[1]
 -- The heading in the hand: the full words where they fit the column, the
 -- short where they do not (the margin's columns: 122 and 136 px, too
 -- narrow; the one plate's row, 142, and wider, not).
-Eq(card.name:GetText(), Text.FindHeading("rare", card.column < 140), "the card's heading in a column of " .. card.column)
+Eq(card.name:GetText(), Firsts.Heading("rare", card.column < 140), "the card's heading in a column of " .. card.column)
 -- The icon, from the item's ID, its baked frame trimmed; edged in the
 -- game's own blue, as the game edges it.
 Eq(card.icon.recorded.calls.SetTexture[1], 132539, "the icon is not the item's")

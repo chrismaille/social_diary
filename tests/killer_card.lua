@@ -1,4 +1,4 @@
--- The killer card on Your Diary's plates (UI/KillerCard.lua; option A, "Cut
+-- The killer card on Your Diary's plates (Features/Deaths/Card.lua; option A, "Cut
 -- in ink", of .claude/ui-proposal/killer-models-proposal.md): which deaths
 -- get one, which killer a plate shows, the ladder its picture walks down
 -- (ink silhouette, 2D print, name alone), its place after the people in
@@ -11,7 +11,7 @@ local Section, Check, Eq = T.Section, T.Check, T.Eq
 local DAY = T.DAY
 local ns = T.Boot()
 local SELF = F.SELF
-local Card = ns.UI.KillerCard
+local Card = ns.Deaths.Card
 local Text = ns.UI.JourneyText
 
 mock.now = 1791000000
@@ -89,14 +89,14 @@ Check(not Card.Choose(crosses).probable, "a confirmed death is called a guess")
 --------------------------------------------------------------------------
 Section("the card's words")
 
-Eq(Text.Killed(1), "killed\194\160you", "one death")
-Eq(Text.Killed(2), "killed\194\160you\194\160twice", "two deaths")
-Eq(Text.Killed(3), "killed\194\160you\194\160three\194\160times", "three deaths")
+Eq(ns.Deaths.Killed(1), "killed\194\160you", "one death")
+Eq(ns.Deaths.Killed(2), "killed\194\160you\194\160twice", "two deaths")
+Eq(ns.Deaths.Killed(3), "killed\194\160you\194\160three\194\160times", "three deaths")
 Eq(Text.KillerName({ name = "Sunscale Lashtail" }), "a Sunscale Lashtail", "a common creature's article")
 Eq(Text.KillerName({ name = "Ornery Plainstrider" }), "an Ornery Plainstrider", "an article before a vowel")
 Eq(Text.KillerName({ name = "Hogger", rank = "rare" }), "Hogger", "a rare is named bare")
 Eq(Text.KillerName({ name = "The Rake" }), "The Rake", "a name with its own article")
-local title, lines = Text.DeathCross(3, { Death(1, "Sunscale Lashtail", { spell = "Bite" }),
+local title, lines = ns.Deaths.DeathCross(3, { Death(1, "Sunscale Lashtail", { spell = "Bite" }),
     Death(2, "Sunscale Lashtail", { spell = "Bite" }), Death(3, nil, { environment = "FALLING" }) })
 Eq(title, "Died here 3 times", "a cross's tooltip title")
 Eq(lines[1], "Sunscale Lashtail, with Bite, twice", "a cross's killer line")
@@ -493,3 +493,169 @@ do
     Text.PlateCaption = real
 end
 ns.UI.RedrawJourneyPage()
+
+--------------------------------------------------------------------------
+Section("the passes after the marks (Plate.RegisterPass)")
+
+-- The killer is chosen in a pass the card's folder registers
+-- (Features/Deaths/Card.lua), after the marks: the close call's and the
+-- witness's after it. A pass registered between them sees the crosses as
+-- the killer's left them (their deaths matched) and the killer chosen;
+-- taken out, the passes are as they were.
+do
+    local Plate = ns.UI.JourneyPlate
+    local function Passes()
+        local list = {}
+        for _, spec in ipairs(Plate.PASS_ORDER) do list[#list + 1] = spec.key .. " " .. spec.order end
+        return table.concat(list, ", ")
+    end
+    Eq(Passes(), "killer 10, foe 20, witness 30, print 90", "the passes")
+    Open(10)
+    local seen
+    Plate.RegisterPass("probe", { order = 15, draw = function(p, c)
+        local deaths = 0
+        for _, cross in ipairs(c.crosses) do deaths = deaths + #(cross.deaths or {}) end
+        seen = { plate = p, killer = p.killer, crosses = c.crosses, deaths = deaths, mapID = c.mapID }
+    end })
+    Eq(Passes(), "killer 10, probe 15, foe 20, witness 30, print 90", "the probe's pass is out of place")
+    ns.UI.RedrawJourneyPage()
+    local plate = page.plates[1]
+    Check(seen and seen.plate == plate, "the probe's pass did not run on the plate")
+    Check(seen.crosses == plate.crosses, "a pass is not given the plate's crosses")
+    Eq(seen.deaths, 3, "the deaths were not on the crosses before the next pass")
+    Check(seen.killer ~= nil and seen.killer == plate.killer, "the killer was not chosen before the next pass")
+    Eq(seen.mapID, 1412, "a pass's map")
+    Plate.RemovePass("probe")
+    Eq(Passes(), "killer 10, foe 20, witness 30, print 90", "the probe's pass stayed")
+
+    -- Without the killer's pass, no cross knows its killers and no card is
+    -- drawn (what a pass leaves on the plate is its own to set each time,
+    -- so the last drawing's killer is cleared by hand); back, the plate is
+    -- as it was.
+    local killer = Plate.PASSES.killer
+    Plate.RemovePass("killer")
+    page.plates[1].killer = nil
+    ns.UI.RedrawJourneyPage()
+    Eq(page.plates[1].killer, nil, "a killer without its pass")
+    Eq(#Cards(), 0, "a card without its pass")
+    Check(not Any(Tips(page.plates[1]), "Sunscale Lashtail"), "a cross told its killer without the pass")
+    Plate.RegisterPass("killer", killer)
+    ns.UI.RedrawJourneyPage()
+    Check(page.plates[1].killer ~= nil and #Cards() == 1, "the killer's pass back, no card")
+    Eq(Passes(), "killer 10, foe 20, witness 30, print 90", "the passes once the killer's is back")
+
+    -- A pass that lays something over the picture (its `new`, as good
+    -- luck's S does, Features/Hunts/LuckyCard.lua): asked once for each
+    -- plate made after it registered, with the plate's over-kit; its pools
+    -- are on the frame over the picture, begun and finished with every
+    -- drawing (one texture reused, the rest hidden) and counted with the
+    -- plate's textures; its buttons are there too, a press on them the
+    -- plate's.
+    local made, drawn, kit0 = {}, 1, nil
+    local pools = {}
+    Plate.RegisterPass("overprobe", { order = 95,
+        new = function(p, kit)
+            made[#made + 1] = p
+            kit0 = kit
+            pools[p] = { tex = kit.Pool("ARTWORK", 4), text = kit.TextPool(ns.Style.FONT.small, "OVERLAY", -1),
+                button = kit.Button() }
+        end,
+        draw = function(p)
+            local own = pools[p]
+            if not own then return end
+            for _ = 1, drawn do own.tex:Next() end
+            for _ = 1, drawn do own.text:Next():SetText("probe") end
+        end })
+    local host = CreateFrame("Frame")
+    local slot = { x = 8, y = 14, w = 300, h = 204, t = -1.4, pad = 8, pc = 24, corners = { "tl", "tr", "bl", "br" } }
+    local probe = Plate(host, slot)
+    Eq(#made, 1, "a pass's new not asked once for a plate made after it")
+    Check(made[1] == probe and kit0.over == probe.over, "a pass's new not given the plate and its frame over the picture")
+    local own = pools[probe]
+    local sheet = { mapID = 1412, stops = {}, roads = {}, flights = {}, pins = {}, dungeons = {}, meetings = {} }
+    local window = Plate.Window(1412, 0.5, 0.5, slot.w - 2 * slot.pad, slot.h - 2 * slot.pad)
+    local function Draw() probe:Draw(sheet, { from = 0, to = 1e12 }, window, { moments = {}, fights = {}, now = 1000 }) end
+    Draw()
+    local one = probe.counts.textures
+    Draw()
+    Eq(#own.tex, 1, "a pass's pool not begun again with the drawing")
+    Check(own.tex[1].parent == probe.over and own.tex[1]:IsShown(), "a pass's texture not on the frame over the picture")
+    Check(own.text[1]:IsShown() and #own.text == 1, "a pass's font string not begun again with the drawing")
+    drawn = 0
+    Draw()
+    Check(not own.tex[1]:IsShown() and not own.text[1]:IsShown(), "a pass's pools not finished with the drawing")
+    Eq(probe.counts.textures, one - 1, "a pass's textures not counted with the plate's")
+    Check(own.button.parent == probe.over and not own.button:IsShown(), "a pass's button not on the frame, hidden")
+    local pressed
+    local Press = probe.Press
+    probe.Press = function(_, which) pressed = which end
+    own.button.scripts.OnMouseDown(own.button, "LeftButton")
+    probe.Press = Press
+    Eq(pressed, "LeftButton", "a press on a pass's button not the plate's")
+    Plate.RemovePass("overprobe")
+    Eq(Passes(), "killer 10, foe 20, witness 30, print 90", "the over-picture probe stayed")
+end
+
+--------------------------------------------------------------------------
+Section("another feature's face on the card (Card.RegisterFace)")
+
+-- The card is shared: the close calls wear it with a face of their own
+-- (Features/CloseCalls/Card.lua). A throwaway face registered from here
+-- puts its method on every card made after, is laid while worn (its plan,
+-- its drawings over the name before the picture and under it after),
+-- asked to put away what it drew on every laying, worn or not, and taken
+-- off when the card is given a killer. Taken out, cards are as they were.
+do
+    local function Faces()
+        local list = {}
+        for _, face in ipairs(Card.FACES) do list[#list + 1] = face.key end
+        return table.concat(list, ", ")
+    end
+    Eq(Faces(), "foe", "the faces")
+    local calls = {}
+    local function Called(what) calls[#calls + 1] = what end
+    local FACE
+    FACE = Card.RegisterFace("scrap", {
+        methods = { SetScrap = function(card, k) card:Wear(FACE, k, { name = k.name, what = "scrapped" }) end },
+        plan = function(card, note, width, room, pic, Least)
+            Called("plan")
+            Check(type(room) == "number" and room < width and type(Least) == "function", "the plan's room")
+            note.under = { w = 20, h = 6, gap = 2, after = 2 }
+            return { width = width }
+        end,
+        top = function(card, plan)
+            Called("top")
+            Check(plan.width ~= nil, "the plan is not handed to the drawing")
+        end,
+        under = function() Called("under") end,
+        hide = function() Called("hide") end,
+        off = function(card) card.scrap = nil; Called("off") end,
+        smaller = function() Called("smaller"); return false end,
+    })
+    Eq(Faces(), "foe, scrap", "the scrap's face")
+    local card = Card.New(page.right)
+    Check(type(card.SetScrap) == "function" and type(card.SetFoe) == "function", "a face's method is not on the card")
+    card:SetScrap({ name = "Mottled Boar" })
+    Eq(card.face, FACE, "the card does not wear the scrap's face")
+    card.scrap = true
+    calls = {}
+    card:Layout(10, 10, 150)
+    Eq(table.concat(calls, " "), "plan hide top under", "the face's laying")
+    Eq(card.name:GetText(), "Mottled Boar", "the face's subject")
+    Check(card.under ~= nil, "the face's room under the name")
+    Eq(card:Smaller(), false, "the face's smaller")
+    calls = {}
+    card:SetKiller({ name = "Sunscale Lashtail", count = 1 }, "t", mock.now)
+    Check(card.face == nil and card.scrap == nil and calls[1] == "off", "the face was not taken off for a killer")
+    calls = {}
+    card:Layout(10, 10, 150)
+    Eq(table.concat(calls, " "), "hide", "a killer's card asks a face to put away what it drew")
+    Eq(card:Smaller(), false, "a killer's card gave something up")
+    card:Hide()
+    Card.RemoveFace("scrap")
+    Eq(Faces(), "foe", "the scrap's face stayed")
+    local after = Card.New(page.right)
+    Check(rawget(after, "SetScrap") == nil and rawget(after, "SetFoe") ~= nil,
+        "a face taken out still puts its method on a card")
+    after:Hide()
+end

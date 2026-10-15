@@ -7,8 +7,9 @@
 -- own rows, so Tester's rows keep their order: the ones between the
 -- script's rows at a "beat" (before and after the first trade, as a session
 -- begins, at the end), the rest at "tester", after a session's rows. This
--- file loads before Campfire's Dev.lua (the TOC), so the first session's
--- lines come before the fire sat by with Tester.
+-- file loads after Trade's Dev.lua and before Campfire's (the TOC), so
+-- the thanks come after the trade, and the first session's lines before
+-- the fire sat by with Tester.
 
 local addonName, ns = ...
 

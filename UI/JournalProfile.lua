@@ -75,7 +75,7 @@ local function Story(s)
         end
     end
 
-    local fights = ns.UI.FightsText(ns.Fights.With(s.guid), Em)
+    local fights = ns.UI.FightsText(ns.Interactions.Fights(s.guid), Em)
     if fights then parts[#parts + 1] = fights end
 
     local seen = s.record and s.record.seen

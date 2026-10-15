@@ -5,7 +5,7 @@
 -- (Campfire.WORDS, Text.lua: the user's words), and a pencil leader to the
 -- fire's mark (Mark.lua).
 --
--- It is the lucky card's S size (UI/LuckyCard.lua's tag): the hand at
+-- It is the lucky card's S size (Features/Hunts/LuckyCard.lua's tag): the hand at
 -- 14 px, not a person's 16, so it fits the narrowest column (122 px); the
 -- tag's small tape slanted over its top left corner, clear of the words. No
 -- heading, icon, count or struck words: one slip a plate however many fires

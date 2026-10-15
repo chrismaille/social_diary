@@ -3,8 +3,8 @@
 -- Core/Sessions.lua holds the model and never touches a unit token; this file
 -- is where the client's signals are read and handed to it: the lifecycle
 -- (login, the tick, logout) and what happens during a session -- zones,
--- quests, rares and world bosses. Deaths have a file of their own
--- (Capture/Deaths.lua).
+-- quests, rares and world bosses. Deaths are a feature's, which writes them
+-- into the session (Sessions.Death).
 
 local addonName, ns = ...
 

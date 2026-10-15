@@ -91,6 +91,34 @@ function Interactions.Since(since)
     return list
 end
 
+-- The fights with `guid` (rows whose kind sets Core/Rows.lua's `fight`):
+-- { kills, yours, deaths, last, zone } -- every kill, the ones the user
+-- landed themselves (no context.by), the user's deaths to them, and when
+-- and where the latest fight was. nil when there has been none. The
+-- profile's sentence and the foe's reunion card tell it
+-- (ns.UI.FightsText).
+function Interactions.Fights(guid)
+    local rows = Interactions.For(guid)
+    if not rows then return nil end
+
+    local t = { kills = 0, yours = 0, deaths = 0 }
+    for i = 1, #rows do
+        local row = rows[i]
+        local fight = Rows.Get(row.type).fight
+        if fight == "kill" or fight == "death" then
+            if fight == "kill" then
+                t.kills = t.kills + 1
+                if not (row.context and row.context.by) then t.yours = t.yours + 1 end
+            else
+                t.deaths = t.deaths + 1
+            end
+            if not t.last or row.time >= t.last then t.last, t.zone = row.time, row.zone end
+        end
+    end
+    if not t.last then return nil end
+    return t
+end
+
 -- The most recent row of a given type, or of any type when kind is nil.
 -- Only the smoke tests ask: the picker keeps its own ns.Recent.
 function ns._test.LatestInteraction(guid, kind)
@@ -239,7 +267,8 @@ function Interactions.Add(guid, kind, data)
 end
 
 -- Takes back one row Add wrote, when what it said turned out wrong (a
--- killer guessed at the moment of death, Core/Fights.lua). Returns whether
+-- killer guessed at the moment of death, then put down to someone else by
+-- the death recap). Returns whether
 -- it was there.
 function Interactions.Remove(guid, row)
     guid = ns.SafeGUID(guid)

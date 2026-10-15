@@ -19,6 +19,11 @@ mock.trade = {
     moneyReceived = 1234,
 }
 
+-- As a trade is stored, it is told (SD_TRADE_COMPLETED, Core/Events.lua):
+-- who it was with, and what was received, as the row keeps it.
+local told = {}
+ns.On("SD_TRADE_COMPLETED", function(_, guid, received) told[#told + 1] = { guid = guid, received = received } end)
+
 mock.fire("TRADE_SHOW")
 Check(Pending(), "trade snapshot not opened")
 mock.fire("TRADE_MONEY_CHANGED")
@@ -39,6 +44,9 @@ Eq(row.context.moneyGiven, nil, "zero money should not be stored")
 Eq(row.theirLevel, 1, "partner level")
 Eq(ns.Recent.Get("trade"), GUID, "last trade partner not remembered (DIA-3)")
 Eq(Pending(), nil, "snapshot not cleared after committing")
+Eq(#told, 1, "the completed trade was not told")
+Eq(told[1] and told[1].guid, GUID, "who the trade told of was with")
+Check(told[1] and told[1].received == row.context.received, "what the trade told of is not what its row received")
 
 -- Completing a trade empties its slots, and those change events can arrive
 -- before the confirmation: the contents as accepted are what is stored.
@@ -85,6 +93,7 @@ mock.fire("TRADE_SHOW")
 mock.fire("UI_INFO_MESSAGE", 250)
 Eq(Pending(), nil, "cancelled trade kept its snapshot")
 Eq(ns.Interactions.Count(GUID), 3, "cancelled trade was stored")
+Eq(#told, 4, "a cancelled trade was told as completed")
 
 -- A window that closes with no verdict at all expires on the backstop timer.
 mock.fire("TRADE_SHOW")

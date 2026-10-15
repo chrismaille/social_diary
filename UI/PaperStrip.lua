@@ -29,16 +29,16 @@
 -- rubric, a thin line, never a bar.
 --
 -- A slip may keep room for a picture over the name (`picture`: the killer
--- card, UI/KillerCard.lua, draws a creature there): the slip says where it
+-- card, a feature's, draws a creature there): the slip says where it
 -- lies (strip.picture) and places what goes in it turned with it
 -- (strip:Lay, strip:Bend); the card can ask for its tape further along the
 -- top (`tapeAt`), clear of the picture, and for a smaller turn (`turn`).
--- A slip may keep room under the name as well (`under`: the first found
--- card, UI/FindCard.lua, draws its boxed item there), between the name and
+-- A slip may keep room under the name as well (`under`: a card draws a
+-- boxed item there), between the name and
 -- what happened (strip.under), and lay what goes in it with a turn of its
 -- own on top of the slip's (strip:Lay's `more`).
--- A slip may also be blank (`size`: the lucky card's tag, UI/LuckyCard.lua,
--- a smaller slip stuck on over the card and written on by the card), of a
+-- A slip may also be blank (`size`: the lucky card's tag,
+-- Features/Hunts/LuckyCard.lua, a smaller slip stuck on over the card and written on by the card), of a
 -- fresher stock (`paper`), lying at an exact turn of its own (`tilt`),
 -- taped where the card says (`tapeAt` as { x, y, slant, w, h }) and
 -- throwing its own shadows (`shadow`, `soft`).
@@ -507,7 +507,7 @@ function ns.UI.PaperStrip(parent)
     -- Where the margin has too little room for it, a quote gives up a line
     -- (to STRIP.quote.least) before the page leaves the strip off. Whether
     -- there was a line to give up (the page lays it again). A card on a
-    -- strip (UI/KillerCard.lua) has its own.
+    -- strip (the killer card) has its own.
     function strip:Smaller()
         if (self.quoteLines or 0) <= STRIP.quote.least then return false end
         self.quoteMost = self.quoteLines - 1
@@ -708,7 +708,7 @@ function ns.UI.PaperStrip(parent)
         local slant = flat and 0 or math.rad(T.slant + (Noise(seed + 3) - 0.5) * 2 * T.jitter)
         local tw, th = T.w, T.h
         local ty = -H / 2 + th * (T.over - 0.5)
-        -- Or exactly where the caller puts it (a tag's tape, UI/LuckyCard.lua),
+        -- Or exactly where the caller puts it (a tag's tape, Features/Hunts/LuckyCard.lua),
         -- its own size, at its own slant, names or not.
         local exact = type(note.tapeAt) == "table" and note.tapeAt or nil
         if exact then

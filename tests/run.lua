@@ -49,6 +49,7 @@ local FILES = {
     "witness_card",
     "campfire",
     "campfire_ui",
+    "kinds",
     "margin_caption",
 }
 

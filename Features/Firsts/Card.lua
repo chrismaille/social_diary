@@ -1,7 +1,7 @@
 -- The first found card (Your Diary's plates, JRN-24): a first bag,
 -- shoulders, green, blue or epic, shown as the thing itself. A paper strip
 -- (UI/PaperStrip.lua) taped in the plate's margin with a pencil leader to
--- its pouch, the heading in the diary's hand, "Your first green item!",
+-- its pouch (Mark.lua), the heading in the diary's hand, "Your first green item!",
 -- and under it the item boxed as the game shows it, its icon and then its
 -- name in its colour, set a little askew on the slip, as a thing pasted in
 -- by hand never quite lines up with what was written over it.
@@ -30,14 +30,15 @@
 -- with how and when it came under it in the tooltip's flavour gold. The
 -- rest of the slip tells it in the pouch's words.
 --
--- Which and where (UI/JournalJourney.lua): one card an item, so a green
--- bag that was both the first bag and the first green is one card ("Your
--- first bag and first green item!"); after the people's strips and before
--- the killer card (the user's ruling: a first outranks a death); left off
--- from the bottom when the column runs out, the killer first. A first
--- with no card keeps its item's name in the caption (Text.PlateCaption's
--- `shown`). A gift whose giver has no strip beside the plate says so
--- under the box ("a gift", "from Koko").
+-- Which and where (the margin's `find`, at the foot of this file): one
+-- card an item, so a green bag that was both the first bag and the first
+-- green is one card ("Your first bag and first green item!"); after the
+-- people's strips and before the killer card (the user's ruling: a first
+-- outranks a death); left off from the bottom when the column runs out,
+-- the killer first. A first with no card keeps its item's name in the
+-- caption (Text.lua's caption words, `said.find`). A gift whose giver has
+-- no strip beside the plate says so under the box ("a gift", "from
+-- Koko": Firsts.GiftLine).
 --
 -- Laid flat ("Flat paper only") the box lies square with the slip, with
 -- no heavier edge and no shadow under the icon; a wash keeps its colour
@@ -54,7 +55,7 @@ local addonName, ns = ...
 local Style = ns.Style
 
 local FindCard = {}
-ns.UI.FindCard = FindCard
+ns.Firsts.Card = FindCard
 
 -- The heading: written at the hand's sizes in turn (FONT.noteWritten's
 -- 16, then `small` from `hand`), the full words first and then the short
@@ -149,7 +150,8 @@ function FindCard.Edge(q)
     return (q ~= 1 and Style.QualityGameColour(q)) or FindCard.Ink(q)
 end
 
--- The items found on `plate` (its pouches, plate.findMarks), one an item:
+-- The items found on `plate` (its pouches, plate.findMarks: Mark.lua's
+-- `keep`), one an item:
 -- { link, whats, moments, rec, mark (its pouch on the page), top }, in
 -- the order of their pouches down the plate, so the leaders do not cross.
 function FindCard.Items(plate)
@@ -192,7 +194,7 @@ end
 
 -- A card on `parent` (the right page): a paper strip with the box under
 -- its heading. card:SetFind(item, seed, now, gift) with an item of
--- FindCard.Items and the line under the box (Text.FindGift) or nil, then
+-- FindCard.Items and the line under the box (Firsts.GiftLine) or nil, then
 -- card:Layout(x, y, width) as a strip's; card.overfull where it will not
 -- fit `width` (the page leaves it off).
 function FindCard.New(parent)
@@ -267,8 +269,8 @@ function FindCard.New(parent)
         self.found, self.now, self.gift, self.seedKey = item, now, gift, seed
         self.quality = FindCard.Quality(item.link, item.whats)
         self.iconFile = FindCard.Icon(item.link)
-        self.itemName = ns.UI.JourneyText.ItemName(item.link) or "?"
-        self:SetNote({ name = ns.UI.JourneyText.FindHeading(item.whats), what = gift, strong = true, seed = seed,
+        self.itemName = ns.Firsts.ItemName(item.link) or "?"
+        self:SetNote({ name = ns.Firsts.Heading(item.whats), what = gift, strong = true, seed = seed,
             turn = FIND.turn, tip = function() return FindCard.Tip(item, now) end })
     end
 
@@ -284,9 +286,9 @@ function FindCard.New(parent)
     -- second, card.headTail, opens the room under the name: "Your first /
     -- shoulders!"). Whether it fits, and the second line's words if any.
     local function Heading(room)
-        local Text = ns.UI.JourneyText
+        local Firsts = ns.Firsts
         for _, short in ipairs({ false, true }) do
-            local words = Text.FindHeading(card.found.whats, short)
+            local words = Firsts.Heading(card.found.whats, short)
             for _, size in ipairs({ 0, FIND.small }) do
                 Hand(card.name, size)
                 card.name:SetText(words)
@@ -296,7 +298,7 @@ function FindCard.New(parent)
                 end
             end
         end
-        local words = Text.FindHeading(card.found.whats)
+        local words = Firsts.Heading(card.found.whats)
         for _, size in ipairs({ 0, FIND.small }) do
             Hand(card.name, size)
             Hand(card.headTail, size)
@@ -565,10 +567,9 @@ end
 -- The slip's tooltip, as the pouch's: each first the item was, and how
 -- and when it came.
 function FindCard.Tip(item, now)
-    local Text = ns.UI.JourneyText
     local list = {}
     for _, m in ipairs(item.moments) do
-        local title, line = Text.FindTip(m, now)
+        local title, line = ns.Firsts.Tip(m, now)
         list[#list + 1] = { title }
         if line and line ~= "" then list[#list + 1] = { line, 1, 1, 1, true } end
     end
@@ -580,17 +581,58 @@ end
 -- client will not show the link.
 function FindCard.ShowTip(owner, item, now)
     if not item then return end
-    local Text = ns.UI.JourneyText
+    local Firsts = ns.Firsts
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
     local shown = type(GameTooltip.SetHyperlink) == "function" and item.link
         and pcall(GameTooltip.SetHyperlink, GameTooltip, item.link)
-    if not shown then GameTooltip:SetText(Text.ItemName(item.link) or "?") end
+    if not shown then GameTooltip:SetText(Firsts.ItemName(item.link) or "?") end
     local C = TIP.colour
     for _, m in ipairs(item.moments) do
-        local title, line = Text.FindTip(m, now, true)
+        local title, line = Firsts.Tip(m, now, true)
         GameTooltip:AddLine(line ~= "" and (title .. ", " .. line) or title, C[1], C[2], C[3], true)
     end
     GameTooltip:Show()
 end
 
 FindCard.FIND, FindCard.BOX, FindCard.ICON, FindCard.NAME = FIND, BOX, ICON, NAME
+
+--------------------------------------------------------------------------
+-- The card in the plate's margin (JourneyMargin.Register)
+--------------------------------------------------------------------------
+
+-- A card an item found on the plate, right after the people who did
+-- something with you (order 20: the user's ruling, a first outranks a
+-- death, so before someone there when you died, 30, and the killer, 40).
+-- Taken as shown on their cards until one is left off: the words name the
+-- item only where its card has no room (`said.find`, Text.lua's caption
+-- words).
+ns.UI.JourneyMargin.Register("find", {
+    order = 20, pool = "findPool", count = "findsWritten",
+    new = function(parent) return FindCard.New(parent) end,
+    items = function(plate)
+        local list = {}
+        for _, item in ipairs(FindCard.Items(plate)) do
+            list[#list + 1] = { item = item, top = item.top, x = item.mark and item.mark[1] or 0 }
+        end
+        return list
+    end,
+    write = function(card, it, c)
+        card:SetFind(it.item, c.Seed("find", it.item.link or ""), c.now,
+            ns.Firsts.GiftLine(it.item.rec, c.named))
+    end,
+    mark = function(it) return it.item.mark end,
+    assume = function(said, plate, slot, plan)
+        local all = {}
+        for _, m in ipairs(plan.moments or {}) do
+            if m.kind == "find" then all[m.find or m] = true end
+        end
+        said.find = all
+    end,
+    say = function(said, shown)
+        local finds = {}
+        for _, it in ipairs(shown) do
+            for _, m in ipairs(it.item.moments) do finds[m.find or m] = true end
+        end
+        said.find = finds
+    end,
+})

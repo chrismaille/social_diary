@@ -40,14 +40,8 @@
 --              (10 Oct: the level's road from pin to pin), a ring for time
 --              together, a crossed stroke for a fight, a slip for a note, a
 --              doorway for a dungeon, a hollow lozenge for a first
---              sighting in hindsight (JRN-23), and a drawstring pouch for
---              a first found (JRN-24: the first bag, shoulders, green,
---              blue, epic), a giver's on their margin note's leader, a
---              cross in outline for a close call (JRN-25: out of a fight
---              alive with a tenth of your health or less), a tally for
---              bad luck with a quest's drops (JRN-26) and a star for good
---              luck with them (EXT-3), and whatever a feature registers
---              (Plate.RegisterMark)
+--              sighting in hindsight (JRN-23), and whatever a feature
+--              registers (Plate.RegisterMark)
 --              Each has a tooltip (UI/JourneyText.lua)
 -- The page writes the margin notes and draws their pencil leaders (they
 -- cross the plate's edge, and the page does not turn): plate.where has each
@@ -228,25 +222,9 @@ local FLIGHT = { dash = 5, gap = 4, width = 1.5, alpha = 0.9, ring = 8 }
 local MARK = { hover = 16, halo = 0.75, together = 11, hole = 5, fight = 10, note = { 8, 10 }, noteTurn = 0.14,
     fold = 3.5, door = 10, pin = 13, pinPad = 5, first = { 8.4, 10.4 }, line = 1.2, clear = 3, step = 7, tries = 4,
     merge = 8, tether = { 0.8, 0.5 } }
-local PRIORITY = { fight = 1, session = 2, note = 3, first = 4, find = 5 }
--- A first found (JRN-24): a drawstring pouch, the loot bag of a treasure
--- map. Solid ink: a round `body` (`size` across, its middle `y` below the
--- mark's), pinched at a `neck` (`w` wide, from `y0` to `y1`) and flaring
--- above it into a `mouth` `w` wide at `top`, with a `notch` of paper in its
--- middle (`w` wide, `depth` deep) so the cloth stands up in two ears where
--- corners can move (a plain box down to the neck where they cannot). Round below
--- and flared above, so never the dungeon's arch (round above, square
--- below); solid, so never the ring of time together or the hollow lozenge
--- of a first sighting; a mass, never the death's thin cross. 12 px tall,
--- about the other marks' size. In the item's own ink (Style.QualityInk, as
--- its name is written on the page) drawn `tint` of the way from the plain
--- ink, so a green or a blue only hints at its colour; a white or grey
--- item's pouch is plain ink.
-local POUCH = { body = { size = 8, y = 1.6 }, neck = { w = 2.2, y0 = -3.4, y1 = -1.6 },
-    mouth = { w = 6.4, top = -6.0 }, notch = { w = 2.2, depth = 1.5 }, tint = 0.6, height = 11.6 }
--- The quality a first of each kind is, at least; a bag or shoulders say
--- theirs in their link.
-local FIND_QUALITY = { uncommon = 2, rare = 3, epic = 4 }
+-- A moment of a kind it does not know (a feature's, joined to a person's
+-- marks: a registered mark's `join`) is the least likely to matter.
+local PRIORITY = { fight = 1, session = 2, note = 3, first = 4 }
 -- A doorway's arch, as shares of its size (MARK.door on a plate; the
 -- ledger's margin draws the same, LEDGER.door in UI/JournalJourney.lua):
 -- a square `body` `w` wide, `h` tall, its middle `y` below the mark's
@@ -255,9 +233,8 @@ local FIND_QUALITY = { uncommon = 2, rare = 3, epic = 4 }
 local DOOR = { body = { y = 0.18, w = 0.8, h = 0.62 }, head = { y = -0.1, size = 0.8 } }
 -- What a plate marks at most; past it, the rest is left off. The trail's
 -- own caps are InkTrail's; a registered mark's (Plate.RegisterMark) is
--- its `cap`, filled in here under its `count` as it registers
--- (closeCalls, hunts, fortunes, ...).
-local CAP = { meetings = 150, flights = 40, dashes = 600, dungeons = 30, pins = 80, firsts = 60, finds = 10 }
+-- its `cap`, filled in here under its `count` as it registers.
+local CAP = { meetings = 150, flights = 40, dashes = 600, dungeons = 30, pins = 80, firsts = 60 }
 -- A point this far past the art's edge (px) is still on it; a piece of ink
 -- may reach `SPILL` px past it (onto the neat line), and is left off past
 -- that: the window cuts a pool its edge crosses, as the art is cut.
@@ -287,51 +264,58 @@ local function Clamp(v, lo, hi) return v < lo and lo or (v > hi and hi or v) end
 -- the plate's one card of the kind chosen from them.
 -- What stays bespoke in DrawMoments is what is not one mark a spot of one
 -- kind: the doors, the levels' pins, the people's shared marks (PRIORITY
--- picks the one on top), the pouches of firsts found (in the best item's
--- ink, a gift joining its giver's marks) and the death crosses (on a
--- pool's edge, or on the road).
+-- picks the one on top) and the death crosses (on a pool's edge, or on
+-- the road).
 --
 -- `spec`:
 --   order    a number, lowest drawn first. A mark down keeps its place and
 --            the later ones step round it (Apart, with a tether), so the
 --            order says which matter most where they crowd. Today's:
---            close 30, luck 40, fortune 50, then the
---            deaths on the road (ROAD_DEATHS, 60, core); a kind registered
+--            the deaths on the road (ROAD_DEATHS, 60, core); a kind registered
 --            from Features/<Name>/ says its number there (filler goes after
 --            the deaths on the road, last of all). Leave gaps; equal orders draw in the
---            order they registered. All of them after the doors, pins,
---            people and pouches (which are core and come first).
+--            order they registered. All of them after the doors, pins
+--            and people (which are core and come first).
 --   cap      how many marks of it a plate draws at most; past it the rest
---            is left off. Kept in CAP under `count` (Plate.CAP.hunts, ...).
+--            is left off. Kept in CAP under `count` (Plate.CAP[count]).
 --   count    its key in plate.counts (how many marks were drawn) and in
---            CAP. The plural names the tests know, never the kind's:
---            "closeCalls", "hunts", "fortunes".
+--            CAP. The plural names the tests know, never the kind's
+--            (a feature's Mark.lua says its own).
 --   radius   the room the mark claims (Apart's r, Radius(kind)): about
 --            half its height, a px or two more.
 --   halo     the size of the round paper laid under it (MARK.halo), so it
 --            reads over the art; false where the shape lays its own paper
---            (a close call's cross, on a dot of paper as a death's is:
---            kit.halo).
+--            (on a dot of paper as a death's cross is: kit.halo).
 --   hover    the size of its hover square (MARK.hover where nil).
 --   draw     function(kit, x, y, arg): the mark round x, y on the card,
 --            only through the kit (below), so it turns and is lit with
 --            the card and its textures come from the plate's pools.
 --   arg      optional function(list) → draw's `arg`, from the moments
---            merged on the spot (say, the best of their records).
+--            merged on the spot (say, the best of their records, or the
+--            ink it is drawn in); it may sort `list` (the order the kept
+--            mark and the tooltip have).
 --   tip      function(m, now) → title, lines: each moment's words under
 --            the mouse (UI/JourneyText.lua's, looked up when asked: it
 --            loads after this file).
 --   keep     optional: the plate field its marks are kept in, a list of
 --            { x, y (on the card), list (the moments on it), at = { px, py }
---            (on the page, for a margin card's leader) }: plate.closeMarks,
---            huntMarks, fortuneMarks.
+--            (on the page, for a margin card's leader), arg (draw's) }:
+--            plate.<keep>.
+--   join     optional function(m) → true where a moment on the mark is
+--            someone's too (m.guid: something they gave you) and joins
+--            their marks: kept in plate.where (its mark on the page) and
+--            plate.people, as a person's own moments are, so it joins
+--            their margin note (the moment's `person` says how: Core/
+--            JourneyRecap.lua's RegisterMoment) and their note's leader
+--            may come to this mark.
 --   chosen, choose   optional: plate[chosen] = choose(marks, plate), the
 --            plate's one card of the kind, chosen as soon as its marks are
---            down (plate.hunt, plate.lucky). A close
---            call's card is chosen with the killer's (DrawKillers).
+--            down (plate[chosen]). A card chosen
+--            with the killer's, after every mark, is a pass's instead
+--            (Plate.RegisterPass).
 --
--- The kit a `draw` gets, one a plate (built in New, as the lucky print's
--- printKit is), closed over the card's toolkit:
+-- The kit a `draw` gets, one a plate (built in New, as a pass's over-kit
+-- is), closed over the card's toolkit:
 --   ink, inner, halo   the marks' pools: the ink (OVERLAY 0), the paper
 --                      inside it (OVERLAY 1), the paper under it (ARTWORK
 --                      7, the halos')
@@ -368,6 +352,87 @@ function Plate.RegisterMark(kind, spec)
 end
 -- For the tests: the registered kinds, and their order.
 Plate.MARKS, Plate.MARK_ORDER, Plate.ROAD_DEATHS = MARKS, MARK_ORDER, ROAD_DEATHS
+
+--------------------------------------------------------------------------
+-- Passes after the marks (Plate.RegisterPass)
+--------------------------------------------------------------------------
+
+-- What a feature does on a plate once every mark is down, that is not a
+-- mark of its own: say, what it learns from the death crosses (the
+-- route's, drawn here) and the plate's one card it chooses from that; or
+-- something it lays over the picture, on the frame the mat and the photo
+-- corners are on (a slip glued across a light plate's print). The crosses
+-- stay the plate's: their shape, their place, the deaths each counts; a
+-- pass only reads them, puts its own fields on them and on the plate, and
+-- may hang a tooltip over a cross.
+--
+-- `spec`:
+--   order    a number, lowest first; equal orders in the order they
+--            registered. A later pass reads what an earlier one left on
+--            the plate (and may clear it: a witness's card takes the place
+--            of the card it replaces). Each feature says its number where
+--            it registers. Leave gaps.
+--   draw     function(plate, c): `c`, one a drawing:
+--              crosses   the death crosses drawn (plate.crosses): { x, y
+--                        (on the card), segs (the stops or the road it
+--                        marks), count (the deaths it counts) }
+--              mapID, entry, now, opts   as plate:Draw has them
+--              At(x, y)      a map point (0..1) on the card, nil off the
+--                            window
+--              OnPage(x, y)  a card point on the page (a margin card's
+--                            leader ends there)
+--              Tip(title, lines)  a tooltip as Style.Tooltip takes it
+--              HoverCross(cross, fn)  a hover square over a cross, the
+--                            cross's own size, fn() → Tip's list
+--   new      optional function(plate, kit): once for each plate made after
+--            it registered, while the plate is made (in the passes'
+--            order), for a pass that draws over the picture: it makes its
+--            pools and buttons there and keeps them (on the plate, or its
+--            own table by plate). `kit`:
+--              over      the frame over the picture (the mat, the neat
+--                        line, the lifted corner's shade at OVERLAY 5 and
+--                        the photo corners over it: a pass's layers go
+--                        between, ARTWORK 4 to OVERLAY 4, under the shade)
+--              Pool(layer, sublevel)  a pool of textures on `over`
+--                        (pool:Next()), begun and finished with every
+--                        drawing and counted in plate.counts.textures
+--              TextPool(font, layer, sublevel)  a pool of font strings
+--                        on `over`, likewise
+--              Button()  a button on `over`, hidden, a press on it the
+--                        plate's (click, drag); square, as it cannot turn
+--              Place, Quad, PlaceButton   the card's toolkit (K's): a
+--                        texture or a button placed on the card, a quad
+--                        with its corners on the card
+--              Tip(title, lines)  a tooltip as Style.Tooltip takes it
+--            Its `draw` then draws through what it kept, every drawing,
+--            and hides what it does not use (the pools hide the rest).
+local PASSES, PASS_ORDER = {}, {}
+local passSeq = 0
+function Plate.RegisterPass(key, spec)
+    assert(type(key) == "string" and type(spec) == "table" and type(spec.draw) == "function",
+        "Plate.RegisterPass(key, { order, draw = function(plate, c) ... })")
+    Plate.RemovePass(key)
+    passSeq = passSeq + 1
+    spec.key, spec.seq, spec.order = key, passSeq, spec.order or 100
+    PASSES[key] = spec
+    PASS_ORDER[#PASS_ORDER + 1] = spec
+    table.sort(PASS_ORDER, function(a, b)
+        if a.order ~= b.order then return a.order < b.order end
+        return a.seq < b.seq
+    end)
+    return spec
+end
+-- Takes a pass out again (a test's own).
+function Plate.RemovePass(key)
+    local old = PASSES[key]
+    if not old then return end
+    PASSES[key] = nil
+    for i = #PASS_ORDER, 1, -1 do
+        if PASS_ORDER[i] == old then table.remove(PASS_ORDER, i) end
+    end
+end
+-- For the tests: the registered passes, and their order.
+Plate.PASSES, Plate.PASS_ORDER = PASSES, PASS_ORDER
 
 --------------------------------------------------------------------------
 -- Windows (Decision 3)
@@ -581,8 +646,9 @@ local function New(parent, slot)
     local markInnerPool = Pool("OVERLAY", 1, nil, content)
     -- Over the picture: the mat on the margin, the neat line, a lifted
     -- corner's shade, and the photo corners holding the card down. The
-    -- shade lies over all of the print's own (PRINT_LAYERS), so a slip glued
-    -- on it slopes away from the light with it.
+    -- shade lies over all that a pass lays over the picture (OVERLAY 4 and
+    -- under: its `new`, below), so a slip glued on it slopes away from the
+    -- light with it.
     local glossPool = Pool("BACKGROUND", -8, nil, over)
     local matPool = Pool("BACKGROUND", 0, nil, over)
     local matGrainPool = Pool("BORDER", 0, nil, over)
@@ -624,21 +690,6 @@ local function New(parent, slot)
     end
     local numberPool = TextPool(Style.FONT.tag)
 
-    -- Good luck told on a light plate's print (UI/LuckyCard.lua's S): a slip
-    -- glued over the print's foot, over the mat and the neat line and under
-    -- the lifted corner's shade and the photo corners, its parts from the
-    -- slip up: its shadow and edge, its stock, the printed words, the
-    -- scribble, the icon, the tag (its shadows, edge, stock, words, the
-    -- underline) and the tag's tape. Each part a pool of its own.
-    local PRINT_LAYERS = { shadow = { "ARTWORK", 4 }, edge = { "ARTWORK", 4 }, paper = { "ARTWORK", 5 },
-        ink = { "ARTWORK", 7 }, iconShadow = { "OVERLAY", -8 }, iconEdge = { "OVERLAY", -7 }, icon = { "OVERLAY", -6 },
-        tagShadow = { "OVERLAY", -4 }, tagEdge = { "OVERLAY", -3 }, tagPaper = { "OVERLAY", -2 },
-        underline = { "OVERLAY", 0 }, tape = { "OVERLAY", 1 } }
-    local PRINT_TEXTS = { struck = { "ARTWORK", 6 }, count = { "OVERLAY", -5 }, tagText = { "OVERLAY", -1 } }
-    local printPools, printTexts = {}, {}
-    for part, at in pairs(PRINT_LAYERS) do printPools[part] = Pool(at[1], at[2], nil, over) end
-    for part, at in pairs(PRINT_TEXTS) do printTexts[part] = TextPool(Style.FONT.small, over, at[1], at[2]) end
-
     -- A hover square passes a click on to the plate: a mark is part of it.
     local hoverPool = { used = 0 }
     function hoverPool:Begin() self.used = 0 end
@@ -675,12 +726,26 @@ local function New(parent, slot)
     -- For the tests: the hover squares and their tooltips.
     plate.hover = hoverPool
 
-    -- The mouse over good luck on the print (S): the star's tooltip over
-    -- the slip and its tag, the item's own over its icon (the lucky card's,
-    -- HuntCard.ShowTip). Square buttons round each as drawn (they cannot
-    -- turn), on the frame over the picture, so they do not lean in; a press
-    -- on them is a press on the plate.
-    local function PrintButton()
+    -- What the passes lay over the picture (Plate.RegisterPass's `new`):
+    -- their pools on the frame over it, between the neat line and the
+    -- lifted corner's shade, begun, finished and counted with the plate's
+    -- own; and buttons there that take the mouse without leaning in
+    -- (square, as they cannot turn), a press on them a press on the plate.
+    -- Each pass's `new` is asked here, in the passes' order, as the plate
+    -- is made.
+    local overPools, overTexts = {}, {}
+    local overKit = { over = over, Place = Place, Quad = Quad, PlaceButton = PlaceButton, Tip = Tip }
+    function overKit.Pool(layer, sublevel)
+        local pool = Pool(layer, sublevel, nil, over)
+        overPools[#overPools + 1] = pool
+        return pool
+    end
+    function overKit.TextPool(font, layer, sublevel)
+        local pool = TextPool(font, over, layer, sublevel)
+        overTexts[#overTexts + 1] = pool
+        return pool
+    end
+    function overKit.Button()
         local button = CreateFrame("Button", nil, over)
         button:EnableMouse(true)
         button:SetScript("OnMouseDown", function(_, which) plate:Press(which) end)
@@ -688,24 +753,18 @@ local function New(parent, slot)
         button:Hide()
         return button
     end
-    plate.printHit, plate.printItem = PrintButton(), PrintButton()
-    Style.Tooltip(plate.printHit, function()
-        local s = plate.print
-        return s and Tip(Text.HuntTip(s.hunt, s.now))
-    end)
-    plate.printItem:SetScript("OnEnter", function(self)
-        if plate.print then ns.UI.HuntCard.ShowTip(self, plate.print) end
-    end)
-    plate.printItem:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    for _, spec in ipairs(PASS_ORDER) do
+        if spec.new then spec.new(plate, overKit) end
+    end
 
     local TEXTURES = { gluePool, shadowPool, glossPool, corePool, backgroundPool, tilePool, exploredPool,
         vignettePool, dashPool, edgePool, framePool, liftShadePool, washPool, pinPool, leaderPool,
         markHaloPool, markPool, markInnerPool, cornerShadowPool, cornerPool, foldPool, matPool, matGrainPool }
     for _, pool in ipairs(trailPools) do TEXTURES[#TEXTURES + 1] = pool end
-    for _, pool in pairs(printPools) do TEXTURES[#TEXTURES + 1] = pool end
+    for _, pool in ipairs(overPools) do TEXTURES[#TEXTURES + 1] = pool end
     local ALL = { numberPool, hoverPool }
     for _, pool in ipairs(TEXTURES) do ALL[#ALL + 1] = pool end
-    for _, pool in pairs(printTexts) do ALL[#ALL + 1] = pool end
+    for _, pool in ipairs(overTexts) do ALL[#ALL + 1] = pool end
 
     ----------------------------------------------------------------------
     -- Marking the card
@@ -844,31 +903,6 @@ local function New(parent, slot)
         Lozenge(ink, x, y, hw + t, hh + t * hh / hw, INK_STRONG, 1)
         Lozenge(inner, x, y, hw, hh, P, 0.95)
     end
-    -- A first found (POUCH): a drawstring pouch in `colour` (ink, or the
-    -- item's ink part way), lit where it lies.
-    function SHAPES.find(ink, inner, x, y, colour)
-        local B, N, M, V = POUCH.body, POUCH.neck, POUCH.mouth, POUCH.notch
-        colour = colour or INK_STRONG
-        Dot(ink, x, y + B.y, B.size, colour, 1)
-        Box(ink, x, y + (N.y0 + N.y1) / 2, N.w, N.y1 - N.y0, colour, 1)
-        local light = Light(x, y)
-        local mouth = ink:Next()
-        Fill(mouth, colour[1] * light, colour[2] * light, colour[3] * light, 1)
-        local hw, nw = M.w / 2, N.w / 2
-        if Quad(mouth, x - hw, y + M.top, x + hw, y + M.top, x + nw, y + N.y0 + 0.3, x - nw, y + N.y0 + 0.3) then
-            -- The ears: a nick of paper out of the mouth's middle.
-            local notch = inner:Next()
-            Fill(notch, P[1], P[2], P[3], 1)
-            local vw = V.w / 2
-            if not Quad(notch, x - vw, y + M.top - 0.2, x + vw, y + M.top - 0.2, x, y + M.top + V.depth,
-                x, y + M.top + V.depth) then
-                notch:Hide()
-            end
-        else
-            Place(mouth, x - hw * 0.8, y + M.top, M.w * 0.8, N.y0 + 0.3 - M.top)
-        end
-    end
-
     -- The paper round a mark, so it reads over the art.
     local function Halo(x, y, size, round)
         if round then
@@ -1415,8 +1449,9 @@ local function New(parent, slot)
     -- For the tests: where the marks went, and how much room each took.
     plate.spots = spots
     -- The death crosses drawn: { x, y (on the card), segs (the stops or
-    -- the road it marks), count }, each given the deaths kept with their
-    -- killers that fell in it (UI/KillerCard.lua's Match).
+    -- the road it marks), count }, read by the passes after the marks
+    -- (Plate.RegisterPass), which may put the deaths kept with their
+    -- killers on each (cross.deaths).
     local crosses = {}
     plate.crosses = crosses
 
@@ -1568,7 +1603,6 @@ local function New(parent, slot)
         if kind == "note" then return MARK.note[2] / 2 + 1 end
         if kind == "first" then return MARK.first[2] / 2 + 1 end
         if kind == "dungeon" then return MARK.door / 2 + 1 end
-        if kind == "find" then return POUCH.height / 2 + 1 end
         return MARK.together / 2 + 1
     end
 
@@ -1748,79 +1782,8 @@ local function New(parent, slot)
             end
         end
 
-        -- The firsts found (JRN-24): a pouch where each was found, firsts
-        -- on one spot (a green bag is a first bag and a first green) one
-        -- pouch, in the ink of the best of them, its tooltip telling each.
-        -- A gift from someone in the diary is that person's moment as well:
-        -- kept with their marks (plate.where), so it joins their margin
-        -- note ("gave you your first blue") and its leader may come here.
-        local found, pouches = {}, 0
-        plate.findMarks = {}
-        for _, h in ipairs(here) do
-            if h.m.kind == "find" then
-                local into
-                for _, c in ipairs(found) do
-                    if math.abs(c.x - h.x) <= MARK.merge and math.abs(c.y - h.y) <= MARK.merge then
-                        into = c
-                        break
-                    end
-                end
-                if not into and #found < CAP.finds then
-                    into = { x = h.x, y = h.y, list = {} }
-                    found[#found + 1] = into
-                end
-                if into then into.list[#into.list + 1] = h.m end
-            end
-        end
-        local function Quality(m)
-            local rec = m.find or m
-            return math.max(FIND_QUALITY[m.what] or 0, ns.Timeline.Quality(rec.link) or 0)
-        end
-        for _, c in ipairs(found) do
-            table.sort(c.list, function(a, b)
-                local qa, qb = Quality(a), Quality(b)
-                if qa ~= qb then return qa > qb end
-                return a.t < b.t
-            end)
-            local list = c.list
-            local x, y = Apart(c.x, c.y, Radius("find"))
-            pouches = pouches + 1
-            Halo(x, y, POUCH.height + 4, true)
-            local colour = INK_STRONG
-            local own = Quality(list[1]) >= 2 and Style.QualityInk(Quality(list[1]))
-            if own then
-                local t = POUCH.tint
-                colour = { INK_STRONG[1] + (own[1] - INK_STRONG[1]) * t, INK_STRONG[2] + (own[2] - INK_STRONG[2]) * t,
-                    INK_STRONG[3] + (own[3] - INK_STRONG[3]) * t }
-            end
-            SHAPES.find(markPool, markInnerPool, x, y, colour)
-            hoverPool:Next(x, y, function()
-                local tip = {}
-                for _, m in ipairs(list) do
-                    local title, line = Text.FindTip(m, now)
-                    tip[#tip + 1] = { title }
-                    if line and line ~= "" then tip[#tip + 1] = { line, 1, 1, 1, true } end
-                end
-                return tip
-            end)
-            -- `at`: where it lies on the page, for a first found card's
-            -- leader (UI/FindCard.lua).
-            local px, py = OnPage(x, y)
-            plate.findMarks[#plate.findMarks + 1] = { x = x, y = y, list = list, colour = colour,
-                at = { px, py, x = x, y = y } }
-            for _, m in ipairs(list) do
-                if m.gift and m.guid and ns.Diary.IsDiary(m.guid) then
-                    where[m] = { px, py, x = x, y = y }
-                    people[#people + 1] = m
-                end
-            end
-        end
-        counts.finds = pouches
-
-        -- The registered marks (Plate.RegisterMark): close calls (JRN-25),
-        -- bad and good luck with a quest's drops (JRN-26, EXT-3), the ends
-        -- of long quest chains (JRN-28), and whatever a feature adds:
-        -- a mark where each was, those on one spot (MARK.merge) one mark,
+        -- The registered marks (Plate.RegisterMark), whatever a feature
+        -- adds: a mark where each was, those on one spot (MARK.merge) one mark,
         -- its tooltip telling each.
         local function Spots(kind, cap)
             local list = {}
@@ -1862,17 +1825,26 @@ local function New(parent, slot)
             for _, c in ipairs(Spots(spec.kind, spec.count and CAP[spec.count] or spec.cap or math.huge)) do
                 local x, y = Apart(c.x, c.y, Radius(spec.kind))
                 if spec.halo then Halo(x, y, spec.halo, true) end
-                spec.draw(kit, x, y, spec.arg and spec.arg(c.list) or nil)
+                local arg = spec.arg and spec.arg(c.list) or nil
+                spec.draw(kit, x, y, arg)
                 hoverPool:Next(x, y, spec.tip and Tell(c.list, spec.tip) or nil, hover)
                 local px, py = OnPage(x, y)
-                marks[#marks + 1] = { x = x, y = y, list = c.list, at = { px, py } }
+                marks[#marks + 1] = { x = x, y = y, list = c.list, at = { px, py }, arg = arg }
+                if spec.join then
+                    for _, m in ipairs(c.list) do
+                        if spec.join(m) then
+                            where[m] = { px, py, x = x, y = y }
+                            people[#people + 1] = m
+                        end
+                    end
+                end
             end
             if spec.count then counts[spec.count] = #marks end
             if spec.chosen and spec.choose then plate[spec.chosen] = spec.choose(marks, plate) end
         end
         -- A death on the road has no pool to sit beside: its cross, in its
         -- fixed place among the registered marks (ROAD_DEATHS), after the
-        -- luck and before the filler.
+        -- features' own below 60 and before the filler.
         local function RoadDeaths()
             for _, h in ipairs(deaths) do
                 local x, y = Apart(h.x, h.y, DEATH.dot / 2)
@@ -1894,105 +1866,14 @@ local function New(parent, slot)
         counts.meetings, counts.firsts, counts.marks = meetings, firsts, marks
     end
 
-    -- The deaths kept with their killers (Journey.Deaths) onto the crosses
-    -- they fell at: a cross that knows its killers tells them under the
-    -- mouse ("Died here twice" / "Sunscale Lashtail, with Bite"), and the
-    -- plate's one killer is chosen from them (UI/KillerCard.lua), with
-    -- where its card's leader ends on the page (plate.killer.mark).
-    local function DrawKillers(deaths, mapID, At, entry, witnesses)
-        local Card = ns.UI.KillerCard
-        local j = ns.Journey.For(ns.ownGUID)
-        Card.Match(crosses, deaths, mapID, function(d) return At(d.x, d.y) end, entry,
-            function(t) return ns.Journey.CountedOn(j, t) end)
-        for _, cross in ipairs(crosses) do
-            if #cross.deaths > 0 then
-                hoverPool:Next(cross.x, cross.y, function() return Tip(Text.DeathCross(cross.count, cross.deaths)) end,
-                    DEATH.dot + 4)
-            end
-        end
-        local k = Card.Choose(crosses)
-        if k then
-            local px, py = OnPage(k.cross.x, k.cross.y)
-            k.mark = { px, py }
-        end
-        plate.killer = k
-        -- The creature that nearly got you (JRN-25), from the close calls'
-        -- marks: its card goes in the margin beside the killer's, if there
-        -- is one (a close call and a death are two fights, even with the
-        -- same creature).
-        plate.foe = Card.Foe(plate.closeMarks)
-        -- Someone who was there (Capture/Witnesses.lua) goes before the
-        -- creature: a witness to a death takes the killer card's place, one
-        -- who saved the user in a close call the close call's card's
-        -- (14 Oct, the user's call). plate.witness is UI/KillerCard.lua's
-        -- Witness.
-        plate.witness = Card.Witness(crosses, plate.closeMarks, witnesses, OnPage)
-        if plate.witness and plate.witness.death then plate.killer = nil end
-        if plate.witness and plate.witness.call then plate.foe = nil end
-    end
-
-    -- Good luck told on the print (UI/LuckyCard.lua's S): on a light
-    -- plate's slot (a snapshot or the tucked print), which has no margin,
-    -- the plate's lucky hunt on a slip across the print's foot, drawn
-    -- through the card's toolkit so it turns and lies with the print.
-    -- plate.print says where it went (for the page: the caption's words, a
-    -- leader to the star where the star is not beside it) or is nil where it
-    -- did not fit, and the caption keeps the hunt's words.
-    local printKit = { Place = Place, Quad = Quad,
-        Texture = function(part) return printPools[part]:Next() end,
-        Text = function(part) return printTexts[part]:Next() end }
-    local function DrawPrint(entry, now)
-        plate.print = nil
-        plate.printHit:Hide()
-        plate.printItem:Hide()
-        local chosen, slot = plate.lucky, plate.slot
-        if not (chosen and slot and slot.light) then return end
-        local hunt = chosen.hunt
-        local seed = table.concat({ "lucky", hunt.questID or hunt.item or "", plate.mapID or 0,
-            entry and (entry.level or entry.week) or 0 }, ":") .. ":print"
-        local s = ns.UI.LuckyCard.Print(printKit, chosen, slot, seed, view.flat)
-        if not s then return end
-        local hit, item = s.hit, s.iconHit
-        PlaceButton(plate.printHit, hit.x, hit.y, hit.w, hit.h)
-        plate.printHit:SetFrameLevel(over:GetFrameLevel() + 1)
-        plate.printHit:Show()
-        PlaceButton(plate.printItem, item.x, item.y, item.w, item.h)
-        plate.printItem:SetFrameLevel(over:GetFrameLevel() + 2)
-        plate.printItem:Show()
-        -- On the page: its corners, its top edge, and a leader's way from
-        -- that edge to the star, where the star is far enough off to need
-        -- one (PRINT.near).
-        local function Page(list)
-            local out = {}
-            for i, p in ipairs(list) do out[i] = { OnPage(p[1], p[2]) } end
-            return out
-        end
-        local edge = Page(s.edge)
-        local mark, far = chosen.mark, false
-        if s.star then
-            local ex = math.max(s.edge[1][1], math.min(s.edge[2][1], s.star[1]))
-            local d = math.sqrt((s.star[1] - ex) ^ 2 + (s.star[2] - s.top) ^ 2)
-            far = d >= ns.UI.LuckyCard.PRINT.near
-        end
-        local x0, y0, x1, y1 = math.huge, math.huge, -math.huge, -math.huge
-        local polys = { label = Page(s.label), tag = Page(s.tag), icon = Page(s.icon) }
-        for _, poly in pairs(polys) do
-            for _, p in ipairs(poly) do
-                x0, y0, x1, y1 = math.min(x0, p[1]), math.min(y0, p[2]), math.max(x1, p[1]), math.max(y1, p[2])
-            end
-        end
-        plate.print = { hunt = hunt, now = now, itemID = s.itemID, form = s.form, s = s, mark = mark, far = far,
-            polys = polys, box = { x0, y0, x1 - x0, y1 - y0 }, plate = plate }
-        -- A leader's way off it (UI/JournalJourney.lua's Aim): the point of
-        -- its top edge nearest the mark, on the page.
-        function plate.print:Nearest(x, y)
-            local ax, ay, bx, by = edge[1][1], edge[1][2], edge[2][1], edge[2][2]
-            local dx, dy = bx - ax, by - ay
-            local t = ((x - ax) * dx + (y - ay) * dy) / math.max(dx * dx + dy * dy, 1e-6)
-            t = math.max(0, math.min(1, t))
-            return ax + dx * t, ay + dy * t
-        end
-        function plate.print:IsShown() return plate:IsShown() end
+    -- The passes after the marks (Plate.RegisterPass), in their order:
+    -- what features learn from the death crosses and the plate's cards
+    -- they choose from that, and what they lay over the picture.
+    local function Passes(mapID, At, entry, now, opts)
+        local c = { crosses = crosses, mapID = mapID, entry = entry, now = now, opts = opts, At = At,
+            OnPage = OnPage, Tip = Tip,
+            HoverCross = function(cross, fn) hoverPool:Next(cross.x, cross.y, fn, DEATH.dot + 4) end }
+        for _, spec in ipairs(PASS_ORDER) do spec.draw(plate, c) end
     end
 
     -- Where it is glued: one of the page's slots.
@@ -2006,8 +1887,8 @@ local function New(parent, slot)
     -- `entry` (a level or a week: only its from..to is drawn). `opts`:
     -- moments (Recap.Moments of the entry: its marks), cap (the plate's
     -- share of the caps, Plate.Share), fights (Journey.FightIndex, built
-    -- once), deaths (Journey.Deaths: the deaths kept with their killers),
-    -- witnesses (Journey.WitnessIndex, built once).
+    -- once), witnesses (Journey.WitnessIndex, built once), box (the full
+    -- page's art box).
     function plate:Draw(sheet, entry, window, opts)
         opts = opts or {}
         local started = debugprofilestop and debugprofilestop()
@@ -2052,8 +1933,7 @@ local function New(parent, slot)
         end
 
         DrawMoments(sheet, opts.moments, mapID, At, pools, entry, now, fights)
-        DrawKillers(opts.deaths, mapID, At, entry, opts.witnesses or ns.Journey.WitnessIndex())
-        DrawPrint(entry, now)
+        Passes(mapID, At, entry, now, opts)
         self.counts.labels = 0
 
         for _, pool in ipairs(ALL) do pool:Finish() end
@@ -2337,138 +2217,13 @@ local function New(parent, slot)
     return plate
 end
 
---------------------------------------------------------------------------
--- The marks registered by kind (Plate.RegisterMark)
---------------------------------------------------------------------------
-
--- Each block below is one kind's mark, whole: its look, its shape through
--- the kit, its words under the mouse, what the plate keeps of it and the
--- card it chooses. They live here until their features move to
--- Features/<Name>/ (.claude/registry-refactor.md), and are written to be
--- cut out as they are: nothing in them reaches into New but through the
--- kit, and the words are looked up when the mouse comes, as
--- UI/JourneyText.lua loads after this file.
-
--- A close call (JRN-25): the death's cross drawn in outline and never
--- filled in, the cross you nearly got. Ink round paper, as the hollow
--- lozenge of a first sighting is: a `stem` `w` wide and `h` tall, its middle
--- `y` below the mark's, and a `bar` `w` wide, its middle `y` off it, each
--- `line` px of ink round its paper. A little bigger than the death's solid
--- cross (8 px), so its paper reads at the book's size, but no heavier: the
--- death stays the darker mark. On a `dot` of paper, as the death's is.
--- (11 Oct, a rasterised render: at 12.4 px with 1.25 px of ink it
--- outweighed the death beside it.)
-local CLOSE = { stem = { w = 3.8, h = 11, y = 0.5 }, bar = { w = 8.2, y = -1.9 }, line = 1.1, dot = 14 }
--- No halo of the plate's: it lies on its own dot of paper, as the death's
--- cross does (kit.halo). Its marks are kept (plate.closeMarks) for the
--- creature that nearly got you, its card in the margin: chosen with the
--- killer's (DrawKillers: plate.foe, or a witness's), so not here.
-Plate.RegisterMark("close", {
-    order = 30, cap = 20, count = "closeCalls",
-    radius = CLOSE.stem.h / 2 + 1, halo = false, hover = CLOSE.dot,
-    tip = function(m, now) return ns.UI.JourneyText.CloseTip(m.call, now) end,
-    keep = "closeMarks",
-    -- The cross in ink, then its paper inside, so the outline runs round
-    -- the crossing unbroken.
-    draw = function(kit, x, y)
-        local S, B, t = CLOSE.stem, CLOSE.bar, CLOSE.line
-        local P, INK_STRONG = kit.P, kit.INK_STRONG
-        kit.Dot(kit.halo, x, y, CLOSE.dot, P, 0.85)
-        kit.Box(kit.ink, x, y + S.y, S.w, S.h, INK_STRONG, 1)
-        kit.Box(kit.ink, x, y + B.y, B.w, S.w, INK_STRONG, 1)
-        kit.Box(kit.inner, x, y + S.y, S.w - 2 * t, S.h - 2 * t, P, 1)
-        kit.Box(kit.inner, x, y + B.y, B.w - 2 * t, S.w - 2 * t, P, 1)
-    end,
-})
-
--- Bad luck with a quest's drops (JRN-26): a tally, the kills counted where
--- the hunt went on. Four uprights `gap` px apart, `h` tall, each leaning
--- `lean` px at its top as a hand draws them (`jitter`: each one's height
--- given or taken), and a fifth stroke across them from the lower left,
--- `over` px past the outer two. Strokes `width` px. In ink, never a letter
--- (the gate of five is no letter), never a fight's crossed strokes (two,
--- red-brown).
-local TALLY = { count = 4, gap = 2.5, h = 10, lean = 0.5, jitter = { 0, 0.6, -0.4, 0.3 }, over = 1.6,
-    rise = 7.2, width = 1.3, halo = 16 }
--- The tallies are kept (plate.huntMarks) for the plate's one hunt card
--- (UI/HuntCard.lua): the hunt furthest past its yardstick, against the
--- character's usual where the drop rates are not known (plate.hunt).
-Plate.RegisterMark("luck", {
-    order = 40, cap = 20, count = "hunts",
-    radius = TALLY.h / 2 + 2, halo = TALLY.halo, hover = TALLY.halo,
-    tip = function(m, now) return ns.UI.JourneyText.HuntTip(m.hunt, now) end,
-    keep = "huntMarks", chosen = "hunt",
-    choose = function(marks)
-        local usual = #marks > 0 and ns.Journey.UsualLuck(ns.Journey.For(ns.ownGUID)) or nil
-        return ns.UI.HuntCard.Choose(marks, usual)
-    end,
-    -- Four strokes leaning a little, and one across.
-    draw = function(kit, x, y)
-        local T = TALLY
-        local half = (T.count - 1) * T.gap / 2
-        for i = 1, T.count do
-            local u = x - half + (i - 1) * T.gap
-            local h = T.h + (T.jitter[i] or 0)
-            kit.Stroke(kit.ink, u - T.lean / 2, y + h / 2, u + T.lean / 2, y - h / 2, T.width, kit.INK_STRONG, 1)
-        end
-        local reach = half + T.over
-        kit.Stroke(kit.ink, x - reach, y + T.rise / 2, x + reach, y - T.rise / 2, T.width, kit.INK_STRONG, 1)
-    end,
-})
-
--- Good luck with a quest's drops (EXT-3), the tally's bright counterpart:
--- a lucky star, five points `r` px out from its middle, its inner corners
--- `inner` of that, turned `turn` as a hand draws it, and set `drop` of r
--- lower so it sits on its middle (its points reach further up than down).
--- Solid ink, five kites from the middle (corners on the card); where
--- corners cannot move, five strokes `ray` px wide from the middle to its
--- points. Closed and solid, so never the tally's open strokes, the
--- crosses' square arms or the fight's two red-brown strokes; drawn solid,
--- never as the five strokes of a pentagram. About 12 px, the tally's size.
--- (12 Oct, a rasterised render: at 13 px it outweighed the death beside it.)
-local FORTUNE = { r = 6.2, inner = 0.45, turn = -0.10, drop = 0.095, ray = 2.4, halo = 16 }
--- The stars are kept (plate.fortuneMarks) for the plate's one lucky card
--- (UI/LuckyCard.lua): the luckiest hunt (plate.lucky), in the margin, or
--- on the print of a light plate (DrawPrint).
-Plate.RegisterMark("fortune", {
-    order = 50, cap = 20, count = "fortunes",
-    radius = FORTUNE.r + 1, halo = FORTUNE.halo, hover = FORTUNE.halo,
-    tip = function(m, now) return ns.UI.JourneyText.HuntTip(m.hunt, now) end,
-    keep = "fortuneMarks", chosen = "lucky",
-    choose = function(marks) return ns.UI.LuckyCard.Choose(marks) end,
-    -- A solid star, one kite of ink to each point.
-    draw = function(kit, x, y)
-        local F = FORTUNE
-        local R, r = F.r, F.r * F.inner
-        y = y + R * F.drop
-        local light = kit.Light(x, y)
-        local c = kit.INK_STRONG
-        local function Corner(i)
-            local a = -math.pi / 2 + F.turn + (i + 0.5) * 2 * math.pi / 5
-            return x + r * math.cos(a), y + r * math.sin(a)
-        end
-        for i = 0, 4 do
-            local a = -math.pi / 2 + F.turn + i * 2 * math.pi / 5
-            local px, py = x + R * math.cos(a), y + R * math.sin(a)
-            local bx, by = Corner(i - 1)
-            local ax, ay = Corner(i)
-            local kite = kit.ink:Next()
-            kit.Fill(kite, c[1] * light, c[2] * light, c[3] * light, 1)
-            if not kit.Quad(kite, x, y, bx, by, px, py, ax, ay) then
-                kite:Hide()
-                kit.Stroke(kit.ink, x, y, px, py, F.ray, kit.INK_STRONG, 1)
-            end
-        end
-    end,
-})
-
 -- A plate's share of the trail's caps, by its area (SHARE).
 function Plate.Share(slot)
     return math.min(1, math.max(SHARE.least, slot.w * slot.h / SHARE.area))
 end
 
 Plate.MOUNT, Plate.GLUE, Plate.LIFT, Plate.SHARE, Plate.MARK = MOUNT, GLUE, LIFT, SHARE, MARK
-Plate.PRIORITY, Plate.DOOR, Plate.POUCH = PRIORITY, DOOR, POUCH
+Plate.PRIORITY, Plate.DOOR = PRIORITY, DOOR
 Plate.CAP = CAP
 Plate.ZOOM, Plate.FULLZOOM, Plate.DRAG = ZOOM, FULLZOOM, DRAG
 Plate.PLATE, Plate.SHADOW, Plate.THICKNESS, Plate.VIGNETTE = PLATE, SHADOW, THICKNESS, VIGNETTE

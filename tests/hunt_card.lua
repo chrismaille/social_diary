@@ -1,4 +1,4 @@
--- The hunt card (UI/HuntCard.lua, JRN-26): a quest's drops that took bad
+-- The hunt card (Features/Hunts/HuntCard.lua, JRN-26): a quest's drops that took bad
 -- luck, its tally written out in the plate's margin. Its words, its two
 -- ways (with the drop rates: the strokes past a stop rule; without: each
 -- against usually), the hunt it is for, its icon and the stand-ins for it,
@@ -13,7 +13,7 @@ local DAY = T.DAY
 local ns = T.Boot()
 local SELF = F.SELF
 local Text = ns.UI.JourneyText
-local Card = ns.UI.HuntCard
+local Card = ns.Hunts.HuntCard
 local NB = "\194\160"
 
 mock.now = 1791000000
@@ -30,35 +30,35 @@ local BANDANAS = { kills = 37, need = 6, item = "Red Linen Bandana", itemID = 10
 --------------------------------------------------------------------------
 Section("the words")
 
-Eq(Text.HuntItem(HORNS), "Intact Raptor Horns", "the heading: the items wanted")
-Eq(Text.HuntItem({ need = 1, item = "Hezrul's Head" }), "Hezrul's Head", "one item is named as one")
-Eq(Text.HuntItem({ need = 7, item = "Plainstrider Meat" }), "Plainstrider Meat", "what is not counted keeps its name")
-Eq(Text.HuntExpectedLabel(HORNS), "expected 12", "the stop rule's label")
-Eq(Text.HuntExpectedLabel({ expected = 12.5 }), "expected 13", "the label rounds as the words do")
-Eq(Text.HUNT_KILLED, "killed", "the figure's word")
-local lines = Text.HuntKills(HORNS)
+Eq(ns.Hunts.Item(HORNS), "Intact Raptor Horns", "the heading: the items wanted")
+Eq(ns.Hunts.Item({ need = 1, item = "Hezrul's Head" }), "Hezrul's Head", "one item is named as one")
+Eq(ns.Hunts.Item({ need = 7, item = "Plainstrider Meat" }), "Plainstrider Meat", "what is not counted keeps its name")
+Eq(ns.Hunts.ExpectedLabel(HORNS), "expected 12", "the stop rule's label")
+Eq(ns.Hunts.ExpectedLabel({ expected = 12.5 }), "expected 13", "the label rounds as the words do")
+Eq(ns.Hunts.KILLED, "killed", "the figure's word")
+local lines = ns.Hunts.KillLines(HORNS)
 Eq(#lines, 2, "a line a kind")
 Eq(lines[1], "killed 17" .. NB .. "Sunscale Scytheclaws", "the kind killed most first")
 Eq(lines[2], "killed 9" .. NB .. "Sunscale Lashtails", "then the other")
-Eq(table.concat(Text.HuntKills(HORNS, true), "|"), "Sunscale Scytheclaws and others", "the short line")
-for _, line in ipairs(Text.HuntKills(HORNS, true)) do Check(not line:find("&"), "an ampersand: " .. line) end
-Eq(table.concat(Text.HuntKills({ kills = 26, need = 5, expected = 12, name = "Sunscale Scytheclaw" }), "|"),
+Eq(table.concat(ns.Hunts.KillLines(HORNS, true), "|"), "Sunscale Scytheclaws and others", "the short line")
+for _, line in ipairs(ns.Hunts.KillLines(HORNS, true)) do Check(not line:find("&"), "an ampersand: " .. line) end
+Eq(table.concat(ns.Hunts.KillLines({ kills = 26, need = 5, expected = 12, name = "Sunscale Scytheclaw" }), "|"),
     "Sunscale Scytheclaws", "one kind with the rates: its name, the figure counts them")
-Eq(#Text.HuntKills({ kills = 26, need = 5, expected = 12 }), 0, "nothing to name with the rates")
-Eq(table.concat(Text.HuntKills(BANDANAS), "|"), "killed 37" .. NB .. "Defias Rogue Wizards for" .. NB .. "6",
+Eq(#ns.Hunts.KillLines({ kills = 26, need = 5, expected = 12 }), 0, "nothing to name with the rates")
+Eq(table.concat(ns.Hunts.KillLines(BANDANAS), "|"), "killed 37" .. NB .. "Defias Rogue Wizards for" .. NB .. "6",
     "without the rates the line says the whole")
-Eq(table.concat(Text.HuntKills({ kills = 37, need = 6 }), "|"), "killed 37 for" .. NB .. "6", "a nameless hunt")
+Eq(table.concat(ns.Hunts.KillLines({ kills = 37, need = 6 }), "|"), "killed 37 for" .. NB .. "6", "a nameless hunt")
 local four = { kills = 30, need = 5, name = "A", byKind = { [1] = { n = 12, name = "Raptor" }, [2] = { n = 9,
     name = "Wolf" }, [3] = { n = 6, name = "Boar" }, [4] = { n = 3, name = "Bear" } } }
-Eq(table.concat(Text.HuntKills(four), "|"), "killed 12" .. NB .. "Raptors|killed 9" .. NB .. "Wolves|killed 9"
+Eq(table.concat(ns.Hunts.KillLines(four), "|"), "killed 12" .. NB .. "Raptors|killed 9" .. NB .. "Wolves|killed 9"
     .. NB .. "others for" .. NB .. "5", "past three kinds the rest together, and without the rates what it was for")
-Eq(table.concat(Text.HuntKills(four, true), "|"), "killed 30" .. NB .. "As and others for" .. NB .. "5",
+Eq(table.concat(ns.Hunts.KillLines(four, true), "|"), "killed 30" .. NB .. "As and others for" .. NB .. "5",
     "without the rates the short line counts them all")
-local title, tip = Text.HuntCardTip(BANDANAS, now, 2.2)
-Eq(title, Text.HuntLine(BANDANAS), "the card's tooltip title")
+local title, tip = ns.Hunts.CardTip(BANDANAS, now, 2.2)
+Eq(title, ns.Hunts.Line(BANDANAS), "the card's tooltip title")
 Check(tip[1] == "For Red Linen Goods" and tip[2] == "Usually 2 each" and tip[3]:find("at level 9$"),
     "the card's tooltip without the rates: " .. table.concat(tip, "; "))
-_, tip = Text.HuntCardTip(HORNS, now, 2.2)
+_, tip = ns.Hunts.CardTip(HORNS, now, 2.2)
 for _, line in ipairs(tip) do Check(not line:find("^Usually"), "the rates' card says the usual") end
 
 --------------------------------------------------------------------------
@@ -79,7 +79,7 @@ Eq(chosen.hunt, high, "against a usual of eight, the rates' hunt")
 local twin = { kills = 26, need = 5, expected = 12, t = now - 10 }
 Eq(Card.Choose({ Mark({ { hunt = high }, { hunt = twin } }, 1, 1) }).hunt, twin, "the latest of equals")
 Check(Card.Choose({}) == nil and Card.Choose({ Mark({ { kind = "luck" } }, 1, 1) }) == nil, "no hunt, no card")
-Eq(Card.Past({ kills = 30, need = 5 }), 6 / ns.Journey.T.luckRatio, "before the usual, against the least bad luck")
+Eq(Card.Past({ kills = 30, need = 5 }), 6 / ns.Hunts.T.luckRatio, "before the usual, against the least bad luck")
 
 --------------------------------------------------------------------------
 Section("its icon")
@@ -232,7 +232,7 @@ q.item.scripts.OnEnter(q.item)
 Eq(GameTooltip.link, "item:5055", "the icon's tooltip is not the item's")
 local said = {}
 for _, line in ipairs(GameTooltip.lines or {}) do said[#said + 1] = line[1] end
-Check(said[1] == Text.HuntLine(HORNS) and said[2]:find("^17" .. NB) and said[3] == "For Raptor Horns",
+Check(said[1] == ns.Hunts.Line(HORNS) and said[2]:find("^17" .. NB) and said[3] == "For Raptor Horns",
     "the icon's tooltip lines: " .. table.concat(said, "; "))
 q.item.scripts.OnLeave(q.item)
 local sack = New({ kills = 30, need = 3, item = "Nothing Known", name = "Gnoll" }, 150, nil)
@@ -390,7 +390,7 @@ ns.UI.RefreshJourneyPage(false)
 Open(10)
 card = HuntCards()[1]
 Check(card and card.usual and card.rowWords[2]:IsShown(), "with five hunts kept, no usual on the card")
-Eq(card.usual, ns.Journey.UsualLuck(j), "the card's usual is the character's")
+Eq(card.usual, ns.Hunts.UsualLuck(j), "the card's usual is the character's")
 
 --------------------------------------------------------------------------
 Section("the wide arrangement, and the one plate's row shared")

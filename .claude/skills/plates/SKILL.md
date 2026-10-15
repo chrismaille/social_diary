@@ -137,10 +137,13 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   card, `fortune` `{ hunt, print }`, `witness` a witness left off,
   `campfire` true when the slip is left off).
 - **Caption registry** (`Text.RegisterCaption(key, spec)`, spec comment above
-  `PlateCaption`; today's kinds registered at the foot of JourneyText.lua,
-  each a self-contained block, campfire's in `Features/Campfire/Text.lua`,
+  `PlateCaption`; every kind registered from its feature's folder:
+  find's in `Features/Firsts/Text.lua`, campfire's in `Features/Campfire/Text.lua`,
   skill's in `Features/ProfessionCaps/Text.lua`, finale's in
-  `Features/QuestFinales/Text.lua`): the words are a **lead** (first in `at`
+  `Features/QuestFinales/Text.lua`, death's in `Features/Deaths/Text.lua`,
+  close's in `Features/CloseCalls/Text.lua`,
+  witness's in `Features/Witnesses/Text.lua`, luck's and fortune's in
+  `Features/Hunts/Text.lua`): the words are a **lead** (first in `at`
   order with something to say), a **tail** (", a, b, and c": every kind's
   words in tail `at` order, less the lead's own kind) and **codas**
   (sentences after the full stop). `spec`: `moment` (the plate.moments kind
@@ -153,25 +156,30 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   skill 40, death 50, close 60, luck 70, fortune 80, campfire 140; tail find
   10, finale 20, skill 30, death 40 (silent after the "fights" lead), close
   50, luck 60, fortune 70 (a fortune lead puts its `rest` here), campfire
-  90; coda witness 10. Shared helpers are exported on `Text` (`When`,
+  90; coda witness 10 (Witnesses'). Shared helpers are exported on `Text` (`When`,
   `Capital`, `MapName`, `Who`, `Day`, `Times`, `NUMBER`, `WORDS`, `Count`,
-  `ItemWord`, `Items`, `Health`, `Foes`, `Kinds`, `SortedKinds`, `Giver`,
+  `ItemWord`, `Items`, `Health`,
   `Cut`, `Join`, `List`, `Glue`, plus the older `Short`, `Plural`, ...; list
   above the exports), the timeline's row helpers on `ns.UI.TimelineText`
   (`Items`, `Quote`, `Place`, `Foe`).
-- **Entry prose registry** (`Text.RegisterLines(key, { at, lines =
+- **Entry prose registry** (`Text.RegisterLines(key, { at, run, lines =
   function(e, now, index) → paragraph or nil })`, spec comment above
   `Text.Lines`; `Text.Paragraphs()` / `Text.RemoveLines(key)`): the left
   page's paragraphs for a level. Core (hand-written `PARAGRAPHS`): opening
-  10, time (stops + flights) 20, people (+ fights) 30; kinds: find 40,
-  combat (close calls, bad and good luck) 70 at the foot of
-  JourneyText.lua, finale 50 in `Features/QuestFinales/Text.lua`, skill 60
-  in `Features/ProfessionCaps/Text.lua`; the
-  quiet line after all, where there is only the opening.
+  10, time (stops + flights) 20, people (+ fights) 30; kinds: find 40 in
+  `Features/Firsts/Text.lua`, finale 50 in `Features/QuestFinales/Text.lua`,
+  skill 60 in `Features/ProfessionCaps/Text.lua`, close 70 in
+  `Features/CloseCalls/Text.lua`, hunts (bad and good luck,
+  `ns.Hunts.Lines`) 75 in `Features/Hunts/Text.lua`; the
+  quiet line after all, where there is only the opening. Kinds sharing a
+  `run` write one paragraph: close 70 and hunts 75 are the run "combat",
+  the second running on after the first (after a space), or starting it.
 - **Margin registry** (`ns.UI.JourneyMargin.Register(kind, spec)`, spec
-  comment above `MarginOrder` in JournalJourney.lua; today's kinds at the
-  foot of that file, each self-contained, campfire's in
-  `Features/Campfire/Slip.lua`): `order`, `item(plate)` or
+  comment above `MarginOrder` in JournalJourney.lua; every kind from its
+  feature's folder: find's in `Features/Firsts/Card.lua`, campfire's in
+  `Features/Campfire/Slip.lua`, killer's in `Features/Deaths/Card.lua`,
+  foe's in `Features/CloseCalls/Card.lua`, witness's in
+  `Features/Witnesses/Card.lua`): `order`, `item(plate)` or
   `items(plate)` (→ `{ top, x, <own fields> }`; `kind`/`rank` set by core),
   `pool` (page key; killer and foe share `killerPool`), `new(parent)`,
   `write(note, it, c)` (`c.Seed(...)`, `c.now`, `c.named`, `c.ToPerson`),
@@ -186,12 +194,15 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   `JourneyMargin.Remove(kind)` / `Text.RemoveCaption(key)` take a kind out
   (tests/margin_caption.lua registers and removes a throwaway one).
 - **Margin order** (`MarginOrder`): tier-1 people (session, fight, note,
-  added, find given) → firsts found (`FindCard.Items`) → witness (`UI/WitnessCard.lua`:
+  added; a feature's moment joined to theirs by its `person.tier`: a first
+  someone gave, `ns.Firsts.PERSON`) → firsts found (`Features/Firsts/Card.lua`,
+  `ns.Firsts.Card`, `Card.Items`) → witness (`Features/Witnesses/Card.lua`, `ns.Witnesses.Card`:
   someone who watched you die, tried to save you or saved you; it replaces the
   killer card, or a rescue the close call's) → killer → close call
-  (`foe`) → lucky (good luck, `UI/LuckyCard.lua`; on a light plate's print
-  it is the print's S instead, never in the margin) → hunt (bad luck, the
-  mildest card) → tier-2/3 people (first
+  (`foe`) → lucky (good luck, `Features/Hunts/LuckyCard.lua`,
+  `ns.Hunts.LuckyCard`; on a light plate's print it is the print's S
+  instead, never in the margin) → hunt (bad luck, the mildest card,
+  `Features/Hunts/HuntCard.lua`, `ns.Hunts.HuntCard`) → tier-2/3 people (first
   sightings, crossed) → campfire (`Features/Campfire/Slip.lua`: one slip a plate,
   exactly "sat by a campfire", no count however many fires; filler, last
   of all, so the first left off; it goes in a light plate's margin under
@@ -200,9 +211,13 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   mark's x.
 - **Notes** are laid by `LayNotes` into `boxes` (column under the caption,
   or `row` boxes, shared by `Shared`/`ROW.most`). Pools: `notePool`
-  (`UI/PaperStrip.lua`), `findPool` (`UI/FindCard.lua`), `killerPool`
-  (`UI/KillerCard.lua`, also the close-call card via `KillerCard.Foe`),
-  `huntPool` (`UI/HuntCard.lua`), `witnessPool` (`UI/WitnessCard.lua`), `luckyPool` (`UI/LuckyCard.lua`: a card
+  (`UI/PaperStrip.lua`), `findPool` (`Features/Firsts/Card.lua`), `killerPool`
+  (`Features/Deaths/Card.lua`, `ns.Deaths.Card`, also the close-call card:
+  the card wears a face of the close calls' (`Card.RegisterFace`,
+  `Features/CloseCalls/Card.lua`: `card:SetFoe`, `card:Deed`, the chart
+  `ns.CloseCalls.Card.VITALS`; the creature chosen by
+  `ns.CloseCalls.Card.Choose`)),
+  `huntPool` (`Features/Hunts/HuntCard.lua`), `witnessPool` (`Features/Witnesses/Card.lua`), `luckyPool` (`Features/Hunts/LuckyCard.lua`: a card
   and its tag, a second slip, `card.tag`), `campfirePool` (`Features/Campfire/Slip.lua`),
   `leaderPool`, `dotPool`. Every registered kind's pool is made by
   `EnsurePools` (`page.marginPools` for `Mark`/`Undo`, `page.rightPools`).
@@ -214,21 +229,32 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   it. Filler never runs the words past their foot: where saying it would,
   `Plated` leaves it out of the words too and the mark alone tells it
   (`plate.camped` false then).
-- **S, good luck on a light print** (`LuckyCard.Print`, drawn by the plate in
-  `DrawPrint` through its own toolkit, `PRINT_LAYERS` on the `over` frame,
-  under the lift's shade): `plate.print` (form, polys, leader). F+L is not
-  kept where S will not go on the tucked print (`LuckyCard.PrintFits`, the
-  lucky kind's `fits`).
+- **S, good luck on a light print** (`LuckyCard.Print`, drawn by the
+  `print` pass, 90, at the foot of `Features/Hunts/LuckyCard.lua`, through
+  its own toolkit: `PRINT_LAYERS`/`PRINT_TEXTS` pools made by the pass's
+  `new` on the plate's `over` frame, under the lift's shade; buttons
+  `plate.printHit`/`plate.printItem`): `plate.print` (form, polys, leader).
+  F+L is not kept where S will not go on the tucked print
+  (`LuckyCard.PrintFits`, the lucky kind's `fits`).
 - **Leaders** (`LEADER`, `Aim`, `Pencil`, `Follow`): one per strip, graphite
   pen (not ink), leave the strip's nearest edge, enter over the plate edge
   nearest the strip, bow down slightly, end `stop` px short in a dot.
   `plate.where[m]` gives a mark's page position (through `plate:OnPage`).
 - Copy lives in `UI/JourneyText.lua` (`PlateHeading`, `PlateCaption`,
-  `MarginWhat`, `MarginQuote`, `KillerName`, `FoeTag`, `Hunt*`, `Find*`,
+  `MarginWhat`, `MarginQuote`, `KillerName`,
   `ZoneFoot`, tooltips), and a moved feature's in its own
-  `Features/<Name>/Text.lua` (campfire: `ns.Campfire.WORDS`, `At`, `Tip`;
+  `Features/<Name>/Text.lua` (firsts found: `ns.Firsts.Words`, `ItemName`,
+  `Heading`, `GiftLine`, `Giver`, `Sentence`, `Lines`, `Tip`, `PERSON`;
+  campfire: `ns.Campfire.WORDS`, `At`, `Tip`;
   profession caps: `ns.ProfessionCaps.Words`, `Sentence`, `Lines`, `Tip`;
-  quest chain finales: `ns.QuestFinales.Words`, `Sentence`, `Lines`, `Tip`).
+  quest chain finales: `ns.QuestFinales.Words`, `Sentence`, `Lines`, `Tip`;
+  deaths: `ns.Deaths.Killed`, `KillerTip`, `DeathCross`; close calls:
+  `ns.CloseCalls.Sentence`, `Foes`, `Tag`, `Heading`, `Deed`, `Tip`,
+  `FoeTip`, `Lines`; hunts: `ns.Hunts.Words`, `Line`, `ExpectedWords`,
+  `Tip`, `Item`, `KillLines`, `CardTip`, `ExpectedLabel`, `KILLED`, `EACH`,
+  `USUALLY`, `Fortune`, `LuckyTag`, `LuckyKind`, `LuckyCaption`, `Lines`,
+  `Kinds`, `SortedKinds`; witnesses:
+  `ns.Witnesses.Name`, `Others`, `Look`, `Deed`, `Foe`, `Caption`, `Tip`).
   Changes there go through the copywriter skill.
 
 ## 4. The plate itself (`UI/JourneyPlate.lua`, header comment = spec)
@@ -238,9 +264,9 @@ toolkit (`K.Place`, `K.Quad`, `K.PlaceText`, `K.Pool`) so it turns with the
 card. Look tables: `PLATE` (stock, desaturate, tint), `FRAME`, `VIGNETTE`,
 `THICKNESS`, `SHADOW`, `MOUNT` (kraft photo corners), `GLUE`, `LIFT`,
 `SHARE` (a smaller plate gets a share of the trail caps by area). Core
-marks: `MARK`, `PRIORITY`, `POUCH` (find), `DOOR`, `DEATH`, `PIN`,
+marks: `MARK`, `PRIORITY`, `DOOR`, `DEATH`, `PIN`,
 `FLIGHT`; `SHAPES[kind]` draws them, bespoke in `DrawMoments` (doors, pins,
-people's shared marks, pouches, death crosses). `Radius`/`Apart` keep all
+people's shared marks, death crosses). `Radius`/`Apart` keep all
 marks apart.
 
 **Registered marks** (`Plate.RegisterMark(kind, spec)`, the comment above
@@ -248,23 +274,45 @@ it is the spec): one mark per merged spot of one moment kind. A feature
 file loaded after `UI/` registers its own; `DrawMoments` draws every kind
 in `order` through one loop (Spots → Apart(radius) → halo → `draw(kit, x,
 y, arg)` → hover with `tip` → kept in `plate[keep]` → `plate.counts[count]`
-→ `plate[chosen] = choose(marks)`), with the deaths on the road in a fixed
-slot (`ROAD_DEATHS` = 60). Today's, registered at the foot of
-JourneyPlate.lua (each block self-contained, look table included, ready to
-move to `Features/<Name>/`): `close` 30 (`CLOSE`, no halo: lays its
-own dot on `kit.halo`; `plate.closeMarks`, its card chosen in
-`DrawKillers`), `luck` 40 (`TALLY`; `plate.huntMarks` → `plate.hunt`),
-`fortune` 50 (`FORTUNE` star; `plate.fortuneMarks` → `plate.lucky`),
-and, from their features' folders, `finale` 10
+→ `plate[chosen] = choose(marks)`; a kept mark keeps its `arg`; `join(m)`
+puts a moment that is someone's too with their marks, `plate.where` and
+`plate.people`, so it joins their margin note), with the deaths on the
+road in a fixed slot (`ROAD_DEATHS` = 60). Today's, all from their
+features' folders: `find` 5 (`Features/Firsts/Mark.lua`, `ns.Firsts.POUCH`
+drawstring pouch in the best item's ink part way (`arg`), `plate.findMarks`
+for the cards, a gift from someone in the diary `join`ed to their marks),
+`luck` 40 and `fortune` 50 (`Features/Hunts/Mark.lua`: `ns.Hunts.TALLY`,
+`plate.huntMarks` → `plate.hunt`; `ns.Hunts.FORTUNE` star,
+`plate.fortuneMarks` → `plate.lucky`), `finale` 10
 (`Features/QuestFinales/Mark.lua`, `ns.QuestFinales.MARK` tailpiece), `skill` 20
 (`Features/ProfessionCaps/Mark.lua`, `ns.ProfessionCaps.MARK` stairs, `arg` =
-best rank) and (`Features/Campfire/Mark.lua`) `campfire`
+best rank), `close` 30 (`Features/CloseCalls/Mark.lua`, `ns.CloseCalls.MARK`,
+no halo: lays its own dot on `kit.halo`; `plate.closeMarks`, its card
+chosen in the `foe` pass) and (`Features/Campfire/Mark.lua`) `campfire`
 70 (`ns.Campfire.MARK`, ink only: a flame with a paper tongue on two
 crossed logs, filler, last, so it steps aside with a tether;
 `plate.campfireMarks` → `plate.campfire`). `cap` fills `Plate.CAP[count]`.
 The kit: pools `ink`/`inner`/`halo`, `Dot`, `Box`, `Stroke`, `Quad`,
 `Place`, `Fill`, `Light`, `Clamp`, `P`, `INK`, `INK_STRONG`. Order changes
 which mark steps aside, so a new kind's `order` is a design decision.
+
+**Passes after the marks** (`Plate.RegisterPass(key, { order, new(plate,
+kit), draw(plate, c) })`, spec above it): run in `order` once every mark
+is down. `new` (optional) is asked once as each plate is made, with the
+over-kit (`over`, `Pool`, `TextPool`, `Button`, `Place`, `Quad`,
+`PlaceButton`, `Tip`): what a pass lays over the picture, its pools begun,
+finished and counted with the plate's. `c` = `crosses` (the death crosses, `plate.crosses`), `mapID`,
+`entry`, `now`, `opts`, `At`, `OnPage`, `Tip`, `HoverCross(cross, fn)`.
+The crosses stay core (shape, place, `count`); passes put their own
+fields on them and on the plate. Today's: in `Features/Deaths/Card.lua`
+`killer` 10 (Deaths: `cross.deaths` matched, the crosses' tooltips,
+`plate.killer`); in `Features/CloseCalls/Card.lua` `foe` 20
+(`plate.foe`); in
+`Features/Witnesses/Card.lua` `witness` 30 (`plate.witness`, chosen by
+`ns.Witnesses.Card.Choose` from `cross.deaths` and the close calls' marks,
+clearing the killer or foe it replaces); in
+`Features/Hunts/LuckyCard.lua` `print` 90 (S on a light plate's print,
+`plate.print`, the only pass with a `new` today).
 The ink trail is `UI/InkTrail.lua`; map art and explored
 overlays are `UI/MapArt.lua`. "Flat paper only" lays everything flat (no
 turn, shadow, lift, glue, vignette). Drawing is pooled, deterministic
@@ -302,7 +350,8 @@ turn, shadow, lift, glue, vignette). Drawing is pooled, deterministic
   "a zone's full page", "a page by its plates' weights …"),
   `tests/journey.lua` (Recap: grouping, weights, Holds),
   `tests/killer_card.lua`, `tests/combat_ui.lua` (close-call/foe cards on
-  testdata pages), `tests/hunt_card.lua`, `tests/lucky_card.lua`,
+  testdata pages), `tests/witness_card.lua` and `tests/witnesses.lua`
+  (the witness card; capture, rows, the plate's choice), `tests/hunt_card.lua`, `tests/lucky_card.lua`,
   `tests/firsts.lua`, `tests/campfire_ui.lua` (the People row, the
   caption's campfire words, the slip and its testdata pages),
   `tests/margin_caption.lua` (the margin, caption and prose registries:
@@ -348,10 +397,17 @@ turn, shadow, lift, glue, vignette). Drawing is pooled, deterministic
 - Testdata today (13 Oct): lv10 F+L, lv11 FL (lucky card L in the column),
   lv12 FF (light plate too wide → full; lucky card M2 in the 122 px column),
   lv13 FL (S on the print; F+L given up for it), lv14 one plate (lucky card
-  XL in the row, L in the mock), lv15–16 one plate, week 1 LF, week 2 FFF. Witness cards (14 Oct): lv10 tried
+  XL in the row, L in the mock), lv15–16 one plate, week 1 LF, week 2 FFF
+  (the hunts written by `Features/Hunts/Dev.lua`, at "route"). Witness cards (14 Oct): lv10 tried
   (M, F+L row), lv11 saved (L), lv13 watched (L), lv14 saw + two others (M),
   the cap's oasis mercilessly watched (XL on lv16's page, smaller on a week's),
-  the crag on the last week tried (XL); the weeks fall by the calendar.
+  the crag on the last week tried (XL); the weeks fall by the calendar
+  (written by `Features/Witnesses/Dev.lua`, at "route"; forgotten at
+  "remove"). Close calls (written by `Features/CloseCalls/Dev.lua`, at
+  "route"): lv11 no creature (cross only), lv12 Razormane Battleguard
+  (elite, three), lv14 Murloc Streamrunner (ink), lv15 Sunscale Scytheclaw
+  (old record, no tag), the cap's oasis Humar (rare, 1%), the crag Lord
+  Kazzak (skull boss).
   Campfires (14 Oct; written by `Features/Campfire/Dev.lua`): lv11's FL print (no room: "First Aid at 75, and a
   campfire."), lv12's 122 px column (slip after the lucky card), lv13's FL
   print (its words long already: left to the mark), lv15 two fires, one

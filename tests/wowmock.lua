@@ -375,7 +375,7 @@ local function NewWidget(frameType, name, parent, template)
             return self.display or 0
         end
 
-        -- Drawing from a display (the killer card, UI/KillerCard.lua): none
+        -- Drawing from a display (the killer card, Features/Deaths/Card.lua): none
         -- of it verified in the client, so each call is only recorded, on
         -- `w.model` (its last arguments by method), for the tests to read.
         -- A display in M.blankDisplays draws nothing (GetModelFileID 0, as

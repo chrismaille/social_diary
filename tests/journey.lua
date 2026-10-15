@@ -796,7 +796,7 @@ ns.TestData.Write()
 -- the blue Tester's gift (JRN-24).
 do
     local made = ns.db.journey[SELF.guid]
-    local firsts = J.Firsts(made)
+    local firsts = ns.Firsts.List(made)
     Eq(#firsts, 5, "the made-up route's firsts")
     for _, f in ipairs(firsts) do
         Check(f.rec.mapID and f.rec.x and f.rec.level and f.rec.link, "a made-up first has no place: " .. f.kind)
@@ -853,9 +853,9 @@ Section("fights: a stranger's name does not outlive the buffer (JRN-10)")
 local STRANGER = F.STRANGER2.guid
 mock.SetUnit("target", F.STRANGER2)
 At(1500, 1500)
--- As Capture/PvP.lua does it: who they are, then the kill.
+-- As Features/WorldPvP/Capture.lua does it: who they are, then the kill.
 ns.Characters.ObserveUnit("target")
-local row = ns.Fights.Kill(STRANGER)
+local row = ns.WorldPvP.Kill(STRANGER)
 local mark = mine.marks[#mine.marks]
 Check(mark ~= nil and mark.outcome == "won", "the kill left no mark")
 Eq(mark.guid, nil, "a stranger's GUID kept on the mark")
@@ -869,16 +869,16 @@ index = J.FightIndex()
 Eq(Text.Fight(mark, index), "won a fight", "a stranger named after the buffer")
 
 -- Someone in the diary keeps their name, from the diary.
-local died = ns.Fights.Died({ player = true, guid = TESTER }, mock.now, ns.Where())
+local died = ns.WorldPvP.Died({ player = true, guid = TESTER }, mock.now, ns.Where())
 Eq(died.mark.guid, TESTER, "a diary entry's GUID not kept on the mark")
 Eq(died.mark.outcome, "lost", "a death's outcome")
 Eq(Text.Fight(died.mark, J.FightIndex()), "lost to Tester Testerson", "a diary fight's words")
 -- The recap says it was a creature after all: the mark goes.
 local marks = #mine.marks
-ns.Fights.Resolve(died, { player = false, npcID = 3 }, mock.now, ns.Where())
+ns.WorldPvP.Resolve(died, { player = false, npcID = 3 }, mock.now, ns.Where())
 Eq(#mine.marks, marks - 1, "a death taken back left its mark")
 -- Out of the diary, history kept, and past the buffer: a stranger again.
-local again = ns.Fights.Died({ player = true, guid = TESTER }, mock.now - 40 * DAY, ns.Where())
+local again = ns.WorldPvP.Died({ player = true, guid = TESTER }, mock.now - 40 * DAY, ns.Where())
 Eq(again.mark.guid, TESTER, "setup: the mark names them")
 ns.Diary.Remove(TESTER, true)
 J.Prune(mock.now)
@@ -1843,7 +1843,7 @@ do
     Eq(J.CountedOn(jd, d0 + 1500), B, "the death on the second stop")
     Eq(J.CountedOn(jd, d0 - 10), nil, "a death before the route began")
 
-    local Card = ns.UI.KillerCard
+    local Card = ns.Deaths.Card
     local function Counted(t) return J.CountedOn(jd, t) end
     local function Place(d) return d.x, d.y end
     local crosses = { { x = 10, y = 10, segs = { A } }, { x = 200, y = 200, segs = { B } } }

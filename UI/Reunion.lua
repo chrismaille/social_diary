@@ -119,7 +119,7 @@ local function Snapshot(guid, reason)
         lastMet = s.lastMet,
         lastZone = s.lastZone,
         timesMet = s.timesMet,
-        fights = ns.Fights.With(guid),
+        fights = ns.Interactions.Fights(guid),
     }
 end
 
@@ -138,7 +138,7 @@ local function When(time)
     return when
 end
 
--- A foe's card tells the score instead (Core/Fights.lua): "You've killed
+-- A foe's card tells the score instead (Interactions.Fights): "You've killed
 -- them twice, they've killed you 5 times. Last fight 3 days ago in
 -- Hillsbrad Foothills." Longest first, for the card to take the first that
 -- fits.

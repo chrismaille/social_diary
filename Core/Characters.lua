@@ -170,18 +170,16 @@ function Characters.Observe(guid, info)
     -- journal's index away on every nameplate.
     if changed and ns.Diary.IsDiary(guid) then ns.Touch() end
 
-    -- Seen at a higher level than last time: they levelled up. A buffer row
-    -- for anyone, so a stranger's level-ups are already on their profile
-    -- when they are added (flow 2), and a timeline moment for a diary entry
-    -- ("Tester is now level 16"). Timed when it is noticed, which while
-    -- grouped is the moment it happens (UNIT_LEVEL); otherwise the next time
-    -- they are seen. Only live readings count: a backfilled one describes
-    -- the past. A first reading has nothing to rise from. The user's own
-    -- characters are not strangers.
+    -- Seen at a higher level than last time: told as SD_LEVEL_ROSE (Core/
+    -- Events.lua's header), with the record already updated, for whatever
+    -- keeps a row of it. Noticed now, which while grouped is the moment it
+    -- happens (UNIT_LEVEL); otherwise the next time they are seen. Only
+    -- live readings: a backfilled one describes the past, so it is no news
+    -- now. A first reading has nothing to rise from.
     local level = record.level
     if info.time == nil and type(levelBefore) == "number" and type(level) == "number"
-        and level > levelBefore and not record.isSelf and guid ~= ns.ownGUID then
-        ns.Interactions.Add(guid, "level_up", { context = { from = levelBefore, level = level } })
+        and level > levelBefore then
+        ns.Fire("SD_LEVEL_ROSE", guid, levelBefore, level)
     end
 
     return record

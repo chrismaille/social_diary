@@ -1,5 +1,5 @@
 -- The witness card (Your Diary's plates): someone who was there when you
--- died or nearly did (Capture/Witnesses.lua), as
+-- died or nearly did (Capture.lua), as
 -- .claude/ui-proposal/witness-card-proposal.md. It takes the killer card's
 -- place in the margin (or the close call's, for a rescue: the user's call,
 -- 14 Oct, a person in the moment is the better story than the creature):
@@ -8,24 +8,24 @@
 -- slip:
 --
 --   the name     the person, the card's subject, in the diary's hand
---                (their first name, Text.WitnessName), a way to their page
+--                (their first name, Text.lua's Name), a way to their page
 --                as a person's strip is; "Ilsabet & two others" on the one
 --                line where more were there and it fits, else the name
 --                alone (the tooltip still says who else was there). It never
 --                takes a line of its own (14 Oct, the user, after level 14's
 --                M card read on four lines)
 --   the deed     what they did, in the hand, the timeline's own verbs
---                (Text.WitnessDeed): "saw you die", "watched you die",
+--                (Text.lua's Deed): "saw you die", "watched you die",
 --                "mercilessly watched you die" (the hand underlines
 --                "mercilessly" twice, DOUBLE, as one does when one cannot
 --                believe it); "tried to save you", "saved you"
---   the foe      what it was against, in small print (Text.WitnessFoe):
+--   the foe      what it was against, in small print (Text.lua's Foe):
 --                "to a Ragged Young Wolf", "from Hogger". Secondary: the
 --                first thing given up where the margin is short, and then
 --                the caption names the creature, as it does a killer whose
 --                card is left off
 --   the chart    a rescue's health left only, charted as the close call's
---                card charts it (UI/KillerCard.lua's VITALS: an ink box
+--                card charts it (ns.CloseCalls.Card's VITALS: an ink box
 --                filled in rubric, a graphite tick at the tenth where a
 --                close call begins), the figure large in rubric, "6%": how
 --                near it was, which is what they saved you from
@@ -53,17 +53,25 @@
 -- most; M the name a size down too, the bar narrower. Short of height it
 -- gives up its foe's line (card:Smaller; the caption names the creature);
 -- then the page leaves it off and the caption tells the witness in a
--- sentence of its own (Text.PlateCaption's `witness`).
+-- sentence of its own (Text.PlateCaption's `witness`, Text.lua).
 --
 -- Laid flat ("Flat paper only") the slip lies square and so does its blood;
 -- the underlines, the chart and the blood are ink and stay.
+--
+-- The card is ns.Witnesses.Card. The rescue's chart is the close call's
+-- (its card's VITALS, Features/CloseCalls/Card.lua, read at call time as
+-- ns.CloseCalls.Card.VITALS, so this folder loads after Close calls'). At the
+-- foot: the plate's one witness chosen (Choose), the pass that chooses it
+-- over the plate (after Deaths' and the close call's) and the card's note
+-- in the margin.
 
 local addonName, ns = ...
 
 local Style = ns.Style
+local Witnesses = ns.Witnesses
 
 local WitnessCard = {}
-ns.UI.WitnessCard = WitnessCard
+Witnesses.Card = WitnessCard
 
 -- The slip: turned at most `turn` degrees (the other cards'). Under the
 -- name, `deed` px to the deed (none: the two read as one sentence), the
@@ -75,7 +83,7 @@ local WITNESS = { turn = 1.2, deed = 0, line = { [16] = 19, [14] = 17 }, foe = 1
 -- more; L the 150 to 176 px columns; M the 122 px column and the 142 px
 -- boxes of a row), the name's size in the hand, the deed's, the most lines
 -- the deed and the foe may take, and the rescue's bar's width (the close
--- call's, KillerCard.VITALS: 70, or 56 in a narrow column).
+-- call's, ns.CloseCalls.Card.VITALS: 70, or 56 in a narrow column).
 local FORMS = {
     XL = { least = 190, name = 16, deed = 16, deedLines = 1, foeLines = 1, bar = 70 },
     L = { least = 150, name = 16, deed = 14, deedLines = 2, foeLines = 2, bar = 70 },
@@ -83,14 +91,14 @@ local FORMS = {
 }
 local ORDER = { "XL", "L", "M" }
 -- "Mercilessly" underlined twice by the hand: the lucky card's underline
--- (UI/LuckyCard.lua's UNDER, the route's pen), and a second `second` px
+-- (Features/Hunts/LuckyCard.lua's UNDER, the route's pen), and a second `second` px
 -- under the first, `inset` px shorter at its start and its end, as a second
 -- stroke is drawn quicker.
 local DOUBLE = { second = 2.6, inset = { 2, 5 } }
 -- The blood on a watcher's card, all in px of the slip (from its middle,
 -- y down), seeded by the card's key: a stain across one of the slip's right
 -- corners and off its edges onto the page.
---   amount   by how long they watched (Text.WitnessLook): the pool's drops
+--   amount   by how long they watched (Text.lua's Look): the pool's drops
 --            (`pool`, run together within `spread` px of its middle), the
 --            lobes it splashed into (`lobes`, each a quarter of the pool,
 --            in toward the slip), the runs over the right edge (`runs`)
@@ -172,13 +180,13 @@ end
 -- What a witness's card has to show under its words: "chart" (a rescue's
 -- health left), else nil.
 function WitnessCard.Evidence(w)
-    if w.type == "saved_you" and type(w.pct) == "number" then return "chart" end
+    if w.type == Witnesses.SAVED and type(w.pct) == "number" then return "chart" end
     return nil
 end
 
 -- How much blood a witness's card has (BLOOD.amount), nil for a helper.
 function WitnessCard.Blood(w)
-    local look = ns.UI.JourneyText.WitnessLook(w)
+    local look = Witnesses.Look(w)
     return look and BLOOD.amount[look] or nil
 end
 
@@ -341,7 +349,7 @@ end
 --------------------------------------------------------------------------
 
 -- A card on `parent` (the right page): card:SetWitness(w, seed, now, guid,
--- onClick) with the plate's witness (UI/KillerCard.lua's Witness; `guid`
+-- onClick) with the plate's witness (Choose, below; `guid`
 -- where their page can be opened), then card:Layout(x, y, width) as a
 -- strip's; card.overfull where no arrangement fits `width` (the page
 -- leaves it off); card:Smaller() gives up a step. card.form says which
@@ -375,12 +383,11 @@ function WitnessCard.New(parent)
     card.small:Hide()
 
     function card:SetWitness(w, seed, now, guid, onClick)
-        local Text = ns.UI.JourneyText
         self.witness, self.now, self.seedKey = w, now, seed
         self.step, self.plan, self.form = 0, nil, nil
-        self:SetNote({ name = Text.WitnessName(w), strong = true, seed = seed, turn = WITNESS.turn, guid = guid,
+        self:SetNote({ name = Witnesses.Name(w), strong = true, seed = seed, turn = WITNESS.turn, guid = guid,
             onClick = onClick, tip = function()
-                local title, lines = Text.WitnessTip(w, now)
+                local title, lines = Witnesses.Tip(w, now)
                 local list = { { title } }
                 for _, line in ipairs(lines) do list[#list + 1] = { line, 1, 1, 1, true } end
                 if guid then list[#list + 1] = { "Click to open their page in the diary", 0.6, 0.6, 0.6, true } end
@@ -391,7 +398,7 @@ function WitnessCard.New(parent)
     -- A step less, where the margin is short (UI/JournalJourney.lua's
     -- LayNotes): the foe's line. Whether there was one to give up.
     function card:Smaller()
-        if (self.step or 0) >= 1 or not ns.UI.JourneyText.WitnessFoe(self.witness) then return false end
+        if (self.step or 0) >= 1 or not Witnesses.Foe(self.witness) then return false end
         self.step = 1
         return true
     end
@@ -450,7 +457,7 @@ function WitnessCard.New(parent)
     local function Row(form)
         local w = card.witness
         if WitnessCard.Evidence(w) ~= "chart" then return nil end
-        local V = ns.UI.KillerCard.VITALS
+        local V = ns.CloseCalls.Card.VITALS
         Hand(card.measure, V.figure.size)
         card.measure:SetText((w.pct or 0) .. "%")
         local fw = Width(card.measure) + 2
@@ -465,14 +472,13 @@ function WitnessCard.New(parent)
         local F = FORMS[form]
         local pad = Strip.STRIP.pad
         local room = width - pad[1] - pad[3]
-        local Text = ns.UI.JourneyText
         local w = card.witness
         local step = card.step or 0
         local fail = width < F.least
         -- The name, and who else was there on its line where that fits.
         local name = card.note and card.note.name or ""
         Hand(card.name, F.name)
-        local others = Text.WitnessOthers(w.others)
+        local others = Witnesses.Others(w.others)
         local line = others and (name .. " " .. others) or name
         card.name:SetText(line)
         if others and Width(card.name) + 2 > room then
@@ -484,7 +490,7 @@ function WitnessCard.New(parent)
         local nameH = math.max(math.ceil(card.name:GetStringHeight() or 0), 14)
         if nameW > room then fail = true end
         -- The deed, in the hand.
-        local deedText, under = Text.WitnessDeed(w)
+        local deedText, under = Witnesses.Deed(w)
         Hand(card.measure, F.deed)
         local deed = Balanced(card.measure, deedText, room, F.deedLines)
         if not deed then
@@ -493,7 +499,7 @@ function WitnessCard.New(parent)
         end
         local deedW = Widest(card.measure, deed)
         -- The foe, in small print.
-        local foeText = step < 1 and Text.WitnessFoe(w) or nil
+        local foeText = step < 1 and Witnesses.Foe(w) or nil
         local foe
         if foeText then
             foe = Balanced(card.small, foeText, room, F.foeLines)
@@ -647,7 +653,7 @@ function WitnessCard.New(parent)
         local left = -W / 2 + pad[1]
         local nameTop = -H / 2 + pad[2]
         local top = nameTop + plan.nameH
-        local Lucky = ns.UI.LuckyCard
+        local Lucky = ns.Hunts.LuckyCard
         for _, part in ipairs({ card.figure, card.barEdge, card.barPaper, card.barFill, card.barTick }) do
             part:Hide()
         end
@@ -707,11 +713,11 @@ function WitnessCard.New(parent)
         end
         for i = #(plan.foe or {}) + 1, #card.foes do card.foes[i]:Hide() end
 
-        -- A rescue's chart (KillerCard.VITALS): the bar at the left, the
+        -- A rescue's chart (ns.CloseCalls.Card.VITALS): the bar at the left, the
         -- figure beside it.
         local row = plan.row
         if row then
-            local V, R, P = ns.UI.KillerCard.VITALS, Style.RUBRIC, Strip.STRIP.paper
+            local V, R, P = ns.CloseCalls.Card.VITALS, Style.RUBRIC, Strip.STRIP.paper
             local B = V.bar
             local pct = math.max(0, math.min(100, card.witness.pct or 0))
             local foot = top + plan.rowTop + row.h
@@ -799,3 +805,141 @@ end
 
 WitnessCard.WITNESS, WitnessCard.FORMS, WitnessCard.ORDER, WitnessCard.DOUBLE, WitnessCard.BLOOD =
     WITNESS, FORMS, ORDER, DOUBLE, BLOOD
+
+--------------------------------------------------------------------------
+-- On the plates: the plate's one witness, its pass, its note in the margin
+--------------------------------------------------------------------------
+
+-- The plate's one witness (Kind.lua's At), or nil: someone who tried to
+-- save the user from a death on this plate, saved them in a close call on
+-- it, or watched them die on it. A witness goes before the killer card
+-- (or the close call's, for one who saved the user): a person in the
+-- moment is the better story than the creature (14 Oct, the user's call).
+-- Who acted before who watched, then the longer watcher, then the latest.
+-- `crosses` as Deaths' pass left them (cross.deaths), `marks`
+-- plate.closeMarks, `index` Journey.WitnessIndex's, `onPage(x, y)` a card
+-- spot to the page.
+--
+-- { kind ("helped" | "watched": the row kind's `witness`), type (the
+-- row's: "tried_to_help", "saved_you", "watched_death"), guid, row, t,
+-- watched (seconds, a watcher's), pct (health left, a rescue's), creature
+-- ({ npcID, name, rank }, nil when not known), death (Deaths' record) or
+-- call (the close call's), others (how many more witnessed the same
+-- moment), mark (where its cross is on the page) }.
+local DEATH_WITNESS = { [Witnesses.HELPED] = true, [Witnesses.WATCHED] = true }
+local CLOSE_WITNESS = { [Witnesses.SAVED] = true }
+
+function WitnessCard.Choose(crosses, marks, index, onPage)
+    local Get = ns.Rows.Get
+    local best
+    local function Consider(found, extra)
+        local w = found[1]
+        if not w then return end
+        local helped = Get(w.row.type).witness == "helped"
+        local c = w.row.context or {}
+        local better = not best
+        if best then
+            local bh = best.kind == "helped"
+            if helped ~= bh then
+                better = helped
+            elseif (c.watched or 0) ~= (best.watched or 0) then
+                better = (c.watched or 0) > (best.watched or 0)
+            else
+                better = w.t > best.t
+            end
+        end
+        if not better then return end
+        best = { kind = Get(w.row.type).witness, type = w.row.type, guid = w.guid, row = w.row, t = w.t,
+            watched = c.watched, pct = c.pct, others = #found - 1,
+            creature = type(c.name) == "string" and { npcID = c.npcID, name = c.name, rank = c.rank } or nil }
+        for key, value in pairs(extra) do best[key] = value end
+    end
+    for _, cross in ipairs(crosses or {}) do
+        for _, d in ipairs(cross.deaths or {}) do
+            local px, py = onPage(cross.x, cross.y)
+            Consider(Witnesses.At(index, d.t, DEATH_WITNESS), { death = d, mark = { px, py } })
+        end
+    end
+    for _, mark in ipairs(marks or {}) do
+        for _, m in ipairs(mark.list or {}) do
+            if m.call then
+                Consider(Witnesses.At(index, m.call.t, CLOSE_WITNESS), { call = m.call, mark = mark.at })
+            end
+        end
+    end
+    return best
+end
+
+-- Someone who was there goes before the creature (ns.UI.JourneyPlate's
+-- RegisterPass, after the marks): a witness to a death takes the killer
+-- card's place, one who saved the user in a close call the close call's
+-- card's (14 Oct, the user's call). plate.witness is Choose's, from the
+-- crosses as Deaths' pass (`killer`, order 10) left them (their deaths)
+-- and the close calls' marks, so it comes after it and after the close
+-- call's (`foe`, 20), whose plate.foe it may clear: order 30, last of the
+-- passes. The index of witnesses is the page's, built once
+-- (opts.witnesses), else built here.
+ns.UI.JourneyPlate.RegisterPass("witness", {
+    order = 30,
+    draw = function(plate, c)
+        local witnesses = c.opts.witnesses or ns.Journey.WitnessIndex()
+        plate.witness = WitnessCard.Choose(c.crosses, plate.closeMarks, witnesses, c.OnPage)
+        if plate.witness and plate.witness.death then plate.killer = nil end
+        if plate.witness and plate.witness.call then plate.foe = nil end
+    end,
+})
+
+-- Someone who was there, in the margin (ns.UI.JourneyMargin.Register):
+-- who watched you die, tried to save you or saved you. Their card goes
+-- where the card they took the place of would have (the user's call, 14
+-- Oct: a witness before the killer): order 30, before the killer's (40)
+-- and the close call's (50); the pass above clears the one they replace,
+-- plate.killer for a death's witness, plate.foe for a rescue. Their name
+-- opens their page, as a person's strip does. Taken as shown, its creature
+-- named on it (a rescue's as the close call's card would); left off, they
+-- are told in a sentence of their own (`said.witness`, Text.lua's
+-- caption) and the creature their card did not name goes to the words: a
+-- death's as its killer's card would have (`said.death`, which the
+-- killer's own card, left off, overrules), a rescue's as the close call's
+-- (`said.close`).
+do
+    -- The creature a witness's death was to, as Text.KillerName takes it
+    -- (the row's, else the death's own); nil for a death to the world or
+    -- to nobody known.
+    local function WitnessKiller(w)
+        if w.creature and w.creature.name then return w.creature end
+        local d = w.death
+        if d and type(d.name) == "string" and d.name ~= "" and not d.environment then
+            return { name = d.name, rank = d.rank }
+        end
+        return nil
+    end
+    ns.UI.JourneyMargin.Register("witness", {
+        order = 30, pool = "witnessPool", count = "witnessesWritten",
+        new = function(parent) return WitnessCard.New(parent) end,
+        wants = function(it) return WitnessCard.Preferred(it.witness) end,
+        item = function(plate)
+            local w = plate.witness
+            return w and { witness = w, top = w.mark[2], x = w.mark[1] } or nil
+        end,
+        write = function(card, it, c)
+            local w = it.witness
+            local guid = w.guid and ns.db.characters[w.guid] ~= nil and w.guid or nil
+            card:SetWitness(w, c.Seed("witness", w.guid or ""), c.now, guid, c.ToPerson)
+        end,
+        mark = function(it) return it.witness.mark end,
+        assume = function(said, plate)
+            if plate.witness and plate.witness.call ~= nil then said.close = true end
+        end,
+        say = function(said, shown, plate)
+            local seen = plate.witness
+            if not seen then return end
+            local it = shown[1]
+            -- Whether the card as laid kept its creature's line.
+            local named = it ~= nil and it.note ~= nil and it.note.plan ~= nil and it.note.plan.foe ~= nil
+            if seen.death and not named then said.death = ns.UI.JourneyText.KillerName(WitnessKiller(seen)) end
+            if named and seen.call ~= nil then said.close = true end
+            if not it then said.witness = seen end
+        end,
+    })
+end

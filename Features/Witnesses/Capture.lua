@@ -1,21 +1,22 @@
--- Witnesses: who stood by while the user died, who waded in, and who
--- pulled them through a fight they only just survived.
+-- Witnesses' capture (Kind.lua): who stood by while the user died, who
+-- waded in, and who pulled them through a fight they only just survived.
 --
--- Three rows on the other player (Interactions.Add), for strangers on the
--- user's side only:
+-- Three rows on the other player (Interactions.Add, Kind.lua's kinds), for
+-- strangers on the user's side only:
 --
 --   watched_death  had the user, or one of their foes, targeted in the
 --                  last moments before they died, out of combat
 --                  themselves, and never fought one of the user's foes.
 --                  Not whoever merely ran past: they were looking.
 --                  context.watched is for how long, unbroken, up to the
---                  death (WATCHING says what the line makes of it), and
---                  context.subZone where.
+--                  death (Kind.lua's WATCHING says what the line makes of
+--                  it), and context.subZone where.
 --   tried_to_help  fought one of the user's foes in the fight the user
 --                  died in, or finished one off.
 --   saved_you      fought one of the user's foes, or finished one off, in
 --                  a fight the user survived with SAVED of their health or
---                  less, judged as close calls are (Capture/Combat.lua):
+--                  less, judged as close calls are (Features/CloseCalls/
+--                  Capture.lua):
 --                  the damage meter's damage taken, less the healing it
 --                  lists, against the maximum health, so reckoned from full
 --                  health. context.pct is what was left.
@@ -36,17 +37,35 @@
 --
 -- Group members are left out: their fights with the user are the
 -- session's (Core/Sessions.lua), and the group's healers would look on.
+--
+-- When it runs: this file is listed in the TOC after Capture/, where its
+-- old file (Capture/Witnesses.lua) was, not in the features' block, so on
+-- every client event it shares with Capture/ its handlers still run last,
+-- as before the move. It reads the same units as Capture/Nearby.lua
+-- (NAME_PLATE_UNIT_ADDED, PLAYER_TARGET_CHANGED): a look it reads in a
+-- fight puts what the unit shows on the character's record
+-- (Characters.ObserveUnit), and Nearby's reunion toast, run first, has
+-- taken its snapshot of a diary entry (their name) before that, as it
+-- always did (tests/witnesses.lua, "after the reunion toast").
+-- PLAYER_DEAD after Deaths' and the route's count (Capture/Journey.lua),
+-- PARTY_KILL after World PvP's, Together's and Combat's, and the fight's
+-- start and end after the route's and the close-call judge's, likewise
+-- (the judge in the features' block since 15 Oct, still before this).
+-- The judge (Features/CloseCalls/Capture.lua) tells a fight the user survived as
+-- SD_FIGHT_SURVIVED (Core/Events.lua's header) where it called
+-- Witnesses.Survived before the move; dispatch is synchronous, so the
+-- rescue's rows are written at the same point (inside the dispatcher's
+-- pcall now, so an error here no longer unwinds the judge: its close call
+-- is still kept).
 
 local addonName, ns = ...
 
-local Witnesses = {}
-ns.Witnesses = Witnesses
+local Witnesses = ns.Witnesses
 
-local WATCHED, HELPED, SAVED_ROW = "watched_death", "tried_to_help", "saved_you"
-Witnesses.WATCHED, Witnesses.HELPED, Witnesses.SAVED = WATCHED, HELPED, SAVED_ROW
+local WATCHED, HELPED, SAVED_ROW = Witnesses.WATCHED, Witnesses.HELPED, Witnesses.SAVED
 
 -- Out of a fight alive with this much of the health or less, as close
--- calls reckon it (Journey's T.closeCall is the stricter 10%).
+-- calls reckon it (ns.CloseCalls.LEFT is the stricter 10%).
 local SAVED = 0.20
 
 -- Seconds. watch: how long before the death a look still counts. scan: how
@@ -57,13 +76,9 @@ local SAVED = 0.20
 -- file's may be. kill: how long PARTY_KILL may trail a foe's death.
 local WAIT = { watch = 10, scan = 1, fight = 5, match = 2, kill = 0.5 }
 
--- Seconds an onlooker watched the user die (UI/TimelineText.lua's words):
--- under `saw` they only saw it; from `merciless` on, they watched
--- mercilessly. A look is unbroken while no reading in between finds them
--- looking elsewhere, or in combat, and readings are no more than `gap`
--- apart (the scan's beat, and some).
-local WATCHING = { saw = 1.5, merciless = 5, gap = 2.5 }
-Witnesses.WATCHING = WATCHING
+-- How long an onlooker watched, and what breaks a look (`gap`): Kind.lua's
+-- WATCHING, which the words read too.
+local WATCHING = Witnesses.WATCHING
 
 -- A clock to the fraction of a second, for how long someone looked: the
 -- server's is in whole seconds.
@@ -359,10 +374,11 @@ local function Died()
     end
 end
 
--- Called by the close-call judge (Capture/Combat.lua) once the damage
--- meter reads: a fight from `started` to `ended` that did `taken` damage,
--- less the healing the meter lists, against `max` health; `foe` the
--- creature fought most ({ npcID, name, rank }, or nil).
+-- The close-call judge's word (Features/CloseCalls/Capture.lua,
+-- SD_FIGHT_SURVIVED, once the damage meter reads): a fight from `started`
+-- to `ended` that did
+-- `taken` damage, less the healing the meter lists, against `max` health;
+-- `foe` the creature fought most ({ npcID, name, rank }, or nil).
 function Witnesses.Survived(started, ended, taken, max, foe)
     if type(taken) ~= "number" or type(max) ~= "number" or max <= 0 then return end
     if taken / max < 1 - SAVED then return end
@@ -435,6 +451,10 @@ end)
 
 ns.On("PLAYER_DEAD", Died)
 
+ns.On("SD_FIGHT_SURVIVED", function(_, started, ended, taken, max, foe)
+    Witnesses.Survived(started, ended, taken, max, foe)
+end)
+
 --------------------------------------------------------------------------
 -- A foe finished off by someone else
 --------------------------------------------------------------------------
@@ -443,8 +463,8 @@ ns.On("PLAYER_DEAD", Died)
 -- the user (their target the user, the spell on the user's), and a foe
 -- dead at once leaves them out of combat before the next reading (seen in
 -- the client, 14 Oct). What shows is the foe dying with no PARTY_KILL,
--- which fires for every kill by the user, their pet or their group
--- (Capture/PvP.lua): someone outside it killed it. The rescuer is whoever
+-- which fires for every kill by the user, their pet or their group:
+-- someone outside it killed it. The rescuer is whoever
 -- had the user or that foe targeted in the moments before.
 
 local ours = {}  -- [creature guid] = time of the PARTY_KILL

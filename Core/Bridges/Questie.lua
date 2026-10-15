@@ -204,7 +204,7 @@ end
 
 -- Wowhead's rate alone, in percent, nil where it has none: the second
 -- opinion where the first source's makes a hunt past belief
--- (Journey.Believable; QuestieDB's server data gives some items one rate
+-- (the caller says what it cannot believe; QuestieDB's server data gives some items one rate
 -- for every creature, 66% for a Red Linen Bandana where Wowhead has 37%).
 function Bridge.WowheadRate(itemID, npcID)
     if type(itemID) ~= "number" or type(npcID) ~= "number" or not DB() then return nil end

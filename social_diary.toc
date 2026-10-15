@@ -20,7 +20,6 @@ Core/Characters.lua
 Core/Heat.lua
 Core/Rows.lua
 Core/Interactions.lua
-Core/Fights.lua
 Core/Sightings.lua
 Core/Diary.lua
 Core/Notes.lua
@@ -43,11 +42,6 @@ UI/StyleBook.lua
 UI/StyleWidgets.lua
 UI/KeyCapture.lua
 UI/PaperStrip.lua
-UI/KillerCard.lua
-UI/FindCard.lua
-UI/HuntCard.lua
-UI/LuckyCard.lua
-UI/WitnessCard.lua
 UI/Entry.lua
 UI/Picker.lua
 UI/LooseSheet.lua
@@ -80,9 +74,21 @@ UI/SocialTab.lua
 # registers itself into the registries of Core/ and UI/ above, so it loads
 # after them: Kind, Data (its static tables), Text, Mark, Slip or Card,
 # then Capture. Its Dev.lua
-# goes in the block at the foot (.claude/registry-refactor.md). Chat is
-# first: its Dev.lua writes Tester's first session's whispers before the
-# campfire's row.
+# goes in the block at the foot (.claude/registry-refactor.md). Level-ups,
+# Trade, then Chat come first: their Dev.lua write at the same points of
+# Tester's script, a session's level-ups before its trade, a trade before
+# the whispers about it, and Tester's first session's whispers before the
+# campfire's row. Deaths, Close calls, then Witnesses: Close calls wear
+# Deaths' card (registered at load), the witnesses chart a rescue as a
+# close call's card does; their Dev.lua write at "route" in that order.
+# Hunts after Close calls: both lists give NameOf creatures' names, read in
+# the order they registered (close calls' first, as before). Firsts before
+# Profession caps: both take their first reading on SD_WORLD_SETTLED, the
+# bags' first, as when they were one of Capture/Journey.lua's timers.
+Features/LevelUps/Kind.lua
+Features/LevelUps/Capture.lua
+Features/Trade/Kind.lua
+Features/Trade/Capture.lua
 Features/Chat/Kind.lua
 Features/Chat/Capture.lua
 Features/Campfire/Kind.lua
@@ -90,6 +96,11 @@ Features/Campfire/Text.lua
 Features/Campfire/Mark.lua
 Features/Campfire/Slip.lua
 Features/Campfire/Capture.lua
+Features/Firsts/Kind.lua
+Features/Firsts/Text.lua
+Features/Firsts/Mark.lua
+Features/Firsts/Card.lua
+Features/Firsts/Capture.lua
 Features/ProfessionCaps/Kind.lua
 Features/ProfessionCaps/Text.lua
 Features/ProfessionCaps/Mark.lua
@@ -99,18 +110,42 @@ Features/QuestFinales/Data.lua
 Features/QuestFinales/Text.lua
 Features/QuestFinales/Mark.lua
 Features/QuestFinales/Capture.lua
+Features/WorldPvP/Kind.lua
+Features/WorldPvP/Capture.lua
+Features/Deaths/Kind.lua
+Features/Deaths/Text.lua
+Features/Deaths/Card.lua
+Features/Deaths/Capture.lua
+Features/CloseCalls/Kind.lua
+Features/CloseCalls/Text.lua
+Features/CloseCalls/Mark.lua
+Features/CloseCalls/Card.lua
+Features/CloseCalls/Capture.lua
+Features/Witnesses/Kind.lua
+Features/Witnesses/Text.lua
+Features/Witnesses/Card.lua
+Features/Hunts/Kind.lua
+Features/Hunts/Text.lua
+Features/Hunts/Mark.lua
+Features/Hunts/HuntCard.lua
+Features/Hunts/LuckyCard.lua
 
-Capture/Trade.lua
 Capture/Menus.lua
 Capture/Group.lua
 Capture/Together.lua
-Capture/Deaths.lua
-Capture/PvP.lua
 Capture/Nearby.lua
 Capture/Sightings.lua
 Capture/Journey.lua
-Capture/Combat.lua
-Capture/Witnesses.lua
+# Hunts' capture stays where Capture/Combat.lua was, after Capture/: it
+# shares the quest events, the kills, the loot window and the login with
+# Capture/, so every event order stays the old one
+# (Features/Hunts/Capture.lua's header).
+Features/Hunts/Capture.lua
+# Witnesses' capture stays where its file was, after Capture/: it reads the
+# same units as Capture/Nearby.lua's reunion toast and must still run after
+# it, as on every event it shares with Capture/
+# (Features/Witnesses/Capture.lua's header).
+Features/Witnesses/Capture.lua
 
 #@do-not-package@
 # Development tooling: diagnostics, /sd art, /sd journey and /sd testdata. They
@@ -123,8 +158,16 @@ Dev/Diagnostics.lua
 Dev/SightingsDebug.lua
 Dev/JourneyDebug.lua
 Dev/TestData.lua
+Features/LevelUps/Dev.lua
+Features/Trade/Dev.lua
 Features/Chat/Dev.lua
 Features/Campfire/Dev.lua
+Features/Firsts/Dev.lua
 Features/ProfessionCaps/Dev.lua
 Features/QuestFinales/Dev.lua
+Features/WorldPvP/Dev.lua
+Features/Deaths/Dev.lua
+Features/CloseCalls/Dev.lua
+Features/Witnesses/Dev.lua
+Features/Hunts/Dev.lua
 #@end-do-not-package@

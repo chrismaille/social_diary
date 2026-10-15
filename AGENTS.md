@@ -17,12 +17,11 @@ classic gameplay. Interface version is in `social_diary.toc`.
 | Path | Contents |
 |---|---|
 | `social_diary.toc` | Load order, SavedVariables (`SocialDiaryDB`, `SocialDiaryCharDB`) |
-| `Core/` | Data model and logic: DB, identity, people, diary, timeline, journey, sessions, reunions, slash commands, event wiring |
+| `Core/` | Data model and logic: DB, identity, people, diary, timeline, journey, sessions, reunions, slash commands, event wiring; the registries features plug into (`Rows.lua`, `Journey.RegisterList`, `JourneyRecap.RegisterMoment`) |
 | `Core/Bridges/` | Optional integrations (Questie) |
-| `Capture/` | Game-event listeners that record interactions (group, trade, whisper, combat, deaths, PvP, sightings, journey) |
-| `Data/` | Static data tables (e.g. quest-chain finales) |
+| `Capture/` | Game-event listeners for the diary's substrate (group, sessions, sightings, the journey route) |
 | `UI/` | Journal frames and pages, cards, toasts, heat map, settings; shared style in `Style*.lua` |
-| `Features/<Name>/` | One detection each, whole (so far `Campfire/`): its row kind, route list, recap moment, mark, margin note, words, capture and test data, registered into `Core/` and `UI/`. Layout and checklist: `.claude/registry-refactor.md`, "A feature's folder" |
+| `Features/<Name>/` | One detection each, whole (chat, trade, level-ups, World PvP, deaths, witnesses, close calls, hunts, firsts found, quest finales, profession caps, campfires): its row kind, route list, recap moment, mark, margin note, words, capture, static data and test data, registered into `Core/` and `UI/`. Core never names a feature. Layout and checklist: `.claude/registry-refactor.md`, "A feature's folder" |
 | `Dev/` | Debug tools and test data (not for release) |
 | `tests/` | Offline test suite against a WoW API mock (`wowmock.lua`). Run: `luajit tests/run.lua` (`-v` verbose, or pass file names) — add new files to `FILES` in `run.lua` |
 | `.claude/` | Skills (`skills/`) and project rules (`rules/`) are in the repo. The PRD, plans, research notes and UI proposals stay local and untracked (`.gitignore`); code comments cite them by name and requirement ID |

@@ -120,9 +120,9 @@ end
 -- makes "trade first, decide later" reach past the current session's Recent
 -- entries.
 -- Said in words where the row type would not be (its kind's `reason`,
--- Core/Rows.lua): a fight (Core/Fights.lua), for flow 5's ganker; a witness
--- to one of the user's (Capture/Witnesses.lua); whatever a feature's own
--- kind says (Features/<Name>/).
+-- Core/Rows.lua): a fight, for flow 5's ganker; a witness
+-- to one of the user's; whatever a feature's own kind says
+-- (Features/<Name>/).
 
 local function GatherBuffer(add, now)
     local recent = ns.Interactions.Since(now - RECENT_WINDOW)

@@ -26,13 +26,14 @@
 --                              login, a /reload, a loading screen), when the
 --                              client has loaded what the character holds
 --                              (its bags, its skills). Fired by Capture/
---                              Journey.lua right after its first reading of
---                              the bags (the firsts). A feature's capture
---                              that holds what the character has against
---                              its last reading takes its first one here,
---                              which only sets the mark: what is had then
---                              was had out of sight. Whether the route is
---                              kept is the feature's to ask (ns.Journey.Kept).
+--                              Journey.lua, from a timer of its own its
+--                              PLAYER_ENTERING_WORLD handler queues. A
+--                              feature's capture that holds what the
+--                              character has against its last reading
+--                              takes its first one here, which only sets
+--                              the mark: what is had then was had out of
+--                              sight. Whether the route is kept is the
+--                              feature's to ask (ns.Journey.Kept).
 --   SD_QUEST_ACCEPTED (questID)   a quest taken, its id a plain number.
 --   SD_QUEST_TURNED_IN (questID)  a quest turned in, likewise. Both fired
 --                              by Capture/Journey.lua straight after the
@@ -42,6 +43,60 @@
 --                              The turn-in comes through Capture/
 --                              Together.lua's QUEST_TURNED_IN handler,
 --                              after the session's count.
+--   SD_LEVEL_ROSE (guid, from, level)  a character was read at a higher
+--                              level than their record held (`from`, a
+--                              number; `level`, the new one, already on
+--                              the record). Fired by Characters.Observe
+--                              (Core/Characters.lua) on a live reading
+--                              only (no `info.time`: a backfilled one
+--                              describes the past), never on a first
+--                              reading, for anyone, the user's own
+--                              characters included (record.isSelf,
+--                              ns.ownGUID: the listener's to skip). Any
+--                              reading counts: a unit token, a roster's
+--                              UNIT_LEVEL, a nameplate.
+--   SD_YOU_DIED (death)        the user died (PLAYER_DEAD). `death` is
+--                              { guess, time, where }: the killer guessed
+--                              at the moment (the deaths' capture's
+--                              shape: { player, guid } for a player,
+--                              { npcID, name, ... } for a creature, or
+--                              nil), when, and ns.Where() then. Fired by
+--                              the feature that watches the user's deaths,
+--                              inside its PLAYER_DEAD handler, before it
+--                              keeps the death on the route, in a session
+--                              or not.
+--   SD_DEATH_RECAP (death, killer)  the death recap named who killed the
+--                              user: `death` the same table SD_YOU_DIED
+--                              carried (a listener may key what it wrote
+--                              by it), `killer` the recap's ({ player,
+--                              guid, spell } or a creature's { npcID,
+--                              name, spell, ... } or the world's
+--                              { environment }). Fired by the same
+--                              feature once combat is over, before the
+--                              death it keeps takes its killer; never
+--                              when no recap came.
+--   SD_TRADE_COMPLETED (guid, received)  a trade the client said was
+--                              completed, with `guid` (who it was with),
+--                              `received` what came the user's way: the
+--                              trade row's context.received ({ { link,
+--                              count }, ... }, or nil for none). Fired by
+--                              the feature that captures trades as it
+--                              stores the row, now (ns.Now() is its time).
+--   SD_FIGHT_SURVIVED (started, ended, taken, max, foe)  a fight the user
+--                              came out of alive, as the feature that
+--                              judges close calls reads it once the damage
+--                              meter does (a moment after combat ends):
+--                              from `started` to `ended` (ns.Now() times),
+--                              `taken` the damage taken less the healing
+--                              the meter lists, `max` the user's maximum
+--                              health, `foe` the creature fought most
+--                              ({ npcID, name, rank }) or nil. Every
+--                              fight judged, close or not (the listener
+--                              says what is close enough for it), fired
+--                              before the close call is kept; never for a
+--                              fight the meter never read, nor while dead,
+--                              nor while the route is not kept (the
+--                              judge's own gate, ns.Journey.Kept).
 --
 -- Dispatch is synchronous: SD_REUNION's toast has read "last met" before
 -- ns.Fire returns, which is what lets Group fire it ahead of Sessions.

@@ -1,4 +1,4 @@
--- The lucky card (UI/LuckyCard.lua, JRN-27): good luck with a quest's
+-- The lucky card (Features/Hunts/LuckyCard.lua, JRN-27): good luck with a quest's
 -- drops, the drop tables' "expected 58" printed and scribbled out, a tag
 -- of fresher paper taped over it saying what happened instead. Its words
 -- in every size, its sizes by the room it has and its steps down, the
@@ -20,7 +20,7 @@ local DAY = T.DAY
 local ns = T.Boot()
 local SELF = F.SELF
 local Text = ns.UI.JourneyText
-local Lucky = ns.UI.LuckyCard
+local Lucky = ns.Hunts.LuckyCard
 local NB = "\194\160"
 
 mock.now = 1791000000
@@ -46,33 +46,33 @@ end
 --------------------------------------------------------------------------
 Section("the words, every size")
 
-Eq(Lines(Text.LuckyTag(KOLKAR, "XL")), "dropped[dropped]/after just four", "XL: two lines, \"just\"")
-Eq(Lines(Text.LuckyTag(KOLKAR, "L")), "dropped after just four[dropped]", "L: one line")
-Eq(Lines(Text.LuckyTag(KOLKAR, "M1")), "dropped after four[dropped]", "M1: no \"just\"")
-Eq(Lines(Text.LuckyTag(KOLKAR, "M2")), "dropped[dropped]/after four", "M2: two lines")
-Eq(Lines(Text.LuckyTag(KOLKAR, "M2s")), "dropped[dropped]/after four", "M2s: as M2, beside")
-Eq(Lines(Text.LuckyTag(KOLKAR, "S")), "after four[four]", "S: the count underlined (13 Oct)")
-Eq(Lines(Text.LuckyTag(KOLKAR, "S-")), "four[four]", "S-: the count alone")
-Eq(Lines(Text.LuckyTag(HEZRUL, "XL")), "dropped[dropped]/on the first", "one kill, XL")
-Eq(Lines(Text.LuckyTag(HEZRUL, "L")), "dropped on the first[dropped]", "one kill, L")
-Eq(Lines(Text.LuckyTag(HEZRUL, "S")), "on the first[first]", "one kill, S")
-Eq(Lines(Text.LuckyTag(HEZRUL, "S-")), "the first[first]", "one kill, S-")
-Eq(Lines(Text.LuckyTag(MANY, "L")), "dropped after just 14" .. NB .. "kills[dropped]", "past ten, a figure with its noun")
-Eq(Lines(Text.LuckyTag(MANY, "S-")), "14" .. NB .. "kills[14" .. NB .. "kills]", "past ten at S-")
-Eq(Lines(Text.LuckyTag({ kills = 10, expected = 90 }, "M1")), "dropped after ten[dropped]", "ten is still a word")
-Eq(Text.LuckyKind(KOLKAR), "Kolkar Marauders", "the creature's line")
-Eq(Text.LuckyKind(HEZRUL), "Hezrul Bloodmark", "one kill keeps the name singular")
-Eq(Text.LuckyKind(HORNS), "Sunscale Scytheclaws and others", "several kinds")
-Eq(Text.LuckyKind({ kills = 3 }), nil, "a nameless creature has no line")
-Eq(Text.LuckyCaption(KOLKAR), "7" .. NB .. "Kolkar Booty Keys from Kolkar Marauders", "the print's caption")
-Eq(Text.LuckyCaption(HEZRUL), "Hezrul's Head from Hezrul Bloodmark", "one item")
-Eq(Text.LuckyCaption({ need = 3, kills = 4, item = "Thunder Lizard Blood", name = "Thunder Lizard" }),
+Eq(Lines(ns.Hunts.LuckyTag(KOLKAR, "XL")), "dropped[dropped]/after just four", "XL: two lines, \"just\"")
+Eq(Lines(ns.Hunts.LuckyTag(KOLKAR, "L")), "dropped after just four[dropped]", "L: one line")
+Eq(Lines(ns.Hunts.LuckyTag(KOLKAR, "M1")), "dropped after four[dropped]", "M1: no \"just\"")
+Eq(Lines(ns.Hunts.LuckyTag(KOLKAR, "M2")), "dropped[dropped]/after four", "M2: two lines")
+Eq(Lines(ns.Hunts.LuckyTag(KOLKAR, "M2s")), "dropped[dropped]/after four", "M2s: as M2, beside")
+Eq(Lines(ns.Hunts.LuckyTag(KOLKAR, "S")), "after four[four]", "S: the count underlined (13 Oct)")
+Eq(Lines(ns.Hunts.LuckyTag(KOLKAR, "S-")), "four[four]", "S-: the count alone")
+Eq(Lines(ns.Hunts.LuckyTag(HEZRUL, "XL")), "dropped[dropped]/on the first", "one kill, XL")
+Eq(Lines(ns.Hunts.LuckyTag(HEZRUL, "L")), "dropped on the first[dropped]", "one kill, L")
+Eq(Lines(ns.Hunts.LuckyTag(HEZRUL, "S")), "on the first[first]", "one kill, S")
+Eq(Lines(ns.Hunts.LuckyTag(HEZRUL, "S-")), "the first[first]", "one kill, S-")
+Eq(Lines(ns.Hunts.LuckyTag(MANY, "L")), "dropped after just 14" .. NB .. "kills[dropped]", "past ten, a figure with its noun")
+Eq(Lines(ns.Hunts.LuckyTag(MANY, "S-")), "14" .. NB .. "kills[14" .. NB .. "kills]", "past ten at S-")
+Eq(Lines(ns.Hunts.LuckyTag({ kills = 10, expected = 90 }, "M1")), "dropped after ten[dropped]", "ten is still a word")
+Eq(ns.Hunts.LuckyKind(KOLKAR), "Kolkar Marauders", "the creature's line")
+Eq(ns.Hunts.LuckyKind(HEZRUL), "Hezrul Bloodmark", "one kill keeps the name singular")
+Eq(ns.Hunts.LuckyKind(HORNS), "Sunscale Scytheclaws and others", "several kinds")
+Eq(ns.Hunts.LuckyKind({ kills = 3 }), nil, "a nameless creature has no line")
+Eq(ns.Hunts.LuckyCaption(KOLKAR), "7" .. NB .. "Kolkar Booty Keys from Kolkar Marauders", "the print's caption")
+Eq(ns.Hunts.LuckyCaption(HEZRUL), "Hezrul's Head from Hezrul Bloodmark", "one item")
+Eq(ns.Hunts.LuckyCaption({ need = 3, kills = 4, item = "Thunder Lizard Blood", name = "Thunder Lizard" }),
     "3" .. NB .. "Thunder Lizard Blood from Thunder Lizards", "what is not counted keeps its name")
-Eq(Text.LuckyCaption({ need = 1, kills = 2, item = "Stolen Silver" }), "Stolen Silver", "nameless: the item alone")
-Eq(Text.HuntExpectedLabel(KOLKAR), "expected 58", "the struck words")
+Eq(ns.Hunts.LuckyCaption({ need = 1, kills = 2, item = "Stolen Silver" }), "Stolen Silver", "nameless: the item alone")
+Eq(ns.Hunts.ExpectedLabel(KOLKAR), "expected 58", "the struck words")
 for _, form in ipairs({ "XL", "L", "M1", "M2", "S", "S-" }) do
     for _, hunt in ipairs({ KOLKAR, HEZRUL, MANY }) do
-        local said = Lines(Text.LuckyTag(hunt, form))
+        local said = Lines(ns.Hunts.LuckyTag(hunt, form))
         Check(not said:find("[&!]") and not said:find("%d%d?$"), "a bare figure or loud mark: " .. said)
     end
 end
@@ -162,7 +162,7 @@ Check(xl.kind:IsShown() and xl.kind:GetText() == "Kolkar Marauders", "the creatu
 Eq(xl.name:GetText(), "Kolkar Booty Keys", "the heading")
 Eq(xl.struck:GetText(), "expected 58", "the struck words")
 Eq(xl.count:GetText(), "7", "the stack count")
-Check(xl.icon:IsShown() and xl.plan.icon == ns.UI.HuntCard.ICON.size, "the icon at its full size")
+Check(xl.icon:IsShown() and xl.plan.icon == ns.Hunts.HuntCard.ICON.size, "the icon at its full size")
 local tag = xl.plan.tag
 Check(tag.x >= xl.plan.struck.x + xl.plan.struck.w + S.tail[2] + Lucky.LUCKY.clear - 1e-9,
     "the tag lies on the struck words")
@@ -190,7 +190,7 @@ Eq(m2.plan.form, "M2", "a row's box: M2")
 Eq(m2:Tag(), "dropped/after four", "M2's tag")
 local narrow = New(KOLKAR, 122)
 Eq(narrow.plan.form, "M2", "the 122 px column: M2")
-Eq(narrow.plan.icon, ns.UI.HuntCard.ICON.narrow, "the narrow icon under 140 px")
+Eq(narrow.plan.icon, ns.Hunts.HuntCard.ICON.narrow, "the narrow icon under 140 px")
 local tight = New(KOLKAR, 100)
 Check(tight.overfull, "nothing fits 100 px, but the card is not overfull")
 local one = New(HEZRUL, 200)
@@ -230,7 +230,7 @@ GameTooltip.text, GameTooltip.link = nil, nil
 one.item.scripts.OnEnter(one.item)
 Eq(GameTooltip.link, "item:5025", "the icon's tooltip is not the item's")
 one.item.scripts.OnLeave(one.item)
-Check(one.tag.tip and one.tag.tip()[1][1] == Text.HuntLine(HEZRUL), "the tag has not the card's tooltip")
+Check(one.tag.tip and one.tag.tip()[1][1] == ns.Hunts.Line(HEZRUL), "the tag has not the card's tooltip")
 
 -- Laid flat: both slips square, no shadow under the icon; the tag still
 -- over the card's right side, the scribble still drawn.
@@ -476,7 +476,7 @@ Check(onPrint.print.far and link and link.mark == onPrint.lucky.mark, "S has no 
 -- Under the mouse: the star's tooltip, and the item's over the icon.
 GameTooltip.text = nil
 onPrint.printHit.scripts.OnEnter(onPrint.printHit)
-Eq(GameTooltip.text, Text.HuntLine(LUCK), "S's tooltip")
+Eq(GameTooltip.text, ns.Hunts.Line(LUCK), "S's tooltip")
 onPrint.printHit.scripts.OnLeave(onPrint.printHit)
 Check(onPrint.printItem:IsShown(), "S's icon takes no mouse")
 

@@ -175,13 +175,13 @@ local function RGB(hex)
 end
 
 -- The same inks as RGB, for what is drawn in an item's colour rather than
--- written (a first found's mark on a plate, UI/JourneyPlate.lua).
+-- written (a mark on a plate in the item's ink).
 function Style.QualityInk(quality)
     return RGB(QUALITY_INK[tonumber(quality) or -1])
 end
 
--- The first found card's box (UI/FindCard.lua), on its own light cream
--- (FindCard.BOX.ground, f9f2dd), not the page's paper:
+-- An item boxed on a card as the game shows it (an item chip on its own
+-- light cream, f9f2dd, not the page's paper):
 --   - NAME_INK: the item's name. Middle inks, the game colour's own hue
 --     made as bright as still reads, about 6:1 on the cream and at least
 --     4.66:1 on the wash's lightest-but-one stop. Card only: on the page's
@@ -200,7 +200,8 @@ end
 --     take blue away, and at the lightness 0059b1 needs (4.5:1) the best
 --     blue left is slate. So the blue is put round the icon, at `deep`.
 --   A white (common) item has none of them: its colour is the paper.
---   Legendary has a name ink and an edge but no wash (no first is one).
+--   Legendary has a name ink and an edge but no wash (no card shows one
+--   yet).
 local QUALITY_NAME_INK = { [2] = "086b01", [3] = "0059b1", [4] = "880dce", [5] = "8f4501" }
 local QUALITY_GAME = { [2] = "1eff00", [3] = "0070dd", [4] = "a335ee", [5] = "ff8000" }
 local QUALITY_WASH = {

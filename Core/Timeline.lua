@@ -152,8 +152,9 @@ local function ByTime(a, b) return a.time < b.time end
 -- Children are the episode's rows (and, for a session, its rares) as items.
 -- Ranks what it did, takes the headline's share, and keeps a line only for
 -- moments the headline does not already name.
-local function IsLevelUp(item)
-    return item.kind == "row" and item.row.type == "level_up"
+-- A line of a kind that climbs (Core/Rows.lua's `climb`: the level-ups).
+local function Climbing(item)
+    return item.kind == "row" and ns.Rows.Get(item.row.type).climb == true
 end
 
 -- Folded, two or more level-ups in a row, with nothing between them, are
@@ -163,7 +164,7 @@ local function Climbs(lines)
     local out, i = {}, 1
     while i <= #lines do
         local k = i
-        while lines[k + 1] and IsLevelUp(lines[i]) and IsLevelUp(lines[k + 1]) do k = k + 1 end
+        while lines[k + 1] and Climbing(lines[i]) and Climbing(lines[k + 1]) do k = k + 1 end
         if k > i then
             local ups = {}
             for n = i, k do ups[#ups + 1] = lines[n] end
@@ -247,7 +248,7 @@ local function AddToSession(episode, row)
     local item = RowItem(row)
     episode.rows[#episode.rows + 1] = row
     episode.all[#episode.all + 1] = item
-    -- A level-up names nothing (its kind, Core/Rows.lua), so it adds no activity.
+    -- A level-up names nothing (its kind declares no activity), so it adds none.
     if item.activity then episode.present[item.activity] = true end
 end
 

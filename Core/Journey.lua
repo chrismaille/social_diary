@@ -20,7 +20,7 @@
 -- buffer (JRN-18).
 --
 -- db.journey[charGUID] = { startedAt, startLevel, startMapID, levels,
--- segments, marks, deaths, firsts, closeCalls, hunts, hunting, open }
+-- segments, marks, open }
 -- (prd.md section 7), and a list of its own for each feature that
 -- registered one (Journey.RegisterList), or what else a feature keeps on
 -- the route (its Features/<Name>/Kind.lua says). `open` is
@@ -56,20 +56,6 @@ local T = {
     city = 60,          -- less time in a city than this is no stop
     raw = 5000,         -- the debug ring buffer's points (JRN-18)
     marks = 1000,       -- fights kept a character, the oldest strangers' first
-    deaths = 500,       -- the user's deaths kept a character, the oldest first
-    closeCall = 0.10,   -- out of a fight alive with this much of your health or less
-    closeCalls = 300,   -- close calls kept a character, the oldest first
-    hunts = 400,        -- quest drops counted a character, the oldest first
-    huntAge = 30 * 86400,   -- a count still open this long is given up
-    luckExtra = 8,      -- bad luck: at least this many kills more than items...
-    luckRatio = 3,      -- ...and this many kills an item, or more...
-    luckUsual = 2,      -- ...and this many times the character's usual, once
-    luckKnown = 5,      -- this many drops have been counted
-    luckOver = 1.25,    -- with the drop rate known: luckExtra kills more than
-                        -- expected, and this many times it (EXT-2)
-    fortune = 8,        -- good luck: an eighth of the kills expected, or fewer (EXT-3)
-    rateDoubt = 1e-4,   -- a drop rate under which a hunt this slow had less than this
-                        -- chance is taken for wrong, and the next source tried
     -- (a feature's list adds its own cap here as it registers:
     -- Journey.RegisterList)
 }
@@ -1115,7 +1101,7 @@ function Journey.Fight(j, outcome, guid, now, where)
     return mark
 end
 
--- A fight as Core/Fights.lua writes it: on the logged-in character's
+-- A fight as Journey.Fought writes it: on the logged-in character's
 -- route, while it is being kept. `where` is the row's (ns.Where's shape,
 -- whose map may be a cave's or a district's): its position counts only on
 -- a zone map, else the mark is placed by time. Without it, here and now.
@@ -1156,13 +1142,59 @@ Journey.Kept = Kept
 -- { cap }) declares one (its cap goes into T); Append adds to it, List
 -- reads it. The recap gathers it through its moment (Core/JourneyRecap.lua,
 -- Recap.RegisterMoment).
+--
+-- `spec`:
+--   cap      the newest this many kept (T[name])
+--   named    true: its records carry a creature's `npcID` and `name` as
+--            the death recap gave them, which may come with a made-up
+--            surname; the creature names read off units (NoteName, below)
+--            put it right, as soon as one is read and at login (Mend)
+--   readNames  true: its records carry a creature's `npcID` and `name` as
+--            read off a unit when the record was made, so a creature's
+--            name may be taken from them (NameOf, below: the newest
+--            first), where no name read lately and no QuestieDB says it.
+--            Or a function(j, npcID) → name or nil: the feature reads its
+--            names itself, where they are not the newest record's first
+--            (say, its list oldest first, then records still under way
+--            that it keeps beside the list)
+--   prune    optional function(j, now): at login (Journey.Prune), for
+--            each character's route, before the creature names are put
+--            right and dropped (ForgetNames, which asks NameOf): what the
+--            feature keeps on the route beside its list given up when it
+--            is stale (say, a record under way left open too long, or a
+--            person's GUID kept on a record while the buffer still held
+--            them, given up once it no longer does and they are not in
+--            the diary)
+--   forget   optional function(j, guid): PRV-3, someone forgotten (the
+--            "journey" store, below), for each character's route: the
+--            feature lets go of `guid` wherever it kept it, `nil` being
+--            everyone. The record stays; only the name goes
+--
+-- A feature that keeps a table of its own on the route that is not a
+-- list (keyed, say by kind: j[name][key] = record, written by the
+-- feature itself) registers it too, with no `cap`, for its `prune` and
+-- `forget` alone: Append and List are never asked of it.
 
 local LISTS = {}
+-- Every registered list, by name (for tests/kinds.lua; read only).
+Journey.LISTS = LISTS
+-- The lists registered `readNames`, in the order they registered (NameOf
+-- asks them in turn), and those registered with a `prune` or a `forget`,
+-- likewise.
+local READ_NAMES, PRUNES, FORGETS = {}, {}, {}
 
 function Journey.RegisterList(name, spec)
     spec = spec or {}
+    for _, list in ipairs({ READ_NAMES, PRUNES, FORGETS }) do
+        for i = #list, 1, -1 do
+            if list[i] == name then table.remove(list, i) end
+        end
+    end
     LISTS[name] = spec
     if spec.cap then T[name] = spec.cap end
+    if spec.readNames then READ_NAMES[#READ_NAMES + 1] = name end
+    if spec.prune then PRUNES[#PRUNES + 1] = name end
+    if spec.forget then FORGETS[#FORGETS + 1] = name end
     return spec
 end
 
@@ -1188,14 +1220,20 @@ function Journey.List(j, name)
     return j and j[name] or {}
 end
 
+-- A fight of the user's, kept as a mark on the logged-in character's route
+-- while it is kept (Kept): "won" or "lost", with `guid`, at `t` (the time of
+-- the fight's row, Core/Rows.lua's `fight`, so FightIndex finds a stranger
+-- by it), where `where` says (ns.Where's shape) or here. Returns the mark,
+-- or nil. The feature that writes fight rows calls it with each.
 function Journey.Fought(outcome, guid, t, where)
     local j = Kept()
     if not j then return nil end
     return Journey.Fight(j, outcome, guid, t or ns.Now(), Spot(where))
 end
 
--- A fight that was not what it seemed (Core/Fights.lua's Resolve): moved to
--- the player the death recap names, or taken back.
+-- A fight that was not what it seemed (a death the recap put down to
+-- someone else): moved to the player the death recap names, or taken back
+-- (`guid` false).
 function Journey.Refight(j, mark, guid)
     if not (j and mark) then return end
     if guid == false then
@@ -1218,14 +1256,15 @@ function Journey.FightWho(mark, index)
     return hit
 end
 
--- Every world PvP row in the buffer, by its time: the strangers' names for
--- as long as the buffer keeps them.
+-- Every fight row in the buffer (a kind that sets Core/Rows.lua's
+-- `fight`), by its time: the strangers' names for as long as the buffer
+-- keeps them.
 function Journey.FightIndex()
     local index = {}
+    local Get = ns.Rows.Get
     for guid, rows in pairs(ns.db.interactions) do
         for i = 1, #rows do
-            local kind = rows[i].type
-            if kind == "pvp_kill" or kind == "pvp_death" then index[rows[i].time] = guid end
+            if Get(rows[i].type).fight then index[rows[i].time] = guid end
         end
     end
     return index
@@ -1235,30 +1274,24 @@ end
 -- Witnesses to the user's deaths and close calls
 --------------------------------------------------------------------------
 --
--- Capture/Witnesses.lua writes who watched the user die, who tried to save
--- them and who saved them as rows on that player (Interactions.Add), at the
--- death's or the close call's own time: the same PLAYER_DEAD, the same
--- close-call judge. So a death or a close call on the route finds its
--- witnesses by time, as fights find their strangers (FightIndex), and the
--- route keeps no names (forgetting someone takes their rows, and with them
--- their part on the plates).
+-- A stranger who was there at one of the user's deaths or close calls is
+-- a row on that player, of a kind that sets Core/Rows.lua's `witness`,
+-- written at the moment's own time. So a death or a close call on the
+-- route finds its witnesses by time, as fights find their strangers
+-- (FightIndex), and the route keeps no names (forgetting someone takes
+-- their rows, and with them their part on the plates). Which witnesses a
+-- moment had, and which the plate shows, is the feature's that writes
+-- the rows.
 
--- Row type -> what the witness did.
-local WITNESS = { tried_to_help = "helped", saved_you = "helped", watched_death = "watched" }
-Journey.WITNESS = WITNESS
-
--- Seconds a row's time may be from its moment's: both are read in the same
--- second, so this is only leeway.
-local WITNESS_SLACK = 3
-
--- Every witness row in the buffer, oldest first: { t, guid, row }. Built
--- once per drawing.
+-- Every witness row in the buffer (a kind that sets `witness`), oldest
+-- first: { t, guid, row }. Built once per drawing.
 function Journey.WitnessIndex()
     local list = {}
+    local Get = ns.Rows.Get
     for guid, rows in pairs(ns.db.interactions) do
         for i = 1, #rows do
             local row = rows[i]
-            if WITNESS[row.type] and type(row.time) == "number" then
+            if Get(row.type).witness and type(row.time) == "number" then
                 list[#list + 1] = { t = row.time, guid = guid, row = row }
             end
         end
@@ -1267,91 +1300,14 @@ function Journey.WitnessIndex()
     return list
 end
 
--- The witnesses (WitnessIndex's) to a moment at `t` whose row type is in
--- `types` ({ [type] = true }), best first: who acted before who watched,
--- the longer watcher first, then by GUID so a drawing is the same each
--- time.
-function Journey.WitnessesAt(index, t, types)
-    local found = {}
-    if type(t) ~= "number" then return found end
-    for _, w in ipairs(index or {}) do
-        if w.t > t + WITNESS_SLACK then break end
-        if w.t >= t - WITNESS_SLACK and types[w.row.type] then found[#found + 1] = w end
-    end
-    table.sort(found, function(a, b)
-        local ha, hb = WITNESS[a.row.type] == "helped", WITNESS[b.row.type] == "helped"
-        if ha ~= hb then return ha end
-        local wa = a.row.context and a.row.context.watched or 0
-        local wb = b.row.context and b.row.context.watched or 0
-        if wa ~= wb then return wa > wb end
-        return a.guid < b.guid
-    end)
-    return found
-end
-
 --------------------------------------------------------------------------
--- The user's deaths, and what killed them
+-- The user's deaths on the route
 --------------------------------------------------------------------------
 --
--- A death on the route is only a count where it happened (act.deaths).
--- This keeps each one too: when, where on the zone map, and the creature
--- or the world that did it, as Capture/Deaths.lua tells it -- the NPC id,
--- the name, the killing spell, and the display the creature wore, so the
--- diary can draw it after the creature cache has forgotten it, and its
--- rank when above the common run ("elite", "rare", "rareelite",
--- "worldboss"). `probable` while it rests on the guess at the moment of
--- death.
---
--- A player who killed you is a fight (marks), where whom stays under the
--- diary's rules; here that death keeps no killer. Nothing here names a
--- person, so forgetting has nothing to take.
-
-local KILLER = { "npcID", "name", "spell", "display", "environment", "rank", "probable" }
-
--- A death of the user's, here and now (`where` in ns.Where's shape, as
--- Fought takes it). Returns the record Killer and Display fill in, or nil
--- while the route is not kept.
-function Journey.Died(t, where)
-    local j = Kept()
-    if not j then return nil end
-    local spot = Spot(where)
-    local death = { t = t or ns.Now(), mapID = spot.mapID, x = spot.x, y = spot.y }
-    j.deaths = j.deaths or {}
-    j.deaths[#j.deaths + 1] = death
-    while #j.deaths > T.deaths do table.remove(j.deaths, 1) end
-    Touch()
-    return death
-end
-
--- What killed `death`: Capture/Deaths.lua's killer, a creature or the
--- world; a player or nothing leaves it without one. A display already
--- read stays while the creature is the same.
-function Journey.Killer(death, killer)
-    if not death then return end
-    local display = death.display
-    local same = killer and killer.npcID and killer.npcID == death.npcID
-    for _, key in ipairs(KILLER) do death[key] = nil end
-    if killer and not killer.player then
-        death.npcID, death.name, death.spell = killer.npcID, killer.name, killer.spell
-        death.environment, death.rank = killer.environment, killer.rank
-        death.probable = killer.source ~= "recap" or nil
-        if same then death.display = display end
-    end
-    Touch()
-end
-
--- The display creature `npcID` wore, once it has been read. Dropped when
--- the death has been put down to another killer since.
-function Journey.Display(death, npcID, display)
-    if not (death and npcID and death.npcID == npcID) then return end
-    death.display = display
-    Touch()
-end
-
--- A character's deaths, oldest first.
-function Journey.Deaths(j)
-    return j and j.deaths or {}
-end
+-- A death on the route is a count where it happened (act.deaths, at
+-- PLAYER_DEAD: Capture/Journey.lua), drawn as a cross on the plates. What
+-- killed you there is a feature's, kept on a list of its own
+-- (RegisterList), which finds its cross by the death's time through this.
 
 -- The segment a death at `t` was counted on (Act's "deaths", at
 -- PLAYER_DEAD): what was open then, the last one but a flight begun by
@@ -1387,11 +1343,13 @@ end
 --
 -- The death recap may give a mob a made-up surname ("Murloc Forager
 -- Olwynne" for a Murloc Forager), and where it names the mob only once
--- there is nothing to take it off by (Capture/Deaths.lua's CommonName).
+-- there is nothing to take it off by (the deaths' capture tries: names in
+-- common).
 -- A creature's name as read off a unit (target, mouseover, a nameplate)
 -- puts it right. They are kept by npcID, { name, when last read }, for
 -- NAMES.days and at most NAMES.most, the least recent dropped first: a
--- name only has to outlive the recap, and a death it puts right keeps it.
+-- name only has to outlive the recap, and a record it puts right keeps it
+-- (a list registered `named`, RegisterList).
 -- Where the user runs QuestieDB, it knows every creature's name by its id
 -- (EXT-1), so a creature never read off a unit is put right too.
 
@@ -1405,22 +1363,26 @@ end
 
 -- The name a creature of kind `npcID` goes by: as last read off a unit,
 -- else as QuestieDB has it, where the user runs it (EXT-1), else as a
--- close call or a hunt kept it. Nil where none says.
+-- list registered `readNames` kept it (the lists in the order they
+-- registered: the newest of its records first, or as the list's own
+-- function reads them). Nil where none says.
 function Journey.NameOf(j, npcID)
     if not (j and npcID) then return nil end
     local known = j.names and j.names[npcID]
     if known then return known[1] end
     local db = ns.QuestieBridge and ns.QuestieBridge.NpcName(npcID)
     if db then return db end
-    local calls = j.closeCalls or {}
-    for i = #calls, 1, -1 do
-        if calls[i].npcID == npcID and calls[i].name then return calls[i].name end
-    end
-    for _, hunt in ipairs(j.hunts or {}) do
-        if hunt.npcID == npcID and hunt.name then return hunt.name end
-    end
-    for _, hunt in pairs(j.hunting or {}) do
-        if hunt.names and hunt.names[npcID] then return hunt.names[npcID] end
+    for _, name in ipairs(READ_NAMES) do
+        local read = LISTS[name].readNames
+        if type(read) == "function" then
+            local found = read(j, npcID)
+            if found then return found end
+        else
+            local list = j[name] or {}
+            for i = #list, 1, -1 do
+                if list[i].npcID == npcID and list[i].name then return list[i].name end
+            end
+        end
     end
     return nil
 end
@@ -1433,14 +1395,19 @@ function Journey.CleanName(j, npcID, name)
     return name
 end
 
--- The deaths put down to a creature of kind `npcID` (every kind when nil)
--- under a surname, put right. Whether any was.
+-- The records of the lists registered `named` put down to a creature of
+-- kind `npcID` (every kind when nil) under a surname, put right. Whether
+-- any was.
 local function Mend(j, npcID)
     local any = false
-    for _, d in ipairs(j.deaths or {}) do
-        if d.npcID and d.name and (not npcID or d.npcID == npcID) then
-            local name = Journey.CleanName(j, d.npcID, d.name)
-            if name ~= d.name then d.name, any = name, true end
+    for name, spec in pairs(LISTS) do
+        if spec.named then
+            for _, d in ipairs(j[name] or {}) do
+                if d.npcID and d.name and (not npcID or d.npcID == npcID) then
+                    local clean = Journey.CleanName(j, d.npcID, d.name)
+                    if clean ~= d.name then d.name, any = clean, true end
+                end
+            end
         end
     end
     if any then Touch() end
@@ -1448,7 +1415,7 @@ local function Mend(j, npcID)
 end
 
 -- A creature's name read off a unit now: kept a while (NAMES), and every
--- death put down to its kind under a surname put right.
+-- record of a `named` list put down to its kind under a surname put right.
 function Journey.NoteName(npcID, name, now)
     name = ns.Plain(name)
     local j = Kept()
@@ -1473,417 +1440,10 @@ local function ForgetNames(j, now)
     if j.names and next(j.names) == nil then j.names = nil end
 end
 
---------------------------------------------------------------------------
--- Firsts: the first bag, shoulders, green, blue and epic found
---------------------------------------------------------------------------
---
--- j.firsts[kind] is the record of the first one found, as
--- Capture/Journey.lua saw it come into the bags: { t, mapID, x, y, level,
--- link, from, guid }. `from` is how it came, when that could be told:
--- "trade" (and `guid`, who gave it), "mail", "vendor", "quest" or "loot".
--- `false` is a kind the character already had when the diary first looked
--- (D10: nothing before is made up), nil one still to be found. No table
--- at all: the diary has not looked yet.
-
-Journey.FIRSTS = { "bag", "shoulder", "uncommon", "rare", "epic" }
-
--- The client's numbers: Enum.ItemClass.Container, its plain bag, and the
--- item qualities.
-local CONTAINER, BAG = 1, 0
-local QUALITY = { [2] = "uncommon", [3] = "rare", [4] = "epic" }
-
--- The kinds an item is a first of: { classID, subclassID, equipLoc,
--- quality }. A green bag is a bag and a green.
-function Journey.FirstKinds(item)
-    local kinds = {}
-    if item.classID == CONTAINER and item.subclassID == BAG then kinds[#kinds + 1] = "bag" end
-    if item.equipLoc == "INVTYPE_SHOULDER" then kinds[#kinds + 1] = "shoulder" end
-    if QUALITY[item.quality] then kinds[#kinds + 1] = QUALITY[item.quality] end
-    return kinds
-end
-
--- What the character holds when the diary first looks, or looks again
--- after not watching (a login, capture back on): `held` is a set of
--- kinds. A kind held and not yet found was had out of sight, never a
--- first the diary saw.
-function Journey.FirstsHeld(j, held)
-    if not j then return end
-    j.firsts = j.firsts or {}
-    for _, kind in ipairs(Journey.FIRSTS) do
-        if j.firsts[kind] == nil and held[kind] then j.firsts[kind] = false end
-    end
-end
-
--- Whether any kind is still to be found.
-function Journey.Looking(j)
-    if not (j and j.firsts) then return true end
-    for _, kind in ipairs(Journey.FIRSTS) do
-        if j.firsts[kind] == nil then return true end
-    end
-    return false
-end
-
--- The first `kind` found, here and now unless `where` says otherwise (in
--- ns.Where's shape; nowhere inside an instance, where the recap places it
--- by time). `rec` is { t, level, link, from, guid }. Only once a kind, and
--- only once the diary has looked (FirstsHeld).
-function Journey.Found(j, kind, rec, where)
-    if not (j and j.firsts) or j.firsts[kind] ~= nil then return nil end
-    local spot = Spot(where)
-    local first = { t = rec.t or ns.Now(), mapID = spot.mapID, x = spot.x, y = spot.y, level = rec.level,
-        link = rec.link, from = rec.from, guid = rec.from == "trade" and ns.SafeGUID(rec.guid) or nil }
-    j.firsts[kind] = first
-    Touch()
-    return first
-end
-
--- A character's firsts, each { kind, rec }, oldest first.
-function Journey.Firsts(j)
-    local list = {}
-    for _, kind in ipairs(Journey.FIRSTS) do
-        local rec = j and j.firsts and j.firsts[kind]
-        if rec then list[#list + 1] = { kind = kind, rec = rec } end
-    end
-    table.sort(list, function(a, b)
-        if a.rec.t ~= b.rec.t then return a.rec.t < b.rec.t end
-        return a.kind < b.kind
-    end)
-    return list
-end
-
---------------------------------------------------------------------------
--- Close calls: out of a fight alive, and only just
---------------------------------------------------------------------------
---
--- The player's health is secret to addons always, in combat or not
--- (probes, 11 Oct), so how low it fell can never be read. What can is the
--- damage the fight did, off the client's own damage meter once combat is
--- over (plain then, probe 11 Oct), against the maximum health (plain):
--- a fight that took all but T.closeCall of it, less the healing the user
--- received, survived, was a close call. That reckons from full health, so
--- a fight begun half dead is missed; and a heal from a stranger, whom the
--- meter does not list, is not taken off.
---
--- j.closeCalls holds each, oldest first: { t, mapID, x, y, level, pct,
--- took, seconds, npcID, name, rank, foeLevel, foes, display }. `pct` is
--- the health that would be left from full, a whole percent, 1 to
--- T.closeCall's; `took` the damage as a percent of the maximum, more than
--- 100 when healing the meter does not list carried the user through; `seconds` how long the fight was; the
--- creature is the one fought most (the most of its kind targeted), `foes`
--- how many creatures were targeted in all. No creature is a fight whose
--- foe was never targeted. `display` as the deaths keep it (Display).
-
--- Whether a fight that did `taken` damage, against `max` health, was a
--- close call.
-function Journey.IsCloseCall(taken, max)
-    if type(taken) ~= "number" or type(max) ~= "number" or max <= 0 then return false end
-    return taken / max >= 1 - T.closeCall
-end
-
--- A close call of the logged-in character's, here and now unless `where`
--- says otherwise (ns.Where's shape). `rec` is { t, level, taken, max,
--- seconds, npcID, name, rank, foeLevel, foes }: `taken` the damage the
--- fight did, less the user's own healing.
-function Journey.CloseCall(rec, where)
-    local j = Kept()
-    if not j or not Journey.IsCloseCall(rec.taken, rec.max) then return nil end
-    local took = math.floor(rec.taken / rec.max * 100 + 0.5)
-    return Journey.Append(j, "closeCalls", { t = rec.t, level = rec.level,
-        pct = math.min(math.floor(T.closeCall * 100), math.max(1, 100 - took)), took = took, seconds = rec.seconds,
-        npcID = rec.npcID, name = rec.npcID and rec.name or nil, rank = rec.npcID and rec.rank or nil,
-        foeLevel = rec.npcID and rec.foeLevel or nil,
-        foes = (rec.foes or 0) > 1 and rec.foes or nil }, where)
-end
-
--- A character's close calls, oldest first.
-function Journey.CloseCalls(j)
-    return Journey.List(j, "closeCalls")
-end
-
---------------------------------------------------------------------------
--- Hunts: how many kills a quest's drops took
---------------------------------------------------------------------------
---
--- A quest that wants items off creatures ("Plainstrider Meat: 3/7") is a
--- hunt from the moment it is seen with none of them, to the moment it has
--- them all. On the way, every creature the user or their group kills is
--- counted by kind, and the loot window says which kinds the items came off
--- (GetLootSourceInfo, probe 11 Oct: the corpse's plain GUID). The count is
--- the kills of those kinds: "it took 31 Plainstriders for 7 meat". Where
--- the user runs QuestieDB (EXT-2), it says every kind that drops the item
--- from the start, so a kind counts that never dropped it into the user's
--- own loot window (a group member looted it, or it simply never dropped);
--- and Questie's drop rates say how many kills it should have taken.
---
--- A group member on the same quest loots the same drops: an item they
--- take off a corpse is not there for the user (12 Oct, the user: "if they
--- loot it, I can't"). The party's loot messages say what they took, and
--- those count with the user's own, so the kills are set against every
--- item the group's kills gave: `shared`, the group's copies.
---
--- j.hunting[key] is a hunt under way, key "questID:objective": { questID,
--- index, title, item, itemID, need, since, kills = { [npcID] = n }, from =
--- { [npcID] = true }, names = { [npcID] = name }, shared }. Kills are counted for
--- every kind, because the first drop is what says which kind counted.
--- Saved, so a hunt carries over a logout; given up after T.huntAge, or
--- when the quest leaves the log.
---
--- j.hunts holds each one finished, oldest first: { t, mapID, x, y, level,
--- questID, title, item, itemID, need, shared, kills, npcID, name, byKind,
--- expected, display }. `itemID` from QuestieDB, else from the loot link
--- (for the item's icon; older records have none). The creature is the kind that dropped it most often killed;
--- `byKind` each kind's own kills, { [npcID] = { n, name } }, where there
--- were more kinds than one; `expected` the kills the drop rates said it
--- would take, to a tenth, where every kind killed has a rate. A hunt whose
--- items never came off a creature (a plant, a chest) or were never seen
--- looted keeps nothing. Whether one was bad luck or good is decided when
--- it is read (BadLuck, GoodLuck).
-
-function Journey.HuntKey(questID, index)
-    return questID .. ":" .. index
-end
-
--- Whether objective `index` of `questID` is being counted.
-function Journey.Hunting(j, questID, index)
-    return j and j.hunting and j.hunting[Journey.HuntKey(questID, index)] or nil
-end
-
--- A hunt begins: `info` is { questID, index, title, item, need, t, and
--- where QuestieDB says, itemID and droppers, the kinds that drop it }.
-function Journey.Hunt(j, info)
-    if not j or type(info.questID) ~= "number" or type(info.need) ~= "number" or info.need < 1 then return nil end
-    if type(info.item) ~= "string" or info.item == "" then return nil end
-    local key = Journey.HuntKey(info.questID, info.index)
-    j.hunting = j.hunting or {}
-    if j.hunting[key] then return j.hunting[key] end
-    local hunt = { questID = info.questID, index = info.index, title = info.title, item = info.item,
-        itemID = info.itemID, need = info.need, since = info.t or ns.Now(), kills = {}, from = {}, names = {} }
-    for _, npcID in ipairs(info.droppers or {}) do hunt.from[npcID] = true end
-    j.hunting[key] = hunt
-    return hunt
-end
-
--- A creature of kind `npcID` killed by the user or their group, counted
--- in every hunt under way. `name` when it could be read.
-function Journey.HuntKill(j, npcID, name)
-    if not (j and j.hunting and npcID) then return end
-    for _, hunt in pairs(j.hunting) do
-        hunt.kills[npcID] = (hunt.kills[npcID] or 0) + 1
-        if name and not hunt.names[npcID] then hunt.names[npcID] = name end
-    end
-    Journey.NoteName(npcID, name)
-end
-
--- Item `item` (its name, `itemID` where the link says) seen in the loot
--- of a creature of kind `npcID`: that kind drops it, for every hunt after
--- it. Whether any was.
-function Journey.HuntDrop(j, item, npcID, name, itemID)
-    if not (j and j.hunting and npcID and item) then return false end
-    local any = false
-    for _, hunt in pairs(j.hunting) do
-        if hunt.item == item or hunt.item:find(item, 1, true) then
-            hunt.from[npcID] = true
-            if name and not hunt.names[npcID] then hunt.names[npcID] = name end
-            if not hunt.itemID and hunt.item == item then hunt.itemID = itemID end
-            any = true
-        end
-    end
-    return any
-end
-
--- Item `item` (its name, `itemID` where the link says), `n` of them,
--- looted by a group member: gone from the user's hunts for it. Whether any
--- was.
-function Journey.HuntShared(j, item, itemID, n)
-    if not (j and j.hunting and item) then return false end
-    local any = false
-    for _, hunt in pairs(j.hunting) do
-        if (itemID and hunt.itemID == itemID) or hunt.item == item then
-            hunt.shared = (hunt.shared or 0) + (n or 1)
-            any = true
-        end
-    end
-    if any then Touch() end
-    return any
-end
-
--- How many items a finished hunt's kills gave: the user's, and the
--- group's copies (`shared`).
-function Journey.HuntItems(hunt)
-    return (hunt.need or 0) + (hunt.shared or 0)
-end
-
--- How likely a hunt is at least this slow: `kills` for `items` where
--- each kill drops one at `p`, the chance the first kills - 1 gave fewer
--- than `items` (a binomial tail, summed in logs).
-local function Slow(kills, items, p)
-    if items < 1 or kills <= items then return 1 end
-    p = math.min(math.max(p, 1e-6), 1 - 1e-9)
-    local n, sum = kills - 1, 0
-    local lp, lq = math.log(p), math.log(1 - p)
-    local lc = 0 -- log C(n, i)
-    for i = 0, items - 1 do
-        if i > 0 then lc = lc + math.log(n - i + 1) - math.log(i) end
-        sum = sum + math.exp(lc + i * lp + (n - i) * lq)
-    end
-    return sum
-end
-Journey.Slow = Slow
-
--- Whether `expected` kills for `items` can be believed of a hunt that
--- took `kills`: a rate under which it had less than T.rateDoubt chance is
--- wrong (12 Oct, in the client: 37 kills for 6 Red Linen Bandanas at the
--- 66% QuestieDB's server data gives every Defias that drops one, where
--- Wowhead has 37%).
-function Journey.Believable(kills, items, expected)
-    if not (expected and expected > 0 and items > 0) then return false end
-    return Slow(kills, items, items / expected) >= T.rateDoubt
-end
-
--- The kills `need` items should have taken, at each kind's own rate
--- (percent, `Rate(npcID)`), weighted by the kills of each: nil unless
--- every kind killed has one. To a tenth.
-local function Expected(byKind, kills, need, Rate)
-    if not Rate then return nil end
-    local items = 0
-    for npcID, k in pairs(byKind) do
-        local rate = Rate(npcID)
-        if type(rate) ~= "number" or rate <= 0 then return nil end
-        items = items + k.n * rate / 100
-    end
-    if items <= 0 then return nil end
-    return math.floor(need * kills / items * 10 + 0.5) / 10
-end
-Journey.Expected = Expected
-
--- The first of `rates` (Rate functions, the best source first) whose
--- expectation can be believed (Journey.Believable): nil without one.
-local function Rated(byKind, kills, items, rates)
-    for _, Rate in ipairs(rates or {}) do
-        local expected = Expected(byKind, kills, items, Rate)
-        if expected and Journey.Believable(kills, items, expected) then return expected end
-    end
-    return nil
-end
-
--- The hunt for objective `index` of `questID` done, here and now unless
--- `where` says otherwise. `rec` is { t, level, Rates }: Rate(itemID,
--- npcID) functions, the drop rate in percent where it is known (EXT-2),
--- the best source first, the next where the first cannot be believed. Returns the record
--- kept, or nil when there was nothing to count.
-function Journey.HuntDone(j, questID, index, rec, where)
-    local key = Journey.HuntKey(questID, index)
-    local hunt = j and j.hunting and j.hunting[key]
-    if not hunt then return nil end
-    j.hunting[key] = nil
-    local kills, npcID, most, byKind, kinds = 0, nil, -1, {}, 0
-    for id in pairs(hunt.from) do
-        local n = hunt.kills[id] or 0
-        if n > 0 then
-            kills, kinds = kills + n, kinds + 1
-            byKind[id] = { n = n, name = hunt.names[id] or Journey.NameOf(j, id) }
-            if n > most or (n == most and id < npcID) then npcID, most = id, n end
-        end
-    end
-    if kills == 0 then return nil end
-    local rates = {}
-    for _, Rate in ipairs(hunt.itemID and rec and rec.Rates or {}) do
-        rates[#rates + 1] = function(id) return Rate(hunt.itemID, id) end
-    end
-    local spot = Spot(where)
-    local shared = hunt.shared and hunt.shared > 0 and hunt.shared or nil
-    local done = { t = rec and rec.t or ns.Now(), mapID = spot.mapID, x = spot.x, y = spot.y,
-        level = rec and rec.level, questID = questID, title = hunt.title, item = hunt.item, itemID = hunt.itemID, need = hunt.need,
-        shared = shared, kills = kills, npcID = npcID, name = byKind[npcID].name, byKind = kinds > 1 and byKind or nil,
-        expected = Rated(byKind, kills, hunt.need + (shared or 0), rates) }
-    j.hunts = j.hunts or {}
-    j.hunts[#j.hunts + 1] = done
-    while #j.hunts > T.hunts do table.remove(j.hunts, 1) end
-    Touch()
-    return done
-end
-
--- The quest `questID` has left the log: what was being counted for it is
--- given up.
-function Journey.HuntGone(j, questID)
-    if not (j and j.hunting) then return end
-    for key, hunt in pairs(j.hunting) do
-        if hunt.questID == questID then j.hunting[key] = nil end
-    end
-end
-
--- A character's finished hunts, oldest first.
-function Journey.Hunts(j)
-    return j and j.hunts or {}
-end
-
--- The character's usual kills an item: the median over its hunts, once
--- T.luckKnown have been counted.
-function Journey.UsualLuck(j)
-    local ratios = {}
-    for _, hunt in ipairs(Journey.Hunts(j)) do ratios[#ratios + 1] = hunt.kills / Journey.HuntItems(hunt) end
-    if #ratios < T.luckKnown then return nil end
-    table.sort(ratios)
-    local mid = (#ratios + 1) / 2
-    return (ratios[math.floor(mid)] + ratios[math.ceil(mid)]) / 2
-end
-
--- Whether `hunt` was bad luck. With the drop rates known (EXT-2):
--- T.luckExtra kills more than expected, and T.luckOver times it. Without:
--- T.luckExtra kills more than the items its kills gave (the user's and
--- the group's, Journey.HuntItems), T.luckRatio kills an
--- item or more, and, once the character's usual is known, T.luckUsual
--- times it. `usual` saves working it out again (false: too few hunts to
--- know).
-function Journey.BadLuck(j, hunt, usual)
-    if not hunt then return false end
-    if hunt.expected then
-        return hunt.kills >= hunt.expected + T.luckExtra and hunt.kills >= hunt.expected * T.luckOver
-    end
-    local items = Journey.HuntItems(hunt)
-    if hunt.kills - items < T.luckExtra then return false end
-    local ratio = hunt.kills / items
-    if ratio < T.luckRatio then return false end
-    if usual == nil then usual = Journey.UsualLuck(j) end
-    return not usual or ratio >= usual * T.luckUsual
-end
-
--- A hunt kept before the drop rates were read (EXT-2), or while QuestieDB
--- was away, given them where QuestieDB is here now: its item by the quest,
--- and the kills it should have taken, kept in the record as capture would
--- have (12 Oct, in the client: 37 Defias Rogue Wizards for 6 Red Linen
--- Bandanas, from before, had no rate, and its card none to show). The
--- kinds are the ones it kept: one, or its `byKind`. A rate kept that
--- cannot be believed (Journey.Believable) is read again the same way, and
--- dropped where no source can be. Whether it has a rate.
-function Journey.HuntRated(hunt)
-    if not hunt then return false end
-    local items = Journey.HuntItems(hunt)
-    if hunt.expected and Journey.Believable(hunt.kills or 0, items, hunt.expected) then return true end
-    local Q = ns.QuestieBridge
-    if not (Q and Q.On() and hunt.questID and hunt.need and hunt.kills and hunt.kills > 0) then
-        return hunt.expected ~= nil
-    end
-    local itemID = hunt.itemID or Q.ItemFor(hunt.questID, hunt.item)
-    local byKind = hunt.byKind or (hunt.npcID and { [hunt.npcID] = { n = hunt.kills } })
-    if not (itemID and byKind) then return hunt.expected ~= nil end
-    hunt.itemID = itemID
-    hunt.expected = Rated(byKind, hunt.kills, items, {
-        function(id) return Q.DropRate(itemID, id) end,
-        function(id) return Q.WowheadRate(itemID, id) end,
-    })
-    return hunt.expected ~= nil
-end
-
--- Whether `hunt` was good luck (EXT-3): with the drop rates known, an
--- eighth of the kills expected or fewer (T.fortune). Never without them.
-function Journey.GoodLuck(hunt)
-    return hunt ~= nil and hunt.expected ~= nil and hunt.kills * T.fortune <= hunt.expected
-end
-
 -- At login: a mark kept with a GUID whose person has left the diary is a
--- stranger's again once the buffer has let them go. So is a gift's giver.
--- A hunt open too long is given up.
+-- stranger's again once the buffer has let them go. A feature's tables
+-- registered with a `prune` give up what is stale (RegisterList), before
+-- the names are put right.
 function Journey.Prune(now)
     local cutoff = ns.Cutoff(now)
     local function Stale(guid, t)
@@ -1893,27 +1453,21 @@ function Journey.Prune(now)
         for _, mark in ipairs(j.marks or {}) do
             if Stale(mark.guid, mark.t) then mark.guid = nil end
         end
-        for _, rec in pairs(j.firsts or {}) do
-            if rec and Stale(rec.guid, rec.t) then rec.guid = nil end
-        end
-        for key, hunt in pairs(j.hunting or {}) do
-            if (now or ns.Now()) - hunt.since > T.huntAge then j.hunting[key] = nil end
-        end
+        for _, name in ipairs(PRUNES) do LISTS[name].prune(j, now or ns.Now()) end
         ForgetNames(j, now or ns.Now())
     end
 end
 
--- PRV-3: a forgotten person leaves every mark; the fight stays, nameless,
--- and a gift stays a gift. nil is everyone: the route is the user's own,
--- so it stays, only names go.
+-- PRV-3: a forgotten person leaves every mark; the fight stays, nameless.
+-- A feature's tables registered with a `forget` let them go too
+-- (RegisterList). nil is everyone: the route is the user's own, so it
+-- stays, only names go.
 ns.RegisterStore("journey", function(guid)
     for _, j in pairs(ns.db.journey or {}) do
         for _, mark in ipairs(j.marks or {}) do
             if guid == nil or mark.guid == guid then mark.guid = nil end
         end
-        for _, rec in pairs(j.firsts or {}) do
-            if rec and (guid == nil or rec.guid == guid) then rec.guid = nil end
-        end
+        for _, name in ipairs(FORGETS) do LISTS[name].forget(j, guid) end
     end
     Touch()
 end)

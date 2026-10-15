@@ -503,6 +503,25 @@ ns.Characters.Observe(SELF.guid, { level = 60 })
 ns.Characters.Observe(SELF.guid, { level = 61 })
 Eq(ns.Interactions.For(SELF.guid), nil, "a level-up stored for the user")
 
+-- The row is Features/LevelUps/'s: the character store only tells the rise
+-- (SD_LEVEL_ROSE, Core/Events.lua), for anyone, on a live reading, and the
+-- feature decides who gets a row. The kind climbs (Core/Rows.lua).
+do
+    local heard = {}
+    local function Rose(_, guid, from, level) heard[#heard + 1] = guid .. ":" .. from .. ">" .. level end
+    ns.On("SD_LEVEL_ROSE", Rose)
+    ns.Characters.Observe(SELF.guid, { level = 62 })
+    ns.Characters.Observe(STRANGER, { level = 8, time = t0 - 30 })
+    ns.Characters.Observe(STRANGER, { level = 9 })
+    ns.Characters.Observe(STRANGER, { level = 9 })
+    ns.Off("SD_LEVEL_ROSE", Rose)
+    Eq(table.concat(heard, ","), SELF.guid .. ":61>62," .. STRANGER .. ":8>9",
+        "the store told the wrong rises")
+    Eq(ns.Interactions.For(SELF.guid), nil, "a rise the user's told stored a row")
+    Check(ns.LevelUps ~= nil, "the feature's namespace is missing")
+    Eq(ns.Rows.Get("level_up").climb, true, "a level-up does not climb")
+end
+
 -- Worded with the page's person, iconed, and a line even in a folded
 -- session, where it names nothing in the headline.
 local tl2 = ns.Timeline.For(PAL)

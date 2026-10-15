@@ -1,4 +1,4 @@
--- The killer card (Your Diary's plates, JRN-21): what killed you on a plate,
+-- The killer card (Your Diary's plates, JRN-21; Kind.lua): what killed you on a plate,
 -- as option A of .claude/ui-proposal/killer-models-proposal.md, "Cut in
 -- ink". A paper strip (UI/PaperStrip.lua) taped in the plate's margin, last
 -- of its notes, with a pencil leader to its death cross; on it, straight on
@@ -17,14 +17,10 @@
 --   - after the people: the card is the margin's last note and the first
 --     left off when the column runs out; then its name goes into the
 --     caption ("Level 12, and two deaths, to a Sunscale Lashtail.").
--- A plate may also have the creature that nearly got you (JRN-25, a close
--- call: KillerCard.Foe, card:SetFoe), beside its killer's card, if any:
--- a close call and a death are two fights, even with the same creature
--- (the user's choice, 11 Oct). The same card under a heading in the
--- diary's hand, "A close call", its creature's level on a pasted label
--- over its name and the fight charted under it (VITALS), its leader to the
--- cross in outline; in the margin after the killer's, so it is left off
--- first.
+-- The same card may carry another feature's subject, a face of its own
+-- (KillerCard.RegisterFace, below): the close calls' creature that nearly
+-- got you (Features/CloseCalls/Card.lua), beside its killer's card, under
+-- its own heading, tag and chart.
 --
 -- The picture walks down one ladder, each card on its own (0.4): the ink
 -- silhouette (a PlayerModel drawn from the creature's display with its
@@ -42,13 +38,27 @@
 -- no idle), never faint, a child of the strip and never of a plate's
 -- clipping frame (P5); at most one a card, so six on a page (two cards a
 -- plate).
+--
+-- The card is ns.Deaths.Card. It is shared, and this folder owns it:
+--   - Deaths' own: Match, Choose, the card's SetKiller, Tip; the pass
+--     that matches the deaths to the plate's crosses and chooses the
+--     killer, and the killer's note in the margin (the foot of this file);
+--   - the faces other features register for it (RegisterFace): the card
+--     wears one with its own subject, and its methods are on every card
+--     (Features/CloseCalls/Card.lua's: SetFoe, Deed, and its chart,
+--     VITALS; its pass and its note in the margin share the killer's
+--     pool, page.killerPool), reaching New, KILLER and RANK here at call
+--     time;
+--   - read by the witnesses (Features/Witnesses/): their pass (order 30)
+--     reads the crosses' deaths the killer's pass leaves and may clear
+--     plate.killer (or the close call's plate.foe).
 
 local addonName, ns = ...
 
 local Style = ns.Style
 
 local KillerCard = {}
-ns.UI.KillerCard = KillerCard
+ns.Deaths.Card = KillerCard
 
 -- The picture's room over the name: `w` by `h`, `gap` above the name;
 -- `narrow` where the margin's column is under `below` px (the two-plate
@@ -90,59 +100,11 @@ local KILLER = {
     pose = { anim = 0, variation = 0, at = 0, blow = nil }, check = 1.5,
     print = { tint = { 1, 0.88, 0.68 }, edge = 0.55, corner = 7, ink = { 0.29, 0.19, 0.105 }, alpha = 0.95 },
 }
--- The close call's card (JRN-25, SetFoe) writes the fight down under the
--- creature's name, as a nurse's chart would, so no two read alike. Down
--- the slip:
---   the heading what the card is, "A close call" (Text.CloseHeading), as
---               the margin's other cards have theirs: in the hand
---               (FONT.noteWritten) at the slip's top left, at KILLER.small
---               where the column is too narrow for it at that size. The
---               slip's tape keeps clear of it, `tapeAt` of the way along
---               (further right than a killer's, so a narrow slip still
---               holds both)
---   the picture `head.gap` px under it, as a killer's; where the margin
---               has too little height left for the card, drawn `compact`
---               (`w` by `h`), and where even that is too tall, given up
---   the tag     the creature's level and rank, "Lv 45 (Elite)", "Lv ??
---               (Boss)", "Lv 12", or the rank alone where no level was
---               kept (Text.FoeTag): a small label of `paper` pasted on the
---               slip `gap` px under the picture and `under` px over the
---               name, at its left, as a specimen's label under its
---               drawing; its words in small ink `pad` px in, an ink `edge`,
---               turned `turn` degrees (within, seeded by its words), with a
---               hair of `shadow`. Where the column is too narrow for it on
---               one line, the rank on a line under the level
---   the bar     the health you came out with: a box ruled in ink at
---               `edge`, `w` by `h` (`narrow` under KILLER.narrow.below),
---               filled from the left in rubric to the health left (at least
---               `least` px, so 1 % still shows), the rest the slip's paper;
---               a graphite `tick` at a tenth, where a close call begins,
---               `over` px past the box above and below, so how far under
---               it you were reads at a glance
---   the figure  the health left, "4%", large in the hand (`size`), in
---               rubric, `gap` px right of the bar, its foot on the bar's
---   the deed    in small ink, how many it was against ("fought against
---               three"), only when more than one: on the same row,
---               `gap` px past the figure, its foot on the bar's, where the
---               column has room; else the line under them. Kept short so
---               the card stands no taller than it must (a three-plate
---               margin has little room)
--- (11 Oct, in the client: "nearly got you" under the name alone was flat;
--- then the fight's time said nothing, and wax seals with a rank's initial
--- were not clear enough. 12 Oct, the user: a heading saying what the card
--- is, over everything, and the tag off the corner, over the name.)
-local VITALS = {
-    head = { gap = 0 }, tapeAt = 0.9, compact = { w = 62, h = 32 },
-    bar = { w = 70, h = 7, edge = 0.8, least = 1.5, tick = { at = 0.10, over = 2, width = 1, alpha = 0.55 } },
-    narrow = 56, figure = { size = 22, gap = 5 }, deed = { gap = 7 }, room = { gap = 2, after = 2 },
-    tag = { paper = { 0.97, 0.94, 0.84 }, pad = { 4, 1 }, gap = 2, under = 1, turn = { 1, 2.5 }, edge = 0.30,
-        shadow = { 0.6, 0.8, 0.16 } },
-}
 -- A death matches a cross whose stop or road it fell in, `slack` seconds
 -- either side; one placed on the map but in no such time goes to the
 -- nearest cross within `near` px of its spot.
 local MATCH = { slack = 30, near = 24 }
--- What outranks what (Capture/Deaths.lua's ranks); a common creature none.
+-- What outranks what (Capture.lua's ranks); a common creature none.
 local RANK = { worldboss = 4, rareelite = 3, rare = 2, elite = 1 }
 
 local HAND = "Interface\\AddOns\\" .. addonName .. "\\Fonts\\Neuton-Italic.ttf"
@@ -150,6 +112,69 @@ local HAND = "Interface\\AddOns\\" .. addonName .. "\\Fonts\\Neuton-Italic.ttf"
 -- The displays a model drew nothing from this session (KILLER.check): their
 -- cards are the print from the start.
 local BLANK = {}
+
+--------------------------------------------------------------------------
+-- Another feature's face on the card (KillerCard.RegisterFace)
+--------------------------------------------------------------------------
+
+-- The card is shared: another feature may put its own subject on it (the
+-- close calls' creature that nearly got you, Features/CloseCalls/Card.lua),
+-- the same slip, picture ladder, name and tooltip, with its own drawings
+-- over and under the name. It registers a face; a card wears it when
+-- told (card:Wear(face, k, note)), and takes it off when it is given
+-- another subject (SetKiller, or another face), as the margin's pool
+-- hands one card to a killer and a close call by turns.
+--
+-- `face` (KillerCard.RegisterFace(key, face), at load, so this file loads
+-- first):
+--   methods  optional { name = function(card, ...) }: put on every card
+--            as it is made, so a note of the pool is told through them
+--            (the close call's card:SetFoe, card:Deed)
+--   plan     function(card, note, width, room, pic, Least) → plan, as a
+--            card wearing it is laid: it sets the note's room over and
+--            under the name (note.picture, note.under), its words
+--            (note.what), its tape (note.tapeAt, note.least), as the strip
+--            takes them. `room` is the width inside the slip's padding,
+--            `pic` the picture's room by the column (KILLER.picture or
+--            .narrow; nil without a picture), Least(over, tapeAt) the
+--            slip's least width for its tape to start clear of `over` px
+--            at its top. card.compact is set while it is laid again with
+--            its picture drawn small (Layout: it stood taller than the
+--            margin's room)
+--   top      function(card, plan): what it draws over the name, before
+--            the picture is laid (it may move the picture's room,
+--            card.picture)
+--   under    function(card, plan): what it draws after the picture
+--   hide     function(card): what it drew put away (and its fields for
+--            the tests cleared); asked of every face on every laying,
+--            worn or not, before `top`
+--   off      optional function(card): its own fields cleared, the card
+--            given another subject
+--   smaller  function(card) → whether it gave something up (card:Smaller,
+--            the margin's, short of room)
+local FACES = {}
+
+function KillerCard.RegisterFace(key, face)
+    assert(type(key) == "string" and type(face) == "table" and type(face.plan) == "function"
+        and type(face.top) == "function" and type(face.under) == "function" and type(face.hide) == "function"
+        and type(face.smaller) == "function",
+        "Deaths.Card.RegisterFace(key, { plan, top, under, hide, smaller, ... })")
+    for i = #FACES, 1, -1 do
+        if FACES[i].key == key then table.remove(FACES, i) end
+    end
+    face.key = key
+    FACES[#FACES + 1] = face
+    return face
+end
+
+-- Takes a face off the card again (a test's own): cards made after no
+-- longer get its methods, and no card lays it.
+function KillerCard.RemoveFace(key)
+    for i = #FACES, 1, -1 do
+        if FACES[i].key == key then table.remove(FACES, i) end
+    end
+end
+KillerCard.FACES = FACES
 
 --------------------------------------------------------------------------
 -- Which killer
@@ -168,7 +193,7 @@ local function Gap(cross, x, y)
     return (cross.x - x) ^ 2 + (cross.y - y) ^ 2
 end
 
--- The deaths (Journey.Deaths's records) onto the plate's death crosses:
+-- The deaths (Deaths.List's records) onto the plate's death crosses:
 -- `crosses` { x, y (on the card), segs (the stops or road it marks), count },
 -- each given its `deaths`. A death goes to a cross whose time held it (the
 -- nearest of those to its spot, when it has one), else, placed on this map
@@ -265,98 +290,6 @@ function KillerCard.Choose(crosses)
     local k = list[1]
     if k then k.shown = nil end
     return k
-end
-
--- The creature that nearly got you on a plate (JRN-25), from its close
--- calls' marks (plate.closeMarks: { at (on the page), list of moments }),
--- or nil: only a close call with a creature named has one. The highest
--- rank (RANK), then the least health left, then the latest. { npcID, name,
--- rank, display, call (its record), mark (where its cross is on the page) }.
-function KillerCard.Foe(marks)
-    local best
-    for _, mark in ipairs(marks or {}) do
-        for _, m in ipairs(mark.list or {}) do
-            local call = m.call
-            if call and type(call.name) == "string" and call.name ~= "" then
-                local better = not best
-                if best then
-                    local ra, rb = RANK[call.rank] or 0, RANK[best.call.rank] or 0
-                    if ra ~= rb then
-                        better = ra > rb
-                    elseif (call.pct or 0) ~= (best.call.pct or 0) then
-                        better = (call.pct or 0) < (best.call.pct or 0)
-                    else
-                        better = (call.t or 0) > (best.call.t or 0)
-                    end
-                end
-                if better then best = { call = call, mark = mark.at } end
-            end
-        end
-    end
-    if not best then return nil end
-    local call = best.call
-    local display = ns.Plain(call.display)
-    return { npcID = call.npcID, name = call.name, rank = call.rank, call = call, mark = best.mark,
-        display = type(display) == "number" and display > 0 and display or nil }
-end
-
--- The plate's one witness (Journey.WitnessesAt), or nil: someone who tried
--- to save the user from a death on this plate, saved them in a close call
--- on it, or watched them die on it. A witness goes before the killer card
--- (or the close call's, for one who saved the user): a person in the
--- moment is the better story than the creature (14 Oct, the user's call).
--- Who acted before who watched, then the longer watcher, then the latest.
--- `crosses` as Match left them, `marks` plate.closeMarks, `index`
--- Journey.WitnessIndex's, `onPage(x, y)` a card spot to the page.
---
--- { kind ("helped" | "watched"), type (the row's: "tried_to_help",
--- "saved_you", "watched_death"), guid, row, t, watched (seconds, a
--- watcher's), pct (health left, a rescue's), creature ({ npcID, name,
--- rank }, nil when not known), death (the Journey.Deaths record) or call
--- (the close call's), others (how many more witnessed the same moment),
--- mark (where its cross is on the page) }.
-local DEATH_WITNESS = { tried_to_help = true, watched_death = true }
-local CLOSE_WITNESS = { saved_you = true }
-
-function KillerCard.Witness(crosses, marks, index, onPage)
-    local Journey = ns.Journey
-    local best
-    local function Consider(found, extra)
-        local w = found[1]
-        if not w then return end
-        local helped = Journey.WITNESS[w.row.type] == "helped"
-        local c = w.row.context or {}
-        local better = not best
-        if best then
-            local bh = best.kind == "helped"
-            if helped ~= bh then
-                better = helped
-            elseif (c.watched or 0) ~= (best.watched or 0) then
-                better = (c.watched or 0) > (best.watched or 0)
-            else
-                better = w.t > best.t
-            end
-        end
-        if not better then return end
-        best = { kind = Journey.WITNESS[w.row.type], type = w.row.type, guid = w.guid, row = w.row, t = w.t,
-            watched = c.watched, pct = c.pct, others = #found - 1,
-            creature = type(c.name) == "string" and { npcID = c.npcID, name = c.name, rank = c.rank } or nil }
-        for key, value in pairs(extra) do best[key] = value end
-    end
-    for _, cross in ipairs(crosses or {}) do
-        for _, d in ipairs(cross.deaths or {}) do
-            local px, py = onPage(cross.x, cross.y)
-            Consider(Journey.WitnessesAt(index, d.t, DEATH_WITNESS), { death = d, mark = { px, py } })
-        end
-    end
-    for _, mark in ipairs(marks or {}) do
-        for _, m in ipairs(mark.list or {}) do
-            if m.call then
-                Consider(Journey.WitnessesAt(index, m.call.t, CLOSE_WITNESS), { call = m.call, mark = mark.at })
-            end
-        end
-    end
-    return best
 end
 
 --------------------------------------------------------------------------
@@ -468,6 +401,9 @@ end
 function KillerCard.New(parent)
     local card = ns.UI.PaperStrip(parent)
     local Strip = ns.UI.PAPER_STRIP
+    for _, face in ipairs(FACES) do
+        for name, fn in pairs(face.methods or {}) do card[name] = fn end
+    end
 
     -- The print's window: its ink edge, the portrait, its photo corners.
     card.printEdge = card:CreateTexture(nil, "ARTWORK", nil, 2)
@@ -516,30 +452,22 @@ function KillerCard.New(parent)
         return "name"
     end
 
-    function card:SetKiller(k, seed, now)
-        self.killer, self.foe, self.bare = k, nil, nil
+    -- The card given subject `k` (its name, its display) and `note` (the
+    -- strip's, SetNote), wearing `face` (RegisterFace) or none: any other
+    -- face it wore is taken off.
+    function card:Wear(face, k, note)
+        for _, other in ipairs(FACES) do
+            if other ~= face and other.off then other.off(self) end
+        end
+        self.killer, self.face = k, face
         self.mode = Mode(k)
-        self:SetNote({ name = k.name, what = ns.UI.JourneyText.Killed(k.count), strong = true, seed = seed,
-            tapeAt = KILLER.tapeAt, turn = KILLER.turn,
-            tip = function() return KillerCard.Tip(k, now) end })
+        self:SetNote(note)
     end
 
-    -- The same card for the creature that nearly got you (JRN-25, Foe's):
-    -- its heading, its name with its tag over it, the fight under it
-    -- (VITALS), the close call's tooltip; its leader to the cross in
-    -- outline.
-    function card:SetFoe(f, seed, now)
-        local Text = ns.UI.JourneyText
-        self.killer, self.foe, self.bare = f, f, nil
-        self.mode = Mode(f)
-        self:SetNote({ name = f.name, what = Text.CloseDeed(f.call), strong = true, seed = seed,
+    function card:SetKiller(k, seed, now)
+        self:Wear(nil, k, { name = k.name, what = ns.Deaths.Killed(k.count), strong = true, seed = seed,
             tapeAt = KILLER.tapeAt, turn = KILLER.turn,
-            tip = function()
-                local title, lines = Text.FoeTip(f.call, now)
-                local list = { { title } }
-                for _, line in ipairs(lines or {}) do list[#list + 1] = { line, 1, 1, 1, true } end
-                return list
-            end })
+            tip = function() return KillerCard.Tip(k, now) end })
     end
 
     -- The print in the picture's room: the portrait, cropped to the room's
@@ -638,216 +566,28 @@ function KillerCard.New(parent)
         end
     end
 
-    -- The close call's heading, chart and tag (VITALS): made when first
-    -- wanted, drawn on the slip.
-    local vitals
-    local function Vitals()
-        if vitals then return vitals end
-        vitals = {
-            heading = Style.Text(card, Style.FONT.noteWritten),
-            edge = card:CreateTexture(nil, "ARTWORK", nil, 1),
-            paper = card:CreateTexture(nil, "ARTWORK", nil, 2),
-            fill = card:CreateTexture(nil, "ARTWORK", nil, 3),
-            tick = card:CreateTexture(nil, "ARTWORK", nil, 4),
-            figure = Style.Text(card, Style.FONT.noteWritten),
-            deed = Style.Text(card, Style.FONT.small),
-            tagShadow = card:CreateTexture(nil, "ARTWORK", nil, 1),
-            tagEdge = card:CreateTexture(nil, "ARTWORK", nil, 2),
-            tagPaper = card:CreateTexture(nil, "ARTWORK", nil, 3),
-            tagText = Style.Text(card, Style.FONT.small),
-        }
-        for _, texture in ipairs({ vitals.edge, vitals.paper, vitals.fill, vitals.tick, vitals.tagShadow,
-            vitals.tagEdge, vitals.tagPaper }) do
-            if texture.SetSnapToPixelGrid then
-                texture:SetSnapToPixelGrid(false)
-                texture:SetTexelSnappingBias(0)
-            end
-        end
-        card.vitals = vitals
-        return vitals
-    end
-    local function HideVitals()
-        if not vitals then return end
-        for _, region in pairs(vitals) do region:Hide() end
-    end
-
-    local function Width(text)
-        text:SetSize(0, 0)
-        return math.ceil(text.GetUnboundedStringWidth and text:GetUnboundedStringWidth() or text:GetStringWidth() or 0)
-    end
-
-    -- The heading's words in the hand, at FONT.noteWritten's own size or
-    -- at `size`; its width and height.
-    local function Heading(size)
-        local v = Vitals()
-        v.heading:SetFontObject(Style.FONT.noteWritten)
-        if size then v.heading:SetFont(HAND, size, "") end
-        v.heading:SetText(ns.UI.JourneyText.CloseHeading())
-        return Width(v.heading) + 2, math.max(math.ceil(v.heading:GetStringHeight() or 0), 14)
-    end
-
-    -- The figure's words and its width, at the hand's large size.
-    local function Figure(f)
-        local v = Vitals()
-        v.figure:SetFontObject(Style.FONT.noteWritten)
-        v.figure:SetFont(HAND, VITALS.figure.size, "")
-        v.figure:SetText(((f.call and f.call.pct) or 0) .. "%")
-        return Width(v.figure) + 2, math.max(math.ceil(v.figure:GetStringHeight() or 0), VITALS.figure.size)
-    end
-
-    -- The tag's words (Text.FoeTag), and its size, or nil without one;
-    -- `split`, its rank on a line of its own under its level.
-    local function Tag(f, split)
-        local words = ns.UI.JourneyText.FoeTag(f.call or f)
-        if not words then return nil end
-        local lines = { words }
-        if split then
-            local level, rank = words:match("^(.-) (%(.+%))$")
-            if level then lines = { level, rank } end
-        end
-        -- Each line measured on its own, the widest kept.
-        local v, G = Vitals(), VITALS.tag
-        local w, h = 0, 0
-        for _, line in ipairs(lines) do
-            v.tagText:SetText(line)
-            w = math.max(w, Width(v.tagText))
-            h = h + math.max(math.ceil(v.tagText:GetStringHeight() or 0), 10)
-        end
-        words = table.concat(lines, "\n")
-        v.tagText:SetText(words)
-        return words, w + 2 * G.pad[1] + 1, h + 2 * G.pad[2]
-    end
-
-    -- The deed's words and width, for the row.
-    local function Deed(f)
-        local v = Vitals()
-        v.deed:SetText(ns.UI.JourneyText.CloseDeed(f.call or {}))
-        return Width(v.deed) + 2, math.max(math.ceil(v.deed:GetStringHeight() or 0), 11)
-    end
-
-    -- The chart in the room the strip kept under the name (card.under).
-    -- `inline`: the deed on the row.
-    local function DrawVitals(barW, inline)
-        local f, room = card.foe, card.under
-        if not (f and room) then return end
-        local v, B, R, INK = Vitals(), VITALS.bar, Style.RUBRIC, Style.INK
-        local P = Strip.STRIP.paper
-        local pct = math.max(0, math.min(100, (f.call and f.call.pct) or 0))
-        -- The bar at the room's left, its foot on the room's.
-        local left, foot = room.lx - room.w / 2, room.ly + room.h / 2
-        local bx, by = left + barW / 2, foot - B.h / 2 - 1
-        v.edge:SetColorTexture(INK[1], INK[2], INK[3], B.edge)
-        card:Lay(v.edge, bx, by, barW + 2, B.h + 2)
-        v.paper:SetColorTexture(P[1], P[2], P[3], 1)
-        card:Lay(v.paper, bx, by, barW, B.h)
-        local fw = math.max(B.least, barW * pct / 100)
-        v.fill:SetColorTexture(R[1], R[2], R[3], 0.95)
-        card:Lay(v.fill, left + fw / 2, by, fw, B.h)
-        local G, T = Style.GRAPHITE, B.tick
-        v.tick:SetColorTexture(G[1], G[2], G[3], T.alpha)
-        card:Lay(v.tick, left + barW * T.at, by, T.width, B.h + 2 + 2 * T.over)
-        -- The figure beside it, its foot on the bar's.
-        local fW, fH = Figure(f)
-        v.figure:SetTextColor(R[1], R[2], R[3])
-        card:Lay(v.figure, left + barW + VITALS.figure.gap + fW / 2, foot - fH / 2 + 2, fW, fH)
-        for _, key in ipairs({ "edge", "paper", "fill", "tick", "figure" }) do v[key]:Show() end
-        if inline then
-            local dW, dH = Deed(f)
-            v.deed:SetTextColor(INK[1], INK[2], INK[3])
-            card:Lay(v.deed, left + barW + VITALS.figure.gap + fW + VITALS.deed.gap + dW / 2, foot - dH / 2, dW, dH)
-            v.deed:Show()
-        else
-            v.deed:Hide()
-        end
-    end
-
-    -- Over the name, in the room the strip kept there (card.picture, as
-    -- laid): the heading at its top, the picture under it, the tag at its
-    -- foot (`top`, Layout's plan). The picture's own room is then
-    -- card.picture, nil without one.
-    local function DrawTop(top)
-        local v, room = Vitals(), card.picture
-        if not room then return end
-        local left, at = room.lx - room.w / 2, room.ly - room.h / 2
-        local S = Style.INK_STRONG
-        v.heading:SetTextColor(S[1], S[2], S[3])
-        card:Lay(v.heading, left + top.hw / 2, at + top.hh / 2, top.hw, top.hh)
-        v.heading:Show()
-        -- For the tests: the heading's box on the slip, as laid flat (x0,
-        -- y0, x1, y1, from the slip's middle).
-        card.heading = { left, at, left + top.hw, at + top.hh }
-        at = at + top.hh
-        card.picture = nil
-        if top.pic then
-            local lx, ly = left + top.pic.w / 2, at + VITALS.head.gap + top.pic.h / 2
-            local X, Y = card:Screen(lx, ly)
-            local px, py = card:Out(lx, ly)
-            card.picture = { lx = lx, ly = ly, w = top.pic.w, h = top.pic.h, X = X, Y = Y, x = px, y = py }
-            at = at + VITALS.head.gap + top.pic.h
-        end
-        -- The tag, pasted at the left over the name, for a level or a rank
-        -- kept.
-        for _, key in ipairs({ "tagShadow", "tagEdge", "tagPaper", "tagText" }) do v[key]:SetShown(top.tag ~= nil) end
-        card.tag = nil
-        if not top.tag then return end
-        local G, INK = VITALS.tag, Style.INK
-        local tw, th = top.tw, top.th
-        local tx, ty = left + tw / 2, at + G.gap + th / 2
-        local seed = 0
-        for i = 1, #top.tag do seed = seed + top.tag:byte(i) * i end
-        local more = card.flat and 0 or math.rad(G.turn[1] + (G.turn[2] - G.turn[1]) * Style.Noise(seed))
-        local D = G.shadow
-        v.tagShadow:SetColorTexture(INK[1], INK[2], INK[3], card.flat and 0 or D[3])
-        card:Lay(v.tagShadow, tx + D[1], ty + D[2], tw, th, more)
-        v.tagEdge:SetColorTexture(INK[1], INK[2], INK[3], G.edge)
-        card:Lay(v.tagEdge, tx, ty, tw + 1, th + 1, more)
-        v.tagPaper:SetColorTexture(G.paper[1], G.paper[2], G.paper[3], 1)
-        card:Lay(v.tagPaper, tx, ty, tw - 1, th - 1, more)
-        v.tagText:SetTextColor(S[1], S[2], S[3])
-        card:Lay(v.tagText, tx, ty, tw - 2 * G.pad[1], th - 2 * G.pad[2], more)
-        -- For the tests: the tag's box on the slip, as the heading's.
-        card.tag = { text = top.tag, box = { tx - tw / 2, ty - th / 2, tx + tw / 2, ty + th / 2 } }
-    end
-
-    -- Where the margin has too little room for a close call's card, it
-    -- gives up its picture first (drawn small and still too tall: Layout's
-    -- `room`), then its deed (the tooltip still says it): the chart is
-    -- what it is kept for. Whether there was anything left to give up (the
-    -- page lays it again).
+    -- Where the margin has too little room for it, a card wearing a face
+    -- gives up what the face says it can (RegisterFace's `smaller`); a
+    -- killer's has nothing to give up. Whether there was anything left to
+    -- give up (the page lays it again).
     function card:Smaller()
-        if not self.foe then return false end
-        if self.mode ~= "name" then
-            self.mode = "name"
-            return true
-        end
-        if not self.bare and ns.UI.JourneyText.CloseDeed(self.foe.call or {}) ~= "" then
-            self.bare = true
-            return true
-        end
-        return false
-    end
-
-    -- The close call's deed as written, on the row or under it (for the
-    -- tests).
-    function card:Deed()
-        if vitals and vitals.deed:IsShown() then return vitals.deed:GetText() end
-        return self:What()
+        if not self.face then return false end
+        return self.face.smaller(self)
     end
 
     -- Laid as a strip, with room for its picture by the column's width
     -- (KILLER.picture, or .narrow), its name at the smaller hand where it
-    -- is long, its words in ink; a close call's with room for its heading
-    -- and tag round the picture and for its chart (VITALS) under the name,
-    -- its picture drawn small (VITALS.compact, card.compact) where it
-    -- would stand taller than `room` px (the margin's height left, where
-    -- the page says). card.overfull where the name will not fit `width`
-    -- even so (the page leaves it off).
+    -- is long, its words in ink; wearing a face, with the room its plan
+    -- asks over and under the name, its picture drawn small (card.compact)
+    -- where it would stand taller than `room` px (the margin's height
+    -- left, where the page says). card.overfull where the name will not
+    -- fit `width` even so (the page leaves it off).
     local layout = card.Layout
     local Lay
     function card:Layout(x, y, width, room)
         self.room, self.compact = room, nil
         local w, h = Lay(self, x, y, width)
-        if self.foe and self.picture and room and h > room then
+        if self.face and self.picture and room and h > room then
             self.compact = true
             w, h = Lay(self, x, y, width)
         end
@@ -861,38 +601,15 @@ function KillerCard.New(parent)
         local room = width - pad[1] - pad[3]
         -- The slip's tape `tapeAt` of the way along, the slip wide enough
         -- for it to start KILLER.clear px past what is at its top (`over`
-        -- px wide): a killer's picture, a close call's heading. Its middle
-        -- is at most TAPE.inset from the end.
+        -- px wide): a killer's picture, a face's heading. Its middle is at
+        -- most TAPE.inset from the end.
         local function Least(over, tapeAt)
             local reach = pad[1] + over + KILLER.clear + T.w / 2
             return math.ceil(math.max(reach / tapeAt, reach + T.inset))
         end
-        local barW, inline, top
-        if self.foe then
-            barW = width < KILLER.narrow.below and VITALS.narrow or VITALS.bar.w
-            local fW, fH = Figure(self.foe)
-            local dW = Deed(self.foe)
-            local row = barW + VITALS.figure.gap + fW
-            local deed = not self.bare and ns.UI.JourneyText.CloseDeed(self.foe.call or {}) or ""
-            inline = deed ~= "" and row + VITALS.deed.gap + dW <= room
-            if inline then row = row + VITALS.deed.gap + dW end
-            note.what = not inline and deed or ""
-            note.under = { w = row, h = math.max(fH, VITALS.bar.h + 2), gap = VITALS.room.gap,
-                after = VITALS.room.after }
-            -- Over the name: the heading, at the smaller hand where the
-            -- slip would be too wide for it and its tape; the picture; the
-            -- tag, its rank under its level where it is too wide.
-            if pic and self.compact then pic = VITALS.compact end
-            local hw, hh = Heading()
-            if Least(hw, VITALS.tapeAt) > width then hw, hh = Heading(KILLER.small) end
-            local tag, tw, th = Tag(self.foe)
-            if tag and tw > room then tag, tw, th = Tag(self.foe, true) end
-            top = { hw = hw, hh = hh, pic = pic, tag = tag, tw = tw, th = th }
-            note.picture = { w = math.max(hw, pic and pic.w or 0, tw or 0),
-                h = hh + (pic and VITALS.head.gap + pic.h or 0) + (tag and VITALS.tag.gap + th or 0),
-                gap = tag and VITALS.tag.under or KILLER.picture.gap }
-            note.tapeAt = VITALS.tapeAt
-            note.least = Least(hw, VITALS.tapeAt)
+        local plan
+        if self.face then
+            plan = self.face.plan(self, note, width, room, pic, Least)
         else
             note.under = nil
             note.picture = pic
@@ -908,13 +625,12 @@ function KillerCard.New(parent)
         local w, h = layout(self, x, y, width)
         local INK = Style.INK
         for i = 1, self.shownLines or 0 do self.lines[i]:SetTextColor(INK[1], INK[2], INK[3]) end
-        -- A killer's card has no heading, chart or tag (the pool hands the
-        -- same card to a killer and a close call by turns, two a plate).
-        HideVitals()
-        self.tag, self.heading = nil, nil
-        if self.foe then DrawTop(top) end
+        -- A killer's card has nothing of a face's (the pool hands the same
+        -- card to a killer and a close call by turns, two a plate).
+        for _, face in ipairs(FACES) do face.hide(self) end
+        if self.face then self.face.top(self, plan) end
         Picture()
-        if self.foe then DrawVitals(barW, inline) end
+        if self.face then self.face.under(self, plan) end
         return w, h
     end
 
@@ -922,13 +638,68 @@ function KillerCard.New(parent)
 end
 
 -- The card's tooltip as Style.Tooltip takes it: the creature's name, and
--- its lines (UI/JourneyText.lua's KillerTip).
+-- its lines (Text.lua's KillerTip).
 function KillerCard.Tip(k, now)
-    local title, lines = ns.UI.JourneyText.KillerTip(k, now)
+    local title, lines = ns.Deaths.KillerTip(k, now)
     local list = { { title } }
     for _, line in ipairs(lines or {}) do list[#list + 1] = { line, 1, 1, 1, true } end
     return list
 end
 
-KillerCard.KILLER, KillerCard.MATCH, KillerCard.RANK, KillerCard.VITALS = KILLER, MATCH, RANK, VITALS
+KillerCard.KILLER, KillerCard.MATCH, KillerCard.RANK = KILLER, MATCH, RANK
 KillerCard.Can, KillerCard.Inks = Can, Inks
+
+--------------------------------------------------------------------------
+-- On the plates: the passes over the crosses, and the margin's notes
+--------------------------------------------------------------------------
+
+-- Deaths' pass (ns.UI.JourneyPlate.RegisterPass, after the marks): the
+-- deaths kept with their killers (Kind.lua's list, the logged-in
+-- character's) onto the crosses they fell at, each found by the segment
+-- that counted it (Journey.CountedOn) where it can be: a cross that knows
+-- its killers tells them under the mouse ("Died here twice" / "Sunscale
+-- Lashtail, with Bite"), and the plate's one killer is chosen from them,
+-- with where its card's leader ends on the page (plate.killer.mark).
+-- First of the passes: the others' (the close call's, the witness's) come
+-- after it.
+ns.UI.JourneyPlate.RegisterPass("killer", {
+    order = 10,
+    draw = function(plate, c)
+        local j = ns.Journey.For(ns.ownGUID)
+        local At = c.At
+        KillerCard.Match(c.crosses, ns.Deaths.List(j), c.mapID, function(d) return At(d.x, d.y) end, c.entry,
+            function(t) return ns.Journey.CountedOn(j, t) end)
+        for _, cross in ipairs(c.crosses) do
+            if #cross.deaths > 0 then
+                c.HoverCross(cross, function() return c.Tip(ns.Deaths.DeathCross(cross.count, cross.deaths)) end)
+            end
+        end
+        local k = KillerCard.Choose(c.crosses)
+        if k then
+            local px, py = c.OnPage(k.cross.x, k.cross.y)
+            k.mark = { px, py }
+        end
+        plate.killer = k
+    end,
+})
+
+-- What killed you, in the margin (ns.UI.JourneyMargin.Register): order
+-- 40, after someone who was there (a witness, 30) and before what nearly
+-- got you (the close call's card, 50, which shares its pool). Left off, its
+-- name goes with the deaths in the words ("Two deaths, to a Sunscale
+-- Lashtail.": `said.death`, Text.lua's caption).
+ns.UI.JourneyMargin.Register("killer", {
+    order = 40, pool = "killerPool", count = "killersWritten",
+    new = function(parent) return KillerCard.New(parent) end,
+    item = function(plate)
+        local k = plate.killer
+        return k and { killer = k, top = k.mark[2], x = k.mark[1] } or nil
+    end,
+    write = function(card, it, c)
+        card:SetKiller(it.killer, c.Seed("killer", it.killer.npcID or it.killer.name), c.now)
+    end,
+    mark = function(it) return it.killer.mark end,
+    say = function(said, shown, plate)
+        if plate.killer and not shown[1] then said.death = ns.UI.JourneyText.KillerName(plate.killer) end
+    end,
+})

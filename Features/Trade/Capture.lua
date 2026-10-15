@@ -1,4 +1,5 @@
--- Trade capture (INT-1, Must; verified in Session 1 as T-E8).
+-- Trade capture (INT-1, Must; verified in Session 1 as T-E8): a completed
+-- trade, written as a row of its kind (Kind.lua) on the person traded with.
 --
 -- The first interaction source, and the best one to build first: it is
 -- self-contained, it was verified end to end in this client, and it is the
@@ -108,10 +109,11 @@ local function Commit()
         },
     })
 
+    -- The picker's "you traded with them" (Core/Candidates.lua).
     ns.Recent.Set("trade", guid)
-    -- For Your Diary's firsts (Capture/Journey.lua): a first found just
-    -- after this, among what was received, was a gift.
-    ns.lastTrade = { guid = guid, t = ns.Now(), received = c.received }
+    -- For whoever cares what was received from whom (SD_TRADE_COMPLETED,
+    -- Core/Events.lua), as the trade is stored.
+    ns.Fire("SD_TRADE_COMPLETED", guid, c.received)
     ns.Debug("trade completed with %s: gave %d item(s) and %dc, got %d item(s) and %dc (%s)",
         ns.Characters.FullName(guid) or guid, c.given and #c.given or 0, c.moneyGiven or 0,
         c.received and #c.received or 0, c.moneyReceived or 0,

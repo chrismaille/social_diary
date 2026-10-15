@@ -25,11 +25,11 @@
 -- Quests taken and turned in are passed on to the features, after the
 -- route has counted them (SD_QUEST_ACCEPTED, SD_QUEST_TURNED_IN).
 --
--- Apart from the timer, the firsts (JRN-24) are read off the bags as they
--- change. A few seconds after entering the world, when the bags are first
--- read, this file fires SD_WORLD_SETTLED (Core/Events.lua), for a
--- feature's capture (Features/<Name>/Capture.lua) that holds what the
--- character has against its last reading to take its first one then.
+-- A few seconds after entering the world (SETTLE), when the client has
+-- loaded what the character holds, this file fires SD_WORLD_SETTLED
+-- (Core/Events.lua), for a feature's capture (Features/<Name>/Capture.lua)
+-- that holds what the character has against its last reading to take its
+-- first one then.
 
 local addonName, ns = ...
 
@@ -44,6 +44,9 @@ local ticker
 -- nothing is sampled until then, so the jump to the graveyard is no road.
 local ignoreUntil
 local GHOST_LAG = 3
+-- Seconds after entering the world before what the character holds (its
+-- bags, its skills) is read: SD_WORLD_SETTLED.
+local SETTLE = 3
 
 function Capture.On()
     return ns.Setting("keepRoute") == true
@@ -202,129 +205,6 @@ function Capture.QuestTurnedIn(questID)
     if type(questID) == "number" then ns.Fire("SD_QUEST_TURNED_IN", questID) end
 end
 
---------------------------------------------------------------------------
--- Firsts (JRN-24): the first bag, shoulders, green, blue and epic found
---------------------------------------------------------------------------
---
--- Found, not worn: the moment it came into the bags. Everything comes in
--- by the bags (a bag the client puts in a bag slot itself still changes
--- them), so each BAG_UPDATE_DELAYED reads them all, and what is worn,
--- until every kind is found; after that nothing is read.
---
--- What is held the first time the bags are read after the diary was not
--- watching (a login, a /reload, the route's capture back on) was had out
--- of sight, never a first (Journey.FirstsHeld). That reading waits a few
--- seconds after entering the world, or for the bags' own update, and an
--- empty backpack is not read at all: bags not yet loaded are not "none".
-
-local FIRSTS = {
-    settle = 3,    -- seconds after entering the world before the bags are read
-    source = 10,   -- how fresh a trade or a closed window still says how it came
-}
-
-local watching = false
--- How the next find may have come: each window's state (true while it is
--- open, else when it closed).
-local windows = {}
-
-local function Window(kind, open)
-    windows[kind] = open or ns.Now()
-end
-
-local function Fresh(kind, now)
-    local w = windows[kind]
-    return w == true or (w ~= nil and now - w <= FIRSTS.source)
-end
-
-local function ItemID(link)
-    return tonumber(type(link) == "string" and link:match("item:(%d+)") or nil)
-end
-
--- An item as Journey.FirstKinds reads it, from its link: the instant
--- info needs no item cache.
-local function Item(link, quality)
-    link = ns.Plain(link)
-    local id = ItemID(link)
-    if not id or not (C_Item and C_Item.GetItemInfoInstant) then return nil end
-    local _, _, _, equipLoc, _, classID, subclassID = C_Item.GetItemInfoInstant(id)
-    return { link = link, itemID = id, quality = ns.Plain(quality), equipLoc = ns.Plain(equipLoc),
-        classID = ns.Plain(classID), subclassID = ns.Plain(subclassID) }
-end
-
-local function Worn(slot)
-    return Item(GetInventoryItemLink("player", slot), GetInventoryItemQuality("player", slot))
-end
-
--- Everything in the bags, in the bag slots and worn; nil while the
--- backpack does not read.
-local function Held()
-    local C = C_Container
-    if not (C and C.GetContainerNumSlots) or (ns.Plain(C.GetContainerNumSlots(0)) or 0) <= 0 then return nil end
-    local items = {}
-    for bag = 0, NUM_BAG_SLOTS or 4 do
-        for slot = 1, ns.Plain(C.GetContainerNumSlots(bag)) or 0 do
-            local info = C.GetContainerItemInfo(bag, slot)
-            if info then items[#items + 1] = Item(info.hyperlink, info.quality) end
-        end
-        if bag > 0 and C.ContainerIDToInventoryID then items[#items + 1] = Worn(C.ContainerIDToInventoryID(bag)) end
-    end
-    for slot = 1, 19 do items[#items + 1] = Worn(slot) end
-    return items
-end
-
--- How `item` came, as far as can be told: received in a trade just now
--- (from whom), else whichever window was open or just closed.
-local function Came(item, now)
-    local trade = ns.lastTrade
-    if trade and now - trade.t <= FIRSTS.source then
-        for _, r in ipairs(trade.received or {}) do
-            if ItemID(r.link) == item.itemID then return "trade", trade.guid end
-        end
-    end
-    for _, kind in ipairs({ "mail", "vendor", "quest", "loot" }) do
-        if Fresh(kind, now) then return kind end
-    end
-    return nil
-end
-
-local function ReadFirsts()
-    local j = Live()
-    if not j then
-        watching = false
-        return
-    end
-    if j.firsts and not Journey.Looking(j) then return end
-    local items = Held()
-    if not items then return end
-    if not watching or not j.firsts then
-        local held = {}
-        for _, item in ipairs(items) do
-            for _, kind in ipairs(Journey.FirstKinds(item)) do held[kind] = true end
-        end
-        Journey.FirstsHeld(j, held)
-        watching = true
-        return
-    end
-    local now = ns.Now()
-    for _, item in ipairs(items) do
-        for _, kind in ipairs(Journey.FirstKinds(item)) do
-            if j.firsts[kind] == nil then
-                local from, guid = Came(item, now)
-                Journey.Found(j, kind, { t = now, level = Level(), link = item.link, from = from, guid = guid })
-            end
-        end
-    end
-end
-Capture.ReadFirsts = ReadFirsts
-
-ns.On("BAG_UPDATE_DELAYED", ReadFirsts)
-
-for kind, events in pairs({ mail = { "MAIL_SHOW", "MAIL_CLOSED" }, vendor = { "MERCHANT_SHOW", "MERCHANT_CLOSED" },
-    quest = { "QUEST_COMPLETE", "QUEST_FINISHED" }, loot = { "LOOT_OPENED", "LOOT_CLOSED" } }) do
-    ns.On(events[1], function() Window(kind, true) end)
-    ns.On(events[2], function() Window(kind) end)
-end
-
 -- Capture/Together.lua's PLAYER_LEVEL_UP handler calls this. Where the
 -- level was reached: on the zone map outdoors, nowhere in an instance (the
 -- recap finds the dungeon by time).
@@ -373,10 +253,9 @@ ns.On("PLAYER_LOGIN", function()
     Journey.Prune()
 end)
 
--- The bags' first reading, then the features' (SD_WORLD_SETTLED), in
--- that order, FIRSTS.settle seconds after entering the world.
+-- The features' first reading of what the character holds
+-- (SD_WORLD_SETTLED), SETTLE seconds after entering the world.
 ns.On("PLAYER_ENTERING_WORLD", function()
     Start()
-    ns.After(FIRSTS.settle, ReadFirsts)
-    ns.After(FIRSTS.settle, function() ns.Fire("SD_WORLD_SETTLED") end)
+    ns.After(SETTLE, function() ns.Fire("SD_WORLD_SETTLED") end)
 end)

@@ -157,7 +157,7 @@ local QUEST = { questID = 781, title = "Break Sharptusk!", objectives = {
 mock.quests = { QUEST }
 mock.fire("QUEST_ACCEPTED", 781)
 mock.RunTimers()
-local hunt = J.Hunting(j, 781, 1)
+local hunt = ns.Hunts.Hunting(j, 781, 1)
 Check(hunt, "the hunt did not begin")
 Eq(hunt.itemID, 4739, "the item, by QuestieDB")
 Check(hunt.from[2955] and hunt.from[2956], "every kind that drops it, from the start")
@@ -175,7 +175,7 @@ mock.fire("LOOT_OPENED")
 QUEST.objectives[1].numFulfilled, QUEST.objectives[1].finished = 7, true
 mock.fire("QUEST_LOG_UPDATE")
 mock.RunTimers()
-local done = J.Hunts(j)[#J.Hunts(j)]
+local done = ns.Hunts.List(j)[#ns.Hunts.List(j)]
 Check(done and done.questID == 781, "the hunt kept nothing")
 Eq(done.kills, 31, "both kinds' kills, not the wolf's")
 Eq(done.npcID, 2955, "the kind killed most")
@@ -185,8 +185,8 @@ Eq(done.byKind[2956].n, 11, "the other's")
 Eq(done.byKind[2956].name, "Adult Plainstrider", "the other's name")
 -- 20 at 25% and 11 at 50%: 10.5 items in 31 kills, so 7 should take 20.7.
 Eq(done.expected, 20.7, "the kills it should have taken")
-Eq(J.BadLuck(j, done), true, "31 where 20.7 were expected was not bad luck")
-Eq(Text.HuntLine(done), "31" .. NB .. "Plainstriders and others for 7" .. NB .. "Plainstrider Meat, 10" .. NB
+Eq(ns.Hunts.BadLuck(j, done), true, "31 where 20.7 were expected was not bad luck")
+Eq(ns.Hunts.Line(done), "31" .. NB .. "Plainstriders and others for 7" .. NB .. "Plainstrider Meat, 10" .. NB
     .. "more than expected", "the words")
 
 -- Without QuestieDB: the loot window alone, no expectation, as before.
@@ -195,7 +195,7 @@ QUEST.objectives[1].numFulfilled, QUEST.objectives[1].finished = 0, false
 QUEST.objectives[1].text = "Plainstrider Meat: 0/7"
 mock.fire("QUEST_LOG_UPDATE")
 mock.RunTimers()
-hunt = J.Hunting(j, 781, 1)
+hunt = ns.Hunts.Hunting(j, 781, 1)
 Check(hunt and not hunt.from[2956], "without QuestieDB, a kind before it dropped anything")
 for _ = 1, 4 do mock.fire("PARTY_KILL", SELF.guid, STRIDER) end
 for _ = 1, 3 do mock.fire("PARTY_KILL", STRANGER.guid, ADULT) end
@@ -203,20 +203,20 @@ mock.fire("LOOT_OPENED")
 QUEST.objectives[1].numFulfilled, QUEST.objectives[1].finished = 7, true
 mock.fire("QUEST_LOG_UPDATE")
 mock.RunTimers()
-done = J.Hunts(j)[#J.Hunts(j)]
+done = ns.Hunts.List(j)[#ns.Hunts.List(j)]
 Eq(done.kills, 4, "only the kind seen dropping it")
 Eq(done.byKind, nil, "one kind has no breakdown")
 Eq(done.expected, nil, "nothing expected")
-Eq(J.HuntRated(done), false, "a rate without QuestieDB")
+Eq(ns.Hunts.Rated(done), false, "a rate without QuestieDB")
 Bring()
 -- Read again with QuestieDB here (12 Oct, in the client: a hunt kept
 -- before the rates were read had none on its card): the item by the
 -- quest, the rate of the kind it kept. 4 at 25% is one item, so 7 should
 -- take 28.
-Eq(J.HuntRated(done), true, "an old hunt was not given its rate")
+Eq(ns.Hunts.Rated(done), true, "an old hunt was not given its rate")
 Eq(done.itemID, 4739, "an old hunt's item, by its quest")
 Eq(done.expected, 28, "an old hunt's expected kills")
-Eq(J.HuntRated({ questID = 781, item = "Plainstrider Meat", need = 7, kills = 4, npcID = 3108 }), false,
+Eq(ns.Hunts.Rated({ questID = 781, item = "Plainstrider Meat", need = 7, kills = 4, npcID = 3108 }), false,
     "a kind with no rate was given one")
 mock.groupSize = 0
 
@@ -226,21 +226,21 @@ Section("a rate past belief, and the group's own drops")
 -- 37 Defias Rogue Wizards for 6 Red Linen Bandanas (12 Oct, in the
 -- client): at the server data's 66% that is a chance in billions; at
 -- Wowhead's 37%, bad luck.
-Eq(J.Believable(37, 6, 9.1), false, "37 kills for 6 at 66% believed")
-Eq(J.Believable(37, 6, 16.2), true, "37 kills for 6 at 37% not believed")
-Eq(J.Believable(4, 7, 58.3), true, "a quick hunt doubted (only slow ones are)")
-Check(J.Slow(10, 1, 0.1) > 0.38 and J.Slow(10, 1, 0.1) < 0.39, "nine misses at 10%: " .. J.Slow(10, 1, 0.1))
+Eq(ns.Hunts.Believable(37, 6, 9.1), false, "37 kills for 6 at 66% believed")
+Eq(ns.Hunts.Believable(37, 6, 16.2), true, "37 kills for 6 at 37% not believed")
+Eq(ns.Hunts.Believable(4, 7, 58.3), true, "a quick hunt doubted (only slow ones are)")
+Check(ns.Hunts.Slow(10, 1, 0.1) > 0.38 and ns.Hunts.Slow(10, 1, 0.1) < 0.39, "nine misses at 10%: " .. ns.Hunts.Slow(10, 1, 0.1))
 local bandanas = { questID = 83, item = "Red Linen Bandana", need = 6, kills = 37, npcID = 474, expected = 9.1 }
-Eq(J.HuntRated(bandanas), true, "the bandanas lost their rate")
+Eq(ns.Hunts.Rated(bandanas), true, "the bandanas lost their rate")
 Eq(bandanas.expected, 16.2, "the bandanas' rate, Wowhead's where the first is past belief")
 Eq(bandanas.itemID, 1019, "the bandana, by its quest")
-Eq(J.BadLuck(j, bandanas), true, "37 where 16.2 were expected was not bad luck")
+Eq(ns.Hunts.BadLuck(j, bandanas), true, "37 where 16.2 were expected was not bad luck")
 local endless = { questID = 83, item = "Red Linen Bandana", need = 2, kills = 200, npcID = 474 }
-Eq(J.HuntRated(endless), false, "a hunt past every rate kept one")
+Eq(ns.Hunts.Rated(endless), false, "a hunt past every rate kept one")
 Eq(endless.expected, nil, "a hunt past every rate expects something")
 Away()
 local kept = { item = "Red Linen Bandana", need = 6, kills = 37, npcID = 474, expected = 9.1 }
-Eq(J.HuntRated(kept), true, "without QuestieDB a kept rate is not read again")
+Eq(ns.Hunts.Rated(kept), true, "without QuestieDB a kept rate is not read again")
 
 -- A group member's loot of the item is one the user could not have: it
 -- counts with the user's own, against the same kills.
@@ -252,7 +252,7 @@ mock.SetUnit("party1", STRANGER)
 mock.fire("GROUP_ROSTER_UPDATE")
 mock.fire("QUEST_LOG_UPDATE")
 mock.RunTimers()
-hunt = J.Hunting(j, 781, 1)
+hunt = ns.Hunts.Hunting(j, 781, 1)
 Check(hunt, "setup: the meat not counted")
 for _ = 1, 20 do mock.fire("PARTY_KILL", SELF.guid, STRIDER) end
 local function Loot(text, guid)
@@ -266,19 +266,19 @@ Eq(hunt.shared, 2, "the group's copies (not the user's, a stranger's or another 
 QUEST.objectives[1].numFulfilled, QUEST.objectives[1].finished = 7, true
 mock.fire("QUEST_LOG_UPDATE")
 mock.RunTimers()
-done = J.Hunts(j)[#J.Hunts(j)]
+done = ns.Hunts.List(j)[#ns.Hunts.List(j)]
 Eq(done.shared, 2, "the group's copies kept")
-Eq(J.HuntItems(done), 9, "the items the kills gave")
+Eq(ns.Hunts.Items(done), 9, "the items the kills gave")
 -- 20 at 25% is five items for 20 kills, so nine should take 36.
 Eq(done.expected, 36, "expected kills for the group's items too")
-Eq(J.BadLuck(j, { kills = 30, need = 4, shared = 8 }), false, "30 for 12, the group's counted, was bad luck")
-Eq(J.BadLuck(j, { kills = 30, need = 4 }), true, "setup: 30 for 4 alone is bad luck")
+Eq(ns.Hunts.BadLuck(j, { kills = 30, need = 4, shared = 8 }), false, "30 for 12, the group's counted, was bad luck")
+Eq(ns.Hunts.BadLuck(j, { kills = 30, need = 4 }), true, "setup: 30 for 4 alone is bad luck")
 mock.groupSize = 0
 
 -- A kind with no rate: nothing expected at all.
-Eq(J.Expected({ [1] = { n = 5 }, [2] = { n = 5 } }, 10, 2, function(id) return id == 1 and 20 or nil end), nil,
+Eq(ns.Hunts.Expected({ [1] = { n = 5 }, [2] = { n = 5 } }, 10, 2, function(id) return id == 1 and 20 or nil end), nil,
     "an expectation with a kind unrated")
-Eq(J.Expected({ [1] = { n = 10 } }, 10, 2, function() return 20 end), 10, "two at 20%")
+Eq(ns.Hunts.Expected({ [1] = { n = 10 } }, 10, 2, function() return 20 end), 10, "two at 20%")
 
 --------------------------------------------------------------------------
 Section("bad luck with the rate known: eight more, and a quarter more")
@@ -287,33 +287,33 @@ local function Luck(kills, expected, need)
     return { kills = kills, need = need or 5, expected = expected }
 end
 local k = { hunts = {} }
-Eq(J.BadLuck(k, Luck(27, 20)), false, "seven more than expected")
-Eq(J.BadLuck(k, Luck(28, 20)), true, "eight more, and 1.4 times")
-Eq(J.BadLuck(k, Luck(49, 40)), false, "nine more, but 1.225 times")
-Eq(J.BadLuck(k, Luck(50, 40)), true, "ten more, and 1.25 times")
+Eq(ns.Hunts.BadLuck(k, Luck(27, 20)), false, "seven more than expected")
+Eq(ns.Hunts.BadLuck(k, Luck(28, 20)), true, "eight more, and 1.4 times")
+Eq(ns.Hunts.BadLuck(k, Luck(49, 40)), false, "nine more, but 1.225 times")
+Eq(ns.Hunts.BadLuck(k, Luck(50, 40)), true, "ten more, and 1.25 times")
 -- Without a rate, the old rule (tests/combat.lua has it in full).
-Eq(J.BadLuck(k, { kills = 24, need = 8 }), true, "three an item, no rate")
-Eq(J.BadLuck(k, Luck(24, 30, 8)), false, "three an item, but fewer than expected")
+Eq(ns.Hunts.BadLuck(k, { kills = 24, need = 8 }), true, "three an item, no rate")
+Eq(ns.Hunts.BadLuck(k, Luck(24, 30, 8)), false, "three an item, but fewer than expected")
 
 --------------------------------------------------------------------------
 Section("good luck: an eighth of the kills expected (EXT-3)")
 
-Eq(J.GoodLuck(Luck(10, 80)), true, "eight times")
-Eq(J.GoodLuck(Luck(10, 79)), false, "7.9 times")
-Eq(J.GoodLuck(Luck(1, 8, 1)), true, "the first kill, at one in eight")
-Eq(J.GoodLuck({ kills = 1, need = 1 }), false, "no rate, no good luck")
-Eq(J.BadLuck(k, Luck(10, 80)) and J.GoodLuck(Luck(10, 80)), false, "both bad and good")
+Eq(ns.Hunts.GoodLuck(Luck(10, 80)), true, "eight times")
+Eq(ns.Hunts.GoodLuck(Luck(10, 79)), false, "7.9 times")
+Eq(ns.Hunts.GoodLuck(Luck(1, 8, 1)), true, "the first kill, at one in eight")
+Eq(ns.Hunts.GoodLuck({ kills = 1, need = 1 }), false, "no rate, no good luck")
+Eq(ns.Hunts.BadLuck(k, Luck(10, 80)) and ns.Hunts.GoodLuck(Luck(10, 80)), false, "both bad and good")
 
 local lucky = { kills = 4, need = 7, expected = 58.3, name = "Plainstrider", item = "Plainstrider Meat" }
-Eq(Text.HuntLine(lucky), "4" .. NB .. "Plainstriders for 7" .. NB .. "Plainstrider Meat, 54" .. NB
+Eq(ns.Hunts.Line(lucky), "4" .. NB .. "Plainstriders for 7" .. NB .. "Plainstrider Meat, 54" .. NB
     .. "fewer than expected", "good luck in a few words")
-Eq(Text.Fortune(lucky), "It took only 4" .. NB .. "Plainstriders to get 7" .. NB .. "Plainstrider Meat, 54" .. NB
+Eq(ns.Hunts.Fortune(lucky), "It took only 4" .. NB .. "Plainstriders to get 7" .. NB .. "Plainstrider Meat, 54" .. NB
     .. "fewer than expected.", "good luck in a sentence")
-Eq(Text.Fortune({ kills = 1, need = 1, expected = 10, name = "Sharptalon", item = "Sharptalon's Claw" }),
+Eq(ns.Hunts.Fortune({ kills = 1, need = 1, expected = 10, name = "Sharptalon", item = "Sharptalon's Claw" }),
     "The first Sharptalon gave up its Sharptalon's Claw, where 10" .. NB .. "were expected.", "the first kill")
-Eq(Text.Expected({ kills = 20, expected = 20.3 }), "", "even")
+Eq(ns.Hunts.ExpectedWords({ kills = 20, expected = 20.3 }), "", "even")
 
-local tip, lines = Text.HuntTip({ kills = 31, need = 7, name = "Plainstrider", item = "Plainstrider Meat",
+local tip, lines = ns.Hunts.Tip({ kills = 31, need = 7, name = "Plainstrider", item = "Plainstrider Meat",
     expected = 20.7, title = "Break Sharptusk!", t = mock.now, level = 12,
     byKind = { [2956] = { n = 11, name = "Adult Plainstrider" }, [2955] = { n = 20, name = "Plainstrider" } } },
     mock.now)
@@ -424,7 +424,7 @@ j.hunts[#j.hunts + 1] = { t = mock.now, mapID = mock.mapID, x = 0.5, y = 0.5, ki
     name = "Plainstrider", item = "Plainstrider Meat", questID = 1 }
 e = R.Gather(j, 0, mock.now + 1, {})
 Eq(#e.fortunes, 1, "the good luck in the entry")
-Check(Text.CombatLines(e):find("It took only 2", 1, true), "the good luck in the prose")
+Check(ns.Hunts.Lines(e):find("It took only 2", 1, true), "the good luck in the prose")
 Check(table.concat(Text.Lines(e, mock.now), " "):find("a chain of eight", 1, true), "the finale in the prose")
 
 Away()

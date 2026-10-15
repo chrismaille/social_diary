@@ -58,7 +58,7 @@ local function Summary(label, e)
     for i, plate in ipairs(page.plates) do
         if plate:IsShown() then
             local ks = {}
-            -- A witness's card with the size it took (UI/WitnessCard.lua).
+            -- A witness's card with the size it took (Features/Witnesses/Card.lua).
             for _, it in ipairs(plate.margin or {}) do
                 ks[#ks + 1] = it.kind .. (it.kind == "witness" and it.note and it.note.form
                     and ("(" .. it.note.form .. ")") or "")
@@ -91,7 +91,7 @@ local function Dump(label)
             end
         end
     end
-    -- Good luck told on a print (UI/LuckyCard.lua's S): its slip, its tag
+    -- Good luck told on a print (Features/Hunts/LuckyCard.lua's S): its slip, its tag
     -- and its icon, each four corners on the page.
     for i, p in ipairs(page.plates) do
         if p:IsShown() and p.print then

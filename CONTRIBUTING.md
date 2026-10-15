@@ -23,7 +23,7 @@ client as well.
 ## Finding your way round
 
 [AGENTS.md](AGENTS.md) is the map of the code: what lives in `Core/`,
-`Capture/`, `UI/`, `Data/`, `Dev/` and `tests/`, and the load order in
+`Capture/`, `UI/`, `Features/`, `Dev/` and `tests/`, and the load order in
 `social_diary.toc`. It also holds the rules for AI-assisted work, so it is
 worth reading whether you use an assistant or not.
 

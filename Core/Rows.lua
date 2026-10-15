@@ -30,6 +30,28 @@
 --               Timeline's RANK); none, and it cannot make an exchange alone
 --   moment      function(row): true when it is a line of its own on the
 --               timeline
+--   climb       its lines one after another, with nothing between them,
+--               fold into one (a "climb", Core/Timeline.lua's Climbs), each
+--               its own line again when opened; its rows carry context
+--               { from, level }, which the climb's words read ("went from
+--               level 1 to 6", UI/TimelineText.lua)
+--   fight       "kill" (they died to the user or their group) or "death"
+--               (they killed the user): a fight with the player the row is
+--               on, written at the fight's own time, as the user's route
+--               marks it (Core/Journey.lua: FightIndex finds the stranger
+--               a fight mark was with by that time) and as the score with
+--               them counts it (Interactions.Fights); a kill's context.by
+--               is the group member who landed the blow, none when it was
+--               the user's own
+--   witness     "watched" (they looked on as the user died) or "helped"
+--               (they fought the user's foes, in a fight the user died in
+--               or survived): a stranger who was there at one of the
+--               user's deaths or close calls, written at that moment's own
+--               time, so the plates find a moment's witnesses by it
+--               (Core/Journey.lua's WitnessIndex: every such row, by time);
+--               context.watched is a watcher's seconds, context.pct a
+--               rescue's health left, and { npcID, name, rank } the
+--               creature, where known
 --   hidden      never shown on the timeline
 --   reason      why the picker offers someone whose latest row it is ("they
 --               saved you"); without one, "recent <type>"
@@ -82,30 +104,11 @@ end
 -- The kinds the diary has always had
 --------------------------------------------------------------------------
 --
--- Their words and icons are UI/TimelineText.lua's; the features that came
--- later (World PvP, witnesses) declare theirs here for now too, until they
--- move to their folders. A feature in Features/<Name>/ declares its kind
--- whole there, words and icon included (its Kind.lua;
--- .claude/registry-refactor.md, "A feature's folder").
-
-local function Always() return true end
+-- Their words and icons are UI/TimelineText.lua's. A feature in
+-- Features/<Name>/ declares its kind whole there, words and icon included
+-- (its Kind.lua; .claude/registry-refactor.md, "A feature's folder").
 
 Rows.Register("group_join", { structural = true, meeting = true, dealt = "together", matters = true,
     activity = "group" })
 -- Implied by the session's end, so never a line.
 Rows.Register("group_leave", { structural = true, hidden = true })
--- A trade is a moment of its own when something of note changed hands.
-Rows.Register("trade", { proximity = true, opens = true, meeting = true, dealt = "trade", matters = true,
-    activity = "trade",
-    moment = function(row) return ns.Timeline.TradeQuality(row) >= ns.Timeline.UNCOMMON end })
--- Always a line, and names nothing in a headline: the details line already
--- says "they went from 18 to 21".
-Rows.Register("level_up", { observed = true, moment = Always })
--- World PvP (Core/Fights.lua): always a line, never an activity, as TLN-2
--- has it for PvP kills.
-Rows.Register("pvp_kill", { moment = Always, reason = "you killed them" })
-Rows.Register("pvp_death", { moment = Always, reason = "they killed you" })
--- Witnesses to the user's fights (Capture/Witnesses.lua): always a line.
-Rows.Register("watched_death", { moment = Always, reason = "they watched you die" })
-Rows.Register("tried_to_help", { moment = Always, reason = "they tried to save you" })
-Rows.Register("saved_you", { moment = Always, reason = "they saved you" })

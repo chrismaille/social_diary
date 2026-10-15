@@ -11,6 +11,7 @@ local DAY = T.DAY
 local ns = T.Boot()
 local SELF = F.SELF
 local Text = ns.UI.JourneyText
+local Close = ns.CloseCalls
 local NB = "\194\160"
 
 mock.now = 1791000000
@@ -37,37 +38,37 @@ Eq(Text.Plural("Servant of Grol"), "Servants of Grol", "a name with an of")
 Eq(Text.Plural("Kolkar Marauder"), "Kolkar Marauders", "only the last word changes")
 
 local STRIDER = { name = "Plainstrider", pct = 6, seconds = 42, level = 6, t = now - 3600 }
-Eq(Text.CloseCall(STRIDER), "Got away from a Plainstrider with 6%" .. NB .. "health.", "a close call")
-Eq(Text.CloseCall({ name = "Plainstrider", pct = 6, foes = 3 }),
+Eq(Close.Sentence(STRIDER), "Got away from a Plainstrider with 6%" .. NB .. "health.", "a close call")
+Eq(Close.Sentence({ name = "Plainstrider", pct = 6, foes = 3 }),
     "Got away from a Plainstrider and two others with 6%" .. NB .. "health.", "a close call against three")
-Eq(Text.CloseCall({ name = "Plainstrider", pct = 6, foes = 2 }),
+Eq(Close.Sentence({ name = "Plainstrider", pct = 6, foes = 2 }),
     "Got away from a Plainstrider and another with 6%" .. NB .. "health.", "a close call against two")
-Eq(Text.CloseCall({ name = "Hogger", rank = "rare", pct = 3 }), "Got away from Hogger with 3%" .. NB .. "health.",
+Eq(Close.Sentence({ name = "Hogger", rank = "rare", pct = 3 }), "Got away from Hogger with 3%" .. NB .. "health.",
     "a rare is named bare")
-Eq(Text.CloseCall({ pct = 9 }), "Got out of a fight with 9%" .. NB .. "health.", "a close call with no creature")
-Eq(Text.CloseDeed(STRIDER), "", "one foe has a deed")
-Eq(Text.CloseDeed({ seconds = 95, foes = 3 }), "fought against three", "the foe card's deed against three")
-Eq(Text.CloseDeed({ seconds = 120, foes = 2 }), "fought against two", "the foe card's deed against two")
-Eq(Text.CloseDeed({}), "", "a deed with nothing kept")
+Eq(Close.Sentence({ pct = 9 }), "Got out of a fight with 9%" .. NB .. "health.", "a close call with no creature")
+Eq(Close.Deed(STRIDER), "", "one foe has a deed")
+Eq(Close.Deed({ seconds = 95, foes = 3 }), "fought against three", "the foe card's deed against three")
+Eq(Close.Deed({ seconds = 120, foes = 2 }), "fought against two", "the foe card's deed against two")
+Eq(Close.Deed({}), "", "a deed with nothing kept")
 -- The tag: the level and the rank, a skull's level as "??".
-Eq(Text.FoeTag({ foeLevel = 45, rank = "elite" }), "Lv 45 (Elite)", "an elite's tag")
-Eq(Text.FoeTag({ foeLevel = 30, rank = "rare" }), "Lv 30 (Rare)", "a rare's tag")
-Eq(Text.FoeTag({ foeLevel = 31, rank = "rareelite" }), "Lv 31 (Rare Elite)", "a rare elite's tag")
-Eq(Text.FoeTag({ foeLevel = -1, rank = "worldboss" }), "Lv ?? (Boss)", "a skull boss's tag")
-Eq(Text.FoeTag({ foeLevel = 12 }), "Lv 12", "a common creature's tag")
-Eq(Text.FoeTag({ rank = "elite" }), "Elite", "a rank with no level kept")
-Check(Text.FoeTag({ name = "Plainstrider" }) == nil, "an old record with neither has a tag")
+Eq(Close.Tag({ foeLevel = 45, rank = "elite" }), "Lv 45 (Elite)", "an elite's tag")
+Eq(Close.Tag({ foeLevel = 30, rank = "rare" }), "Lv 30 (Rare)", "a rare's tag")
+Eq(Close.Tag({ foeLevel = 31, rank = "rareelite" }), "Lv 31 (Rare Elite)", "a rare elite's tag")
+Eq(Close.Tag({ foeLevel = -1, rank = "worldboss" }), "Lv ?? (Boss)", "a skull boss's tag")
+Eq(Close.Tag({ foeLevel = 12 }), "Lv 12", "a common creature's tag")
+Eq(Close.Tag({ rank = "elite" }), "Elite", "a rank with no level kept")
+Check(Close.Tag({ name = "Plainstrider" }) == nil, "an old record with neither has a tag")
 
-local title, lines = Text.CloseTip({ name = "Kolkar Stormer", rank = "elite", foeLevel = 14, pct = 4, seconds = 75,
+local title, lines = Close.Tip({ name = "Kolkar Stormer", rank = "elite", foeLevel = 14, pct = 4, seconds = 75,
     foes = 2, level = 12, t = now - 3600 }, now)
 Eq(title, "A close call", "a close call's tooltip title")
 Eq(lines[1], "4% health left, against a Kolkar Stormer and another", "the close call's line")
 Eq(lines[2], "Lv 14 (Elite)", "the close call's level and rank")
 Check(lines[3]:find("at level 12$") and #lines == 3, "the close call's when, last: " .. tostring(lines[3]))
-title, lines = Text.CloseTip({ pct = 8, seconds = 20, level = 3, t = now }, now)
+title, lines = Close.Tip({ pct = 8, seconds = 20, level = 3, t = now }, now)
 Eq(lines[1], "8% health left", "a nameless close call's line")
 Eq(#lines, 2, "the fight's length is told")
-title, lines = Text.FoeTip({ name = "Plainstrider", pct = 6, seconds = 42, foes = 3, level = 6, t = now }, now)
+title, lines = Close.FoeTip({ name = "Plainstrider", pct = 6, seconds = 42, foes = 3, level = 6, t = now }, now)
 Eq(title, "Plainstrider", "the foe card's tooltip title")
 Eq(lines[1], "Left you with 6% health", "the foe card's line")
 Eq(lines[2], "Two more were in the fight", "the foe card's others")
@@ -76,25 +77,28 @@ for _, line in ipairs(lines) do Check(not line:find("[Ff]ought for"), "the time 
 
 local MEAT = { kills = 31, need = 7, item = "Plainstrider Meat", name = "Plainstrider", npcID = 2955,
     title = "Break Sharptusk!", level = 6, t = now - 1800, questID = 1 }
-Eq(Text.Hunt(MEAT), "31" .. NB .. "Plainstriders for 7" .. NB .. "Plainstrider Meat", "a hunt in a few words")
-Eq(Text.Hunt({ kills = 26, need = 5, item = "Intact Raptor Horn", name = "Sunscale Scytheclaw" }),
+Eq(ns.Hunts.Words(MEAT), "31" .. NB .. "Plainstriders for 7" .. NB .. "Plainstrider Meat", "a hunt in a few words")
+Eq(ns.Hunts.Words({ kills = 26, need = 5, item = "Intact Raptor Horn", name = "Sunscale Scytheclaw" }),
     "26" .. NB .. "Sunscale Scytheclaws for 5" .. NB .. "Intact Raptor Horns", "an item counted is plural")
-Eq(Text.Hunt({ kills = 20, need = 4, item = "Zhevra Hooves", name = "Zhevra Runner" }),
+Eq(ns.Hunts.Words({ kills = 20, need = 4, item = "Zhevra Hooves", name = "Zhevra Runner" }),
     "20" .. NB .. "Zhevra Runners for 4" .. NB .. "Zhevra Hooves", "an item already plural")
-Eq(Text.Hunt({ kills = 12, need = 1, item = "Kobold Candle" }), "12" .. NB .. "kills for one" .. NB .. "Kobold Candle",
+Eq(ns.Hunts.Words({ kills = 12, need = 1, item = "Kobold Candle" }), "12" .. NB .. "kills for one" .. NB .. "Kobold Candle",
     "a hunt with no creature named, for one")
-title, lines = Text.HuntTip(MEAT, now)
-Eq(title, Text.Hunt(MEAT), "the tally's tooltip title")
+title, lines = ns.Hunts.Tip(MEAT, now)
+Eq(title, ns.Hunts.Words(MEAT), "the tally's tooltip title")
 Eq(lines[1], "For Break Sharptusk!", "the tally names the quest")
 Check(lines[2]:find("at level 6$"), "the tally's when: " .. tostring(lines[2]))
 
--- The level's prose: each close call, then each hunt; past two, counted.
-Eq(Text.CombatLines({ closeCalls = { STRIDER }, hunts = { MEAT } }),
-    "Got away from a Plainstrider with 6%" .. NB .. "health. It took 31" .. NB
-    .. "Plainstriders to get 7" .. NB .. "Plainstrider Meat.", "the prose")
-Eq(Text.CombatLines({ closeCalls = { STRIDER, STRIDER, STRIDER, STRIDER }, hunts = {} }):match("And .-%.$"),
+-- The level's prose: each close call, then each hunt, in one paragraph
+-- (the two kinds' `run`, "combat"); past two, counted.
+Eq(Close.Lines({ closeCalls = { STRIDER } }), "Got away from a Plainstrider with 6%" .. NB .. "health.",
+    "the close calls' prose")
+Eq(ns.Hunts.Lines({ hunts = { MEAT } }), "It took 31" .. NB .. "Plainstriders to get 7" .. NB
+    .. "Plainstrider Meat.", "the hunts' prose")
+Eq(Close.Lines({ closeCalls = { STRIDER, STRIDER, STRIDER, STRIDER } }):match("And .-%.$"),
     "And two more close calls.", "close calls past two are counted")
-Check(Text.CombatLines({ closeCalls = {}, hunts = {} }) == nil, "nothing to say says something")
+Check(Close.Lines({ closeCalls = {} }) == nil and ns.Hunts.Lines({ hunts = {} }) == nil,
+    "nothing to say says something")
 
 -- The captions: after the deaths, or leading where nothing else does.
 local function Caption(moments, foe)
@@ -233,8 +237,8 @@ card.link.scripts.OnLeave(card.link)
 -- The chart under the name (VITALS): the bar ruled in ink, filled in
 -- rubric to the health left, the tick at a tenth, the figure large beside
 -- it; the tag over its top left corner.
-local Card = ns.UI.KillerCard
-local V, v = Card.VITALS, card.vitals
+local Card = ns.Deaths.Card
+local V, v = Close.Card.VITALS, card.vitals
 Check(v and v.edge:IsShown() and v.fill:IsShown() and v.tick:IsShown(), "the card has no bar")
 Eq(v.figure:GetText(), "6%", "the card's figure")
 Eq(v.figure.recorded.calls.SetTextColor[1], ns.Style.RUBRIC[1], "the figure is not in rubric")
@@ -269,7 +273,7 @@ Check(v.figure:IsShown(), "the chart is gone with the tag")
 Check(card.under and card.under.h >= V.figure.size, "the strip kept no room for the chart")
 Check(#card.name:GetText() > 0 and card.box[4] > 60, "the card did not grow for its chart")
 -- The words name the plate's moments but not the card's creature again.
--- The hunt has its own card (UI/HuntCard.lua, tests/hunt_card.lua), so
+-- The hunt has its own card (Features/Hunts/HuntCard.lua, tests/hunt_card.lua), so
 -- its words are on the card, not in the caption.
 local caption = page.captionPool[1]:GetText()
 Eq(page.huntsWritten, 1, "the hunt has no card beside the close call's")
@@ -535,7 +539,7 @@ do
     Eq(tallies, 1, "only the bad luck has a tally")
     -- Good luck (EXT-3): a star for each of level 14's two lucky hunts,
     -- its tooltip the hunt's; never a tally. Levels 11, 12 and 13 have one
-    -- each, for the lucky card's sizes (UI/LuckyCard.lua, 13 Oct).
+    -- each, for the lucky card's sizes (Features/Hunts/LuckyCard.lua, 13 Oct).
     Eq(table.concat(stars, ","), "11x1,12x1,13x1,14x2", "the good luck's stars")
     Check(Any(marked, "^14: 4" .. NB .. "Kolkar Marauders for 7" .. NB .. "Kolkar Booty Keys, 54" .. NB
         .. "fewer than expected|For Counterattack!|"), "the star's tooltip: " .. table.concat(marked, "; "))
@@ -559,7 +563,7 @@ do
         .. "15:Sunscale Scytheclaw:name:7%:-:fought against two, week:Humar the Pridelord:name:1%:Lv 23 (Rare):fought "
         .. "against two, week:Lord Kazzak:name:3%:Lv ?? (Boss):",
         "the made-up foe cards")
-    -- The bad luck has its card (UI/HuntCard.lua), the two kinds of raptor
+    -- The bad luck has its card (Features/Hunts/HuntCard.lua), the two kinds of raptor
     -- a line each (or, short of room, the one killed most and others), so
     -- the words leave it off.
     Eq(#hunts, 1, "the made-up bad luck's card: " .. table.concat(hunts, "; "))
@@ -568,7 +572,7 @@ do
         or hunts[1] == "15:Intact Raptor Horns:", "the made-up bad luck's card: " .. tostring(hunts[1]))
     Check(not Any(words, "^15: .*Intact Raptor Horns"), "the bad luck is in level 15's words beside its card: "
         .. table.concat(words, "; "))
-    -- Good luck: level 14's luckier hunt on its card (UI/LuckyCard.lua),
+    -- Good luck: level 14's luckier hunt on its card (Features/Hunts/LuckyCard.lua),
     -- the other counted in the caption (13 Oct); a finale, in the caption
     -- (JRN-28).
     Check(Any(words, "^14: .*another lucky hunt"), "the good luck is not in level 14's words")

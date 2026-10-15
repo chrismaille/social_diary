@@ -38,7 +38,7 @@ local function Paragraphs()
     for _, p in ipairs(Text.Paragraphs()) do list[#list + 1] = p.key .. " " .. p.at end
     return table.concat(list, ", ")
 end
-Eq(Paragraphs(), "opening 10, time 20, people 30, find 40, finale 50, skill 60, combat 70", "the prose's paragraphs")
+Eq(Paragraphs(), "opening 10, time 20, people 30, find 40, finale 50, skill 60, close 70, hunts 75", "the prose's paragraphs")
 
 --------------------------------------------------------------------------
 Section("a paragraph registered by a later file")
@@ -66,8 +66,37 @@ do
         "the scrap's paragraph is out of place: " .. table.concat(lines, " / "))
     Text.RemoveLines("scrap")
     Eq(table.concat(Text.Lines(e, now, {}), " / "), table.concat(before, " / "), "the scrap's paragraph stayed")
-    Eq(Paragraphs(), "opening 10, time 20, people 30, find 40, finale 50, skill 60, combat 70",
+    Eq(Paragraphs(), "opening 10, time 20, people 30, find 40, finale 50, skill 60, close 70, hunts 75",
         "the paragraphs after the scrap left")
+
+    -- Kinds sharing a `run` write one paragraph: the close calls (70) and
+    -- the luck with a quest's drops (75) are the fights' ("combat"), one
+    -- running on after the other; a scrap on the same run at 72 runs on
+    -- between them, and where the close calls have nothing to say, it
+    -- starts the paragraph in its place.
+    local NB = "\194\160"
+    local FIGHT = "Got away from a Plainstrider with 6%" .. NB .. "health."
+    local HUNT = "It took 31" .. NB .. "Plainstriders to get 7" .. NB .. "Plainstrider Meat."
+    local function Has(lines, text)
+        for _, line in ipairs(lines) do if line == text then return true end end
+        return false
+    end
+    e.closeCalls = { { name = "Plainstrider", pct = 6 } }
+    e.hunts = { { kills = 31, need = 7, item = "Plainstrider Meat", name = "Plainstrider" } }
+    local fought = Text.Lines(e, now, {})
+    Check(Has(fought, FIGHT .. " " .. HUNT), "the close calls and the hunts are not one paragraph: "
+        .. table.concat(fought, " / "))
+    Text.RegisterLines("scrap", { at = 72, run = "combat", lines = function() return "A scrap." end })
+    local run = Text.Lines(e, now, {})
+    Check(Has(run, FIGHT .. " A scrap. " .. HUNT), "the scrap does not run on between them: "
+        .. table.concat(run, " / "))
+    Eq(#run, #fought, "a kind on a run started a paragraph of its own")
+    e.closeCalls = {}
+    run = Text.Lines(e, now, {})
+    Check(Has(run, "A scrap. " .. HUNT), "the scrap does not start the fights' paragraph: " .. table.concat(run, " / "))
+    Text.RemoveLines("scrap")
+    e.closeCalls, e.hunts = {}, {}
+    Eq(table.concat(Text.Lines(e, now, {}), " / "), table.concat(before, " / "), "the run's scrap stayed")
 end
 
 --------------------------------------------------------------------------
@@ -165,7 +194,7 @@ Eq(table.concat(order, ","), "find,witness,killer,scrap,foe,lucky,hunt,campfire"
 -- On every page, wherever a scrap shows: after the people who did
 -- something with you and the cards ordered before it, before the rest;
 -- its leader drawn; counted; and the caption told.
-local TIER = { session = 1, fight = 1, note = 1, added = 1, find = 1, first = 2, crossed = 3 }
+local TIER = { session = 1, fight = 1, note = 1, added = 1, first = 2, crossed = 3 }
 local POS = {}
 for _, spec in ipairs(Margin.ORDER) do POS[spec.kind] = spec.order end
 local shownScraps = 0
@@ -178,10 +207,13 @@ for i in ipairs(page.recap.entries) do
             for _, it in ipairs(plate.margin or {}) do
                 local at = POS[it.kind]
                 if it.kind == "person" then
-                    -- Its tier (UI/JournalJourney.lua's TIER): something
-                    -- done together, or only seen.
+                    -- Its tier (UI/JournalJourney.lua's TIER, or a joined
+                    -- moment's `person.tier`): something done together, or
+                    -- only seen.
                     local tier = 3
-                    for _, m in ipairs(it.g.moments) do tier = math.min(tier, TIER[m.kind] or 2) end
+                    for _, m in ipairs(it.g.moments) do
+                        tier = math.min(tier, TIER[m.kind] or (m.person and m.person.tier) or 2)
+                    end
                     at = tier == 1 and Margin.PEOPLE.close or Margin.PEOPLE.seen
                 end
                 Check(at ~= nil, "a margin item of no kind: " .. tostring(it.kind))

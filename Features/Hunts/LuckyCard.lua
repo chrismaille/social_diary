@@ -1,15 +1,15 @@
 -- The lucky card (Your Diary's plates, JRN-27): a quest's drops that came
 -- with good luck, as .claude/ui-proposal/lucky-card-proposal.md, "Struck
--- down" (decided 13 Oct). The bad-luck hunt card's slip (UI/HuntCard.lua)
+-- down" (decided 13 Oct). The bad-luck hunt card's slip (HuntCard.lua)
 -- taped in the plate's margin, with a pencil leader to its star
--- (UI/JourneyPlate.lua's SHAPES.fortune):
+-- (Mark.lua's `fortune`, FORTUNE):
 --
 --   the heading  the item, as many as the quest wanted, in the diary's hand
---                (Text.HuntItem), as on the bad-luck card
+--                (Hunts.Item), as on the bad-luck card
 --   the icon     the item's own picture pasted in, the game's stack count
 --                over its corner (HuntCard's ICON, COUNT, Icon and Edge)
 --   the struck   beside it, the drop tables' word, printed (Friz, faded):
---                "expected 58" (Text.HuntExpectedLabel); and over it, the
+--                "expected 58" (Hunts.ExpectedLabel); and over it, the
 --                diary's hand has scribbled it out, one pen line of tall
 --                zigzag strokes (SCRIBBLE) whose turns all fall outside the
 --                figures, so the number still reads underneath
@@ -32,8 +32,9 @@
 -- its words.
 --
 -- On a light plate's print there is no margin: S, a small slip glued
--- across the print's foot (PRINT), drawn by the plate through its own
--- toolkit (LuckyCard.Print), with the struck words, the tag beside them
+-- across the print's foot (PRINT), drawn on the plate by this file's
+-- pass ("print", at the foot) through its own toolkit (LuckyCard.Print),
+-- with the struck words, the tag beside them
 -- ("after four", or the count alone, the count underlined), and the item's
 -- icon stuck on the slip's right edge, most of it on the slip and the rest
 -- past it (the user's choice, 13 Oct: S keeps the item's picture without
@@ -47,8 +48,9 @@ local addonName, ns = ...
 
 local Style = ns.Style
 
+local Hunts = ns.Hunts
 local LuckyCard = {}
-ns.UI.LuckyCard = LuckyCard
+Hunts.LuckyCard = LuckyCard
 
 -- The card: turned at most `turn` degrees (the bad-luck card's); the
 -- heading at the hand's own size, else `small`, else on two lines; `gap`
@@ -331,7 +333,7 @@ end
 function LuckyCard.New(parent)
     local card = ns.UI.PaperStrip(parent)
     local Strip = ns.UI.PAPER_STRIP
-    local Hunt = ns.UI.HuntCard
+    local Hunt = Hunts.HuntCard
     local ICON, COUNT = Hunt.ICON, Hunt.COUNT
 
     local function Texture(frame, layer, sublevel)
@@ -375,15 +377,14 @@ function LuckyCard.New(parent)
         self.usual = nil
         self.iconFile, self.itemID, self.iconFrom = Hunt.Icon(hunt)
         self.step, self.plan = 0, nil
-        local Text = ns.UI.JourneyText
         local function Tip()
-            local title, lines = Text.HuntCardTip(hunt, now)
+            local title, lines = Hunts.CardTip(hunt, now)
             local list = { { title } }
             for _, line in ipairs(lines) do list[#list + 1] = { line, 1, 1, 1, true } end
             return list
         end
         self.tipLines = Tip
-        self:SetNote({ name = Text.HuntItem(hunt), strong = true, seed = seed, turn = LUCKY.turn, tip = Tip })
+        self:SetNote({ name = Hunts.Item(hunt), strong = true, seed = seed, turn = LUCKY.turn, tip = Tip })
     end
 
     -- A step less, where the margin is short (UI/JournalJourney.lua's
@@ -449,9 +450,8 @@ function LuckyCard.New(parent)
     local function Try(form, width, force)
         local F = FORMS[form]
         local pad = Strip.STRIP.pad
-        local Text = ns.UI.JourneyText
         local hunt = card.hunt
-        local lines = Text.LuckyTag(hunt, form)
+        local lines = Hunts.LuckyTag(hunt, form)
         local lw = 0
         for _, line in ipairs(lines) do lw = math.max(lw, HandWidth(line.text, F.hand)) end
         local lh = TAG.line[F.hand]
@@ -460,7 +460,7 @@ function LuckyCard.New(parent)
         local step = card.step or 0
         local icon = step >= 2 and 0 or (width < ICON.below and ICON.narrow or ICON.size)
         local iconH = icon > 0 and icon + 2 * ICON.edge or 0
-        local label = Text.HuntExpectedLabel(hunt)
+        local label = Hunts.ExpectedLabel(hunt)
         Printed(card.struck, F.struck)
         card.struck:SetText(label)
         -- (Measured as the proposal's mockup measured it, bare: the scribble's
@@ -491,7 +491,7 @@ function LuckyCard.New(parent)
             -- Beside: its top a little over the row's, or under the heading
             -- where the heading runs that far right.
             tag.y = (pad[1] + head.w > tag.x - 4) and headBottom + 1 or rowTop - LUCKY.rise
-            local words = form == "XL" and step < 1 and Text.LuckyKind(hunt)
+            local words = form == "XL" and step < 1 and Hunts.LuckyKind(hunt)
             if words then
                 card.kind:SetText(words)
                 if pad[1] + Width(card.kind) + 1 <= tag.x - 6 then
@@ -745,9 +745,9 @@ end
 -- All of it from S's top left, y down: the slip `Wb` by `Hb`, S as a whole
 -- `W` by `H` (the tag hangs below the slip, the icon past its right end).
 function LuckyCard.PrintPlan(hunt, room)
-    local Text, ICON = ns.UI.JourneyText, ns.UI.HuntCard.ICON
+    local ICON = Hunts.HuntCard.ICON
     local p, P = Probe(), PRINT
-    local label = Text.HuntExpectedLabel(hunt)
+    local label = Hunts.ExpectedLabel(hunt)
     Printed(p.struck, P.struck)
     p.struck:SetText(label)
     local sw = Width(p.struck)
@@ -756,7 +756,7 @@ function LuckyCard.PrintPlan(hunt, room)
     local box = P.icon + 2 * ICON.edge
     local tagH = P.tagPad[2] + P.line + P.tagPad[4]
     for _, form in ipairs({ "S", "S-" }) do
-        local lines = Text.LuckyTag(hunt, form)
+        local lines = Hunts.LuckyTag(hunt, form)
         Hand(p.hand, P.hand)
         p.hand:SetText(lines[1].text)
         local tagX = math.ceil(send + P.clear)
@@ -797,7 +797,8 @@ end
 
 -- S drawn on a print through its own toolkit, `kit`: { Place (K.Place),
 -- Quad (K.Quad), Texture(part), Text(part) } with the parts' textures and
--- font strings from the plate's pools (UI/JourneyPlate.lua). `chosen` is
+-- font strings from the plate's pools (its pass's, below: PRINT_LAYERS and
+-- PRINT_TEXTS, made through the plate's over-kit). `chosen` is
 -- LuckyCard.Choose's (x, y: its star on the card), `slot` the print's,
 -- `seed` a string, `flat` laid flat. Nil where it will not fit (the caption
 -- keeps the hunt's words); else where it went, all on the card, from its
@@ -805,7 +806,7 @@ end
 -- edge (S's top edge, two points, for its leader), hit, iconHit ({ x, y,
 -- w, h }: the mouse's squares), star }.
 function LuckyCard.Print(kit, chosen, slot, seed, flat)
-    local Text, Hunt = ns.UI.JourneyText, ns.UI.HuntCard
+    local Hunt = Hunts.HuntCard
     local ICON, COUNT = Hunt.ICON, Hunt.COUNT
     local STRIP, TAPE = ns.UI.PAPER_STRIP.STRIP, ns.UI.PAPER_STRIP.TAPE
     local hunt = chosen.hunt
@@ -996,3 +997,163 @@ end
 
 LuckyCard.LUCKY, LuckyCard.FORMS, LuckyCard.TAG, LuckyCard.SCRIBBLE, LuckyCard.UNDER, LuckyCard.PRINT =
     LUCKY, FORMS, TAG, SCRIBBLE, UNDER, PRINT
+
+--------------------------------------------------------------------------
+-- In the plate's margin (JourneyMargin.Register)
+--------------------------------------------------------------------------
+
+-- Good luck with a quest's drops (JRN-27, this card): after the
+-- close call and before the slow hunt (the user's choice, 13 Oct), rarer,
+-- and a happy moment, but never in place of a person, a find, a death or
+-- a close call. On a light plate's print it is told on the print instead
+-- (S, drawn by its pass below), so not in the margin: it stays told
+-- there whatever the margin does (`said.fortune`'s `print`), counts as
+-- written, and has a short leader up to its star where the star is not
+-- right by it (plate.print.far); F+L is not kept where S
+-- will not go on the tucked print (LuckyCard.PrintFits). On a card it is
+-- taken as shown, as the hunt's is, until the card is left off.
+do
+    local function Printed(plate)
+        return plate.print and { hunt = plate.print.hunt, print = true } or nil
+    end
+    ns.UI.JourneyMargin.Register("lucky", {
+        order = 60, pool = "luckyPool", count = "luckyWritten",
+        counted = function(shown, plate) return (shown[1] or plate.print) and 1 or 0 end,
+        new = function(parent) return LuckyCard.New(parent) end,
+        wants = function(it) return LuckyCard.Preferred(it.lucky) end,
+        item = function(plate)
+            local l = plate.lucky
+            if not l or (plate.slot and plate.slot.light) then return nil end
+            return { lucky = l, top = l.mark[2], x = l.mark[1] }
+        end,
+        write = function(card, it, c)
+            local hunt = it.lucky.hunt
+            card:SetHunt(it.lucky, c.Seed("lucky", hunt.questID or hunt.item or ""), c.now)
+        end,
+        mark = function(it) return it.lucky.mark end,
+        assume = function(said, plate, slot)
+            said.fortune = Printed(plate) or (plate.lucky and not slot.light and { hunt = plate.lucky.hunt })
+        end,
+        say = function(said, shown, plate)
+            said.fortune = Printed(plate) or (shown[1] and { hunt = shown[1].lucky.hunt })
+        end,
+        fits = function(plan, slot) return LuckyCard.PrintFits(plan, slot) end,
+        after = function(plate, c)
+            if plate.print and plate.print.far then c.Leader(plate.print, plate.print.mark) end
+        end,
+    })
+end
+
+--------------------------------------------------------------------------
+-- S, drawn on the plate (Plate.RegisterPass)
+--------------------------------------------------------------------------
+
+-- Good luck told on a light plate's print (S): a slip glued over the
+-- print's foot, over the mat and the neat line and under the lifted
+-- corner's shade and the photo corners, its parts from the slip up: its
+-- shadow and edge, its stock, the printed words, the scribble, the icon,
+-- the tag (its shadows, edge, stock, words, the underline) and the tag's
+-- tape. Each part a pool of its own, on the frame over the picture (the
+-- plate's over-kit: its pools are begun, finished and counted with the
+-- plate's).
+local PRINT_LAYERS = { shadow = { "ARTWORK", 4 }, edge = { "ARTWORK", 4 }, paper = { "ARTWORK", 5 },
+    ink = { "ARTWORK", 7 }, iconShadow = { "OVERLAY", -8 }, iconEdge = { "OVERLAY", -7 }, icon = { "OVERLAY", -6 },
+    tagShadow = { "OVERLAY", -4 }, tagEdge = { "OVERLAY", -3 }, tagPaper = { "OVERLAY", -2 },
+    underline = { "OVERLAY", 0 }, tape = { "OVERLAY", 1 } }
+local PRINT_TEXTS = { struck = { "ARTWORK", 6 }, count = { "OVERLAY", -5 }, tagText = { "OVERLAY", -1 } }
+LuckyCard.PRINT_LAYERS, LuckyCard.PRINT_TEXTS = PRINT_LAYERS, PRINT_TEXTS
+
+-- Each plate's toolkit for S (made by the pass's `new`), by plate.
+local kits = setmetatable({}, { __mode = "k" })
+
+-- The pass, after every card is chosen (the killer's 10, the close call's
+-- 20, the witness's 30), where the plate drew S itself until 15 Oct
+-- (after its passes): on a light plate's slot (a snapshot or the tucked
+-- print), which has no margin, the plate's lucky hunt (plate.lucky, the
+-- star's `chosen`) on a slip across the print's foot, drawn through the
+-- card's toolkit so it turns and lies with the print. plate.print says
+-- where it went (for the page: the caption's words, a leader to the star
+-- where the star is not beside it) or is nil where it did not fit, and
+-- the caption keeps the hunt's words. The mouse over it (plate.printHit,
+-- plate.printItem): the star's tooltip over the slip and its tag, the
+-- item's own over its icon (the lucky card's, HuntCard.ShowTip). Square
+-- buttons round each as drawn (they cannot turn), on the frame over the
+-- picture, so they do not lean in; a press on them is a press on the
+-- plate.
+ns.UI.JourneyPlate.RegisterPass("print", {
+    order = 90,
+    new = function(plate, kit)
+        local pools, texts = {}, {}
+        for part, at in pairs(PRINT_LAYERS) do pools[part] = kit.Pool(at[1], at[2]) end
+        for part, at in pairs(PRINT_TEXTS) do texts[part] = kit.TextPool(Style.FONT.small, at[1], at[2]) end
+        plate.printHit, plate.printItem = kit.Button(), kit.Button()
+        Style.Tooltip(plate.printHit, function()
+            local s = plate.print
+            return s and kit.Tip(Hunts.Tip(s.hunt, s.now))
+        end)
+        plate.printItem:SetScript("OnEnter", function(self)
+            if plate.print then Hunts.HuntCard.ShowTip(self, plate.print) end
+        end)
+        plate.printItem:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        kits[plate] = { over = kit.over, PlaceButton = kit.PlaceButton,
+            print = { Place = kit.Place, Quad = kit.Quad,
+                Texture = function(part) return pools[part]:Next() end,
+                Text = function(part) return texts[part]:Next() end } }
+    end,
+    draw = function(plate, c)
+        local k = kits[plate]
+        if not k then return end
+        plate.print = nil
+        plate.printHit:Hide()
+        plate.printItem:Hide()
+        local chosen, slot = plate.lucky, plate.slot
+        if not (chosen and slot and slot.light) then return end
+        local entry, now, OnPage, PlaceButton = c.entry, c.now, c.OnPage, k.PlaceButton
+        local hunt = chosen.hunt
+        local seed = table.concat({ "lucky", hunt.questID or hunt.item or "", plate.mapID or 0,
+            entry and (entry.level or entry.week) or 0 }, ":") .. ":print"
+        local s = LuckyCard.Print(k.print, chosen, slot, seed, plate.flat)
+        if not s then return end
+        local hit, item = s.hit, s.iconHit
+        PlaceButton(plate.printHit, hit.x, hit.y, hit.w, hit.h)
+        plate.printHit:SetFrameLevel(k.over:GetFrameLevel() + 1)
+        plate.printHit:Show()
+        PlaceButton(plate.printItem, item.x, item.y, item.w, item.h)
+        plate.printItem:SetFrameLevel(k.over:GetFrameLevel() + 2)
+        plate.printItem:Show()
+        -- On the page: its corners, its top edge, and a leader's way from
+        -- that edge to the star, where the star is far enough off to need
+        -- one (PRINT.near).
+        local function Page(list)
+            local out = {}
+            for i, p in ipairs(list) do out[i] = { OnPage(p[1], p[2]) } end
+            return out
+        end
+        local edge = Page(s.edge)
+        local mark, far = chosen.mark, false
+        if s.star then
+            local ex = math.max(s.edge[1][1], math.min(s.edge[2][1], s.star[1]))
+            local d = math.sqrt((s.star[1] - ex) ^ 2 + (s.star[2] - s.top) ^ 2)
+            far = d >= PRINT.near
+        end
+        local x0, y0, x1, y1 = math.huge, math.huge, -math.huge, -math.huge
+        local polys = { label = Page(s.label), tag = Page(s.tag), icon = Page(s.icon) }
+        for _, poly in pairs(polys) do
+            for _, p in ipairs(poly) do
+                x0, y0, x1, y1 = math.min(x0, p[1]), math.min(y0, p[2]), math.max(x1, p[1]), math.max(y1, p[2])
+            end
+        end
+        plate.print = { hunt = hunt, now = now, itemID = s.itemID, form = s.form, s = s, mark = mark, far = far,
+            polys = polys, box = { x0, y0, x1 - x0, y1 - y0 }, plate = plate }
+        -- A leader's way off it (UI/JournalJourney.lua's Aim): the point of
+        -- its top edge nearest the mark, on the page.
+        function plate.print:Nearest(x, y)
+            local ax, ay, bx, by = edge[1][1], edge[1][2], edge[2][1], edge[2][2]
+            local dx, dy = bx - ax, by - ay
+            local t = ((x - ax) * dx + (y - ay) * dy) / math.max(dx * dx + dy * dy, 1e-6)
+            t = math.max(0, math.min(1, t))
+            return ax + dx * t, ay + dy * t
+        end
+        function plate.print:IsShown() return plate:IsShown() end
+    end,
+})

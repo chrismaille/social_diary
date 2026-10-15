@@ -1,4 +1,4 @@
--- World PvP (Core/Fights.lua): kills by the user and by their group, the
+-- World PvP (Features/WorldPvP/): kills by the user and by their group, the
 -- user killed by a player, guessed and then corrected by the recap; the
 -- timeline's lines, the profile's sentence and the foe's reunion card.
 
@@ -57,7 +57,7 @@ mock.fire("PARTY_KILL", SELF.guid, FOE)
 Eq(T.Rows(FOE, "pvp_kill"), 1, "your kill was not written down")
 Check(ns.Characters.Get(FOE), "the victim was not observed")
 Eq(ns.Characters.Get(FOE).faction, "Alliance", "read off the target while it pointed at them")
-local f = ns.Fights.With(FOE)
+local f = ns.Interactions.Fights(FOE)
 Eq(f.kills, 1, "kills")
 Eq(f.yours, 1, "your own kills")
 
@@ -68,7 +68,7 @@ mock.SetUnit("party1", STRANGER)
 mock.fire("GROUP_ROSTER_UPDATE")
 mock.now = mock.now + 600
 mock.fire("PARTY_KILL", STRANGER.guid, FOE)
-f = ns.Fights.With(FOE)
+f = ns.Interactions.Fights(FOE)
 Eq(f.kills, 2, "a group member's kill did not count")
 Eq(f.yours, 1, "a group member's kill counted as yours")
 
@@ -78,15 +78,15 @@ mock.fire("PARTY_KILL", F.PUG.guid, FOE)
 mock.fire("PARTY_KILL", SELF.guid, STRANGER.guid)
 mock.fire("PARTY_KILL", SELF.guid, "Creature-0-4620-1-6-2955-00002C5F0D")
 mock.fire("PARTY_KILL", STRANGER.guid, SELF.guid)
-Eq(ns.Fights.With(FOE).kills, 2, "a kill by an outsider counted")
-Eq(ns.Fights.With(STRANGER.guid), nil, "killing a group member is a fight")
+Eq(ns.Interactions.Fights(FOE).kills, 2, "a kill by an outsider counted")
+Eq(ns.Interactions.Fights(STRANGER.guid), nil, "killing a group member is a fight")
 
 -- Battlegrounds and arenas are not the open world.
 local isInInstance = _G.IsInInstance
 _G.IsInInstance = function() return true, "pvp" end
 mock.fire("PARTY_KILL", SELF.guid, FOE)
 _G.IsInInstance = isInInstance
-Eq(ns.Fights.With(FOE).kills, 2, "a battleground kill counted")
+Eq(ns.Interactions.Fights(FOE).kills, 2, "a battleground kill counted")
 
 mock.groupSize = 0
 mock.SetUnit("party1", nil)
@@ -110,19 +110,19 @@ mock.inCombat = false
 mock.fire("PLAYER_REGEN_ENABLED")
 Eq(row.context.probable, nil, "the recap did not confirm the guess")
 Eq(row.context.spell, "Ambush", "the killing spell")
-Eq(ns.Fights.With(FOE).deaths, 1, "deaths")
+Eq(ns.Interactions.Fights(FOE).deaths, 1, "deaths")
 
 -- The recap names somebody else: the death moves to them.
 local OTHER = F.STRANGER2.guid
 mock.now = mock.now + 600
 mock.inCombat = true
 mock.fire("PLAYER_DEAD")
-Eq(ns.Fights.With(FOE).deaths, 2, "the second guess")
+Eq(ns.Interactions.Fights(FOE).deaths, 2, "the second guess")
 recaps.latest = Blow(OTHER, "Tullus", mock.now, "Fireball")
 mock.inCombat = false
 mock.fire("PLAYER_REGEN_ENABLED")
-Eq(ns.Fights.With(FOE).deaths, 1, "the wrong guess was kept")
-Eq(ns.Fights.With(OTHER).deaths, 1, "the death did not move to the recap's killer")
+Eq(ns.Interactions.Fights(FOE).deaths, 1, "the wrong guess was kept")
+Eq(ns.Interactions.Fights(OTHER).deaths, 1, "the death did not move to the recap's killer")
 
 -- The recap names a creature: no player killed you, and the guess goes.
 mock.now = mock.now + 600
@@ -131,7 +131,7 @@ mock.fire("PLAYER_DEAD")
 recaps.latest = Blow("Creature-0-4620-1-6-2955-00002C5F0D", "Plainstrider", mock.now)
 mock.inCombat = false
 mock.fire("PLAYER_REGEN_ENABLED")
-Eq(ns.Fights.With(FOE).deaths, 1, "a creature's kill stayed on the guessed player")
+Eq(ns.Interactions.Fights(FOE).deaths, 1, "a creature's kill stayed on the guessed player")
 
 -- No guess at the moment, but the recap names a player: written down then.
 mock.SetUnit("target", nil)
@@ -139,7 +139,7 @@ mock.now = mock.now + 600
 mock.fire("PLAYER_DEAD")
 recaps.latest = Blow(FOE, "Romulus", mock.now, "Backstab")
 mock.fire("PLAYER_REGEN_ENABLED")
-Eq(ns.Fights.With(FOE).deaths, 2, "a recap-only player kill was lost")
+Eq(ns.Interactions.Fights(FOE).deaths, 2, "a recap-only player kill was lost")
 
 -- The ganker is offered for the diary (flow 5), in words.
 local offered
@@ -162,12 +162,12 @@ Eq(lines[2], "Romulus killed you with Ambush in Hillsbrad Foothills", "a confirm
 Eq(lines[1], "Romulus killed you with Backstab in Hillsbrad Foothills", "a death from the recap alone")
 
 -- An unconfirmed guess says so.
-local guessed = ns.Fights.Died({ player = true, guid = FOE }, mock.now + 60, ns.Where())
+local guessed = ns.WorldPvP.Died({ player = true, guid = FOE }, mock.now + 60, ns.Where())
 Eq(Lines(FOE)[1], "Romulus probably killed you in Hillsbrad Foothills", "a guessed death")
 ns.Interactions.Remove(FOE, guessed.row)
 
 -- The profile's story says the score.
-Eq(ns.UI.FightsText(ns.Fights.With(FOE)), "You and your group have killed them twice and they've killed you twice.",
+Eq(ns.UI.FightsText(ns.Interactions.Fights(FOE)), "You and your group have killed them twice and they've killed you twice.",
     "the profile's sentence")
 Eq(ns.UI.FightsText({ kills = 1, yours = 0, deaths = 0 }), "Your group has killed them once.", "the group alone")
 Eq(ns.UI.FightsText({ kills = 0, yours = 0, deaths = 3 }), "They've killed you 3 times.", "deaths alone")
@@ -216,4 +216,40 @@ mock.RunTimers()
 Section("forgetting takes the fights")
 
 ns.Characters.Forget(FOE)
-Eq(ns.Fights.With(FOE), nil, "a forgotten foe's fights were kept")
+Eq(ns.Interactions.Fights(FOE), nil, "a forgotten foe's fights were kept")
+
+--------------------------------------------------------------------------
+Section("the core's hooks: Rows' `fight` flag and the death messages")
+
+-- Core counts and indexes fights by the flag, never by the kinds' names.
+Eq(ns.Rows.Get("pvp_kill").fight, "kill", "pvp_kill's flag")
+Eq(ns.Rows.Get("pvp_death").fight, "death", "pvp_death's flag")
+ns.Rows.Register("scrap_fight", { fight = "kill" })
+local SCRAP = F.STRANGER2.guid
+local scrap = ns.Interactions.Add(SCRAP, "scrap_fight", { context = { by = STRANGER.guid } })
+Eq(ns.Interactions.Fights(SCRAP).kills, 1, "a kind with the flag counted as a fight")
+Eq(ns.Interactions.Fights(SCRAP).yours, 0, "context.by read as the group's blow")
+Eq(ns.Journey.FightIndex()[scrap.time], SCRAP, "a kind with the flag indexed by its time")
+ns.Interactions.Remove(SCRAP, scrap)
+
+-- Deaths tells the user's own death as SD_YOU_DIED, then SD_DEATH_RECAP
+-- with the same table, and knows nothing of fights.
+local told = {}
+local function Heard(event, death, killer) told[#told + 1] = { event = event, death = death, killer = killer } end
+ns.On("SD_YOU_DIED", Heard)
+ns.On("SD_DEATH_RECAP", Heard)
+mock.now = mock.now + 600
+mock.inCombat = true
+mock.SetUnit("target", HOSTILE)
+mock.fire("PLAYER_DEAD")
+Eq(#told, 1, "the death was not told at the moment")
+Eq(told[1] and told[1].death.guess.guid, FOE, "the guess told")
+Eq(told[1] and told[1].death.time, mock.now, "the death's time told")
+recaps.latest = Blow(FOE, "Romulus", mock.now, "Ambush")
+mock.inCombat = false
+mock.fire("PLAYER_REGEN_ENABLED")
+Eq(#told, 2, "the recap was not told")
+Check(told[2] and told[2].death == told[1].death, "the recap told another death's table")
+Eq(told[2] and told[2].killer.guid, FOE, "the recap's killer told")
+ns.Off("SD_YOU_DIED", Heard)
+ns.Off("SD_DEATH_RECAP", Heard)

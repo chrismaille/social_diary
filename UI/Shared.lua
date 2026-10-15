@@ -504,7 +504,7 @@ function ns.UI.Times(n)
     return n .. " times"
 end
 
--- The score with a foe, from Fights.With: "You've killed them twice and
+-- The score with a foe, from Interactions.Fights: "You've killed them twice and
 -- they've killed you 5 times." A kill by the group counts, and the sentence
 -- says whose it was: "Your group has killed them once", "You and your group
 -- have killed them 3 times". `em` marks the numbers, if given. `short`,

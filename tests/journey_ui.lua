@@ -2026,34 +2026,37 @@ do
     local Plate = ns.UI.JourneyPlate
     local kinds = {}
     for _, spec in ipairs(Plate.MARK_ORDER) do kinds[#kinds + 1] = spec.kind end
-    Eq(table.concat(kinds, " "), "finale skill close luck fortune campfire", "the registered marks' draw order")
+    Eq(table.concat(kinds, " "), "find finale skill close luck fortune campfire", "the registered marks' draw order")
     Check(Plate.MARKS.fortune.order < Plate.ROAD_DEATHS and Plate.ROAD_DEATHS < Plate.MARKS.campfire.order,
         "the deaths on the road are not drawn between good luck and the fires")
-    for kind, key in pairs({ finale = "finales", skill = "skills", close = "closeCalls", luck = "hunts",
-        fortune = "fortunes", campfire = "campfires" }) do
+    for kind, key in pairs({ find = "finds", finale = "finales", skill = "skills", close = "closeCalls",
+        luck = "hunts", fortune = "fortunes", campfire = "campfires" }) do
         Eq(Plate.CAP[key], Plate.MARKS[kind].cap, kind .. "'s cap is not in CAP under " .. key)
     end
 
     -- A kind registered after this file loaded, as a feature's is: drawn
-    -- in its order, merged on a spot, capped, counted, kept and chosen.
+    -- in its order, merged on a spot, capped, counted, kept (with its
+    -- arg) and chosen; a moment of it that is someone's too joins their
+    -- marks (`join`).
     local drawn = {}
     Plate.RegisterMark("tested", { order = 45, cap = 1, count = "tested", radius = 6, halo = 14, hover = 15,
         keep = "testedMarks", chosen = "tested",
         tip = function(m) return "Tested " .. m.n end,
         arg = function(list) return #list end,
+        join = function(m) return m.joins end,
         choose = function(marks) return marks[1] end,
         draw = function(kit, x, y, n)
             drawn[#drawn + 1] = { x, y, n }
             kit.Dot(kit.ink, x, y, 6, kit.INK_STRONG, 1)
         end })
-    Eq(Plate.MARK_ORDER[5].kind, "tested", "a kind at 45 is not drawn between bad and good luck")
+    Eq(Plate.MARK_ORDER[6].kind, "tested", "a kind at 45 is not drawn between bad and good luck")
     Eq(Plate.CAP.tested, 1, "the kind's cap is not in CAP")
 
     local mapID = 1441
     local perX, perY = Plate.Cover(mapID, 1, 1)
     local moments = {
         { kind = "tested", mapID = mapID, x = 0.5, y = 0.5, t = now, n = 1 },
-        { kind = "tested", mapID = mapID, x = 0.5 + 2 * perX, y = 0.5, t = now, n = 2 },
+        { kind = "tested", mapID = mapID, x = 0.5 + 2 * perX, y = 0.5, t = now, n = 2, joins = true },
         { kind = "tested", mapID = mapID, x = 0.5 + 40 * perX, y = 0.5 + 20 * perY, t = now, n = 3 },
     }
     local p = Plate(page.right, { x = 0, y = 0, w = 214, h = 138, t = 0, pad = 7, pc = 20, corners = {} })
@@ -2065,6 +2068,16 @@ do
     Eq(#p.testedMarks, 1, "the kind's marks are not kept")
     Eq(#p.testedMarks[1].list, 2, "the kept mark's moments")
     Check(type(p.testedMarks[1].at[1]) == "number", "the kept mark has no place on the page")
+    Eq(p.testedMarks[1].arg, 2, "the kept mark does not keep its arg")
+    local joined = p.where[moments[2]]
+    Check(joined and joined[1] == p.testedMarks[1].at[1] and joined[2] == p.testedMarks[1].at[2],
+        "a moment that joins a person's marks is not kept at its mark (plate.where)")
+    Eq(p.where[moments[1]], nil, "a moment that does not join is kept with the people's marks")
+    local inPeople = 0
+    for _, m in ipairs(p.people) do
+        if m == moments[2] then inPeople = inPeople + 1 elseif m == moments[1] then inPeople = inPeople + 10 end
+    end
+    Eq(inPeople, 1, "only the moment that joins is among the plate's people")
     Check(p.tested == p.testedMarks[1], "the kind's card is not chosen")
     Check(Any(Tips(p), "^Tested 1|Tested 2$"), "the mark's tooltip does not tell each moment")
     local room
@@ -2075,7 +2088,7 @@ do
 
     -- Gone again, so nothing after this draws it.
     Plate.MARKS.tested, Plate.CAP.tested = nil, nil
-    table.remove(Plate.MARK_ORDER, 5)
+    table.remove(Plate.MARK_ORDER, 6)
     p:Hide()
 end
 

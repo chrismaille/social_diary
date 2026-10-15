@@ -1,6 +1,6 @@
--- The witness card (UI/WitnessCard.lua): someone who was there when you
--- died or nearly did (Capture/Witnesses.lua) in the plate's margin, in the
--- place of the card they go before (the killer's, or a rescue's close
+-- The witness card (Features/Witnesses/Card.lua): someone who was there
+-- when you died or nearly did, in the plate's margin, in the place of the
+-- card they go before (the killer's, or a rescue's close
 -- call's). Its words in every case (saw, watched, mercilessly watched,
 -- tried to save you, saved you), "Ilsabet & two others" on the name's one
 -- line or the name alone, a rescue's health charted, "mercilessly"
@@ -23,7 +23,8 @@ local Section, Check, Eq = T.Section, T.Check, T.Eq
 local ns = T.Boot()
 local SELF = F.SELF
 local Text = ns.UI.JourneyText
-local Card = ns.UI.WitnessCard
+local Card = ns.Witnesses.Card
+local W = ns.Witnesses
 
 mock.now = 1791000000
 local now = mock.now
@@ -58,34 +59,34 @@ end
 --------------------------------------------------------------------------
 Section("its words")
 
-Eq(Text.WitnessDeed(Watcher(0.8)), "saw you die", "a glance")
-Eq(Text.WitnessDeed(Watcher(1.5)), "watched you die", "from 1.5 s on, watching")
-Eq(Text.WitnessDeed(Watcher(4.9)), "watched you die", "under five seconds, watching")
-local deed, under = Text.WitnessDeed(Watcher(5))
+Eq(W.Deed(Watcher(0.8)), "saw you die", "a glance")
+Eq(W.Deed(Watcher(1.5)), "watched you die", "from 1.5 s on, watching")
+Eq(W.Deed(Watcher(4.9)), "watched you die", "under five seconds, watching")
+local deed, under = W.Deed(Watcher(5))
 Eq(deed, "mercilessly watched you die", "from five seconds on, merciless")
 Eq(under, "mercilessly", "the word the hand underlines")
-Eq(Text.WitnessDeed(Watcher(nil)), "watched you die", "a row from before the watching was timed")
-Eq(Text.WitnessDeed(Helper("tried_to_help")), "tried to save you", "who tried")
-Eq(Text.WitnessDeed(Helper("saved_you")), "saved you", "who saved you")
-Eq(Text.WitnessFoe(Watcher(3)), "to a Ragged Young Wolf", "a death's creature")
-Eq(Text.WitnessFoe(Helper("saved_you")), "from Hogger", "a rescue's creature, a rare bare as a killer's")
-Eq(Text.WitnessFoe(Watcher(3, { creature = false })), nil, "no creature kept")
-Eq(Text.WitnessOthers(0), nil, "alone")
-Eq(Text.WitnessOthers(1), "& another", "one more, on the name's line")
-Eq(Text.WitnessOthers(2), "& two others", "two more, on the name's line")
-Eq(Text.WitnessOthers(2, true), "and two others", "two more, in a sentence")
-Eq(Text.WitnessName(Watcher(3)), "Grisha", "their first name")
-Eq(Text.WitnessName(Watcher(3, { guid = "Player-0000-00000000" })), "Someone", "a name the buffer lost")
-Eq(Text.WitnessCaption(Watcher(6.4, { others = 2 })), "Grisha and two others mercilessly watched you die.",
+Eq(W.Deed(Watcher(nil)), "watched you die", "a row from before the watching was timed")
+Eq(W.Deed(Helper("tried_to_help")), "tried to save you", "who tried")
+Eq(W.Deed(Helper("saved_you")), "saved you", "who saved you")
+Eq(W.Foe(Watcher(3)), "to a Ragged Young Wolf", "a death's creature")
+Eq(W.Foe(Helper("saved_you")), "from Hogger", "a rescue's creature, a rare bare as a killer's")
+Eq(W.Foe(Watcher(3, { creature = false })), nil, "no creature kept")
+Eq(W.Others(0), nil, "alone")
+Eq(W.Others(1), "& another", "one more, on the name's line")
+Eq(W.Others(2), "& two others", "two more, on the name's line")
+Eq(W.Others(2, true), "and two others", "two more, in a sentence")
+Eq(W.Name(Watcher(3)), "Grisha", "their first name")
+Eq(W.Name(Watcher(3, { guid = "Player-0000-00000000" })), "Someone", "a name the buffer lost")
+Eq(W.Caption(Watcher(6.4, { others = 2 })), "Grisha and two others mercilessly watched you die.",
     "the caption's sentence")
-Eq(Text.WitnessCaption(Helper("tried_to_help")), "Grisha tried to save you.", "the caption's sentence, helped")
+Eq(W.Caption(Helper("tried_to_help")), "Grisha tried to save you.", "the caption's sentence, helped")
 
-local title, lines = Text.WitnessTip(Watcher(6.43, { others = 1 }), now)
+local title, lines = W.Tip(Watcher(6.43, { others = 1 }), now)
 Eq(title, "Grisha", "the tooltip's title")
 local tip = table.concat(lines, "|")
 Check(tip:find("^Level 17 Orc Rogue|Watched for 6.4\194\160seconds|Not in a fight themselves|One other was there too|"),
     "the watcher's tooltip: " .. tip)
-_, lines = Text.WitnessTip(Helper("saved_you"), now)
+_, lines = W.Tip(Helper("saved_you"), now)
 tip = table.concat(lines, "|")
 Check(tip:find("|Joined your fight|You came out of it with 6\194\160health|", 1, true) ~= nil
     or tip:find("Joined your fight|You came out of it with 6%%\194\160health"), "the rescue's tooltip: " .. tip)
@@ -458,4 +459,4 @@ words = table.concat(Captions(), " | ")
 Check(not words:find("Numa"), "the rescue is in level 11's words beside its card: " .. words)
 
 ns.TestData.Remove()
-Eq(ns.db.characters[ns.TestData.WITNESSES.grisha.guid], nil, "the made-up witnesses outlive the test data")
+Eq(ns.db.characters[ns.Witnesses.STRANGERS.grisha.guid], nil, "the made-up witnesses outlive the test data")

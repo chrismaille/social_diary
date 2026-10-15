@@ -1,12 +1,12 @@
 -- The hunt card (Your Diary's plates, JRN-26): a quest's drops that took
 -- bad luck, as option A of .claude/ui-proposal/hunt-card-proposal.md,
 -- "Counted". A paper strip (UI/PaperStrip.lua) taped in the plate's margin
--- with a pencil leader to its tally (UI/JourneyPlate.lua's SHAPES.luck),
+-- with a pencil leader to its tally (Mark.lua's `luck`, TALLY),
 -- and on it the same count written out at length: the mark on the map is
 -- the shorthand, the card the long hand.
 --
 --   the heading  the item, as many as the quest wanted, in the diary's
---                hand ("Intact Raptor Horns", Text.HuntItem)
+--                hand ("Intact Raptor Horns", Hunts.Item)
 --   the icon     the item's own picture pasted in, as the first found card
 --                pastes it (its frame trimmed, a 1 px edge in its quality's
 --                colour, ink for a white or grey item, a hair of shadow),
@@ -14,7 +14,7 @@
 --                and outlined as a bag slot shows it: the items wanted
 --   the count    beside it, the kills as tally strokes in ink, in gates of
 --                five, the plate's own TALLY at its own size
---   the lines    under them, who was killed (Text.HuntKills): "killed 17
+--   the lines    under them, who was killed (Hunts.KillLines): "killed 17
 --                Sunscale Scytheclaws", one a kind
 --
 -- It is told two ways, by what is known (hunt.expected, not whether
@@ -27,17 +27,18 @@
 --     it, so the strokes past it are the "14 more than expected" of the
 --     words; at the end the total in the hand, "26 killed";
 --   - without, "against yourself": two short rows, this hunt's kills an
---     item in ink ("each") and the character's usual (Journey.UsualLuck)
+--     item in ink ("each") and the character's usual (Hunts.UsualLuck)
 --     in graphite ("usually"), from one edge, so the difference is one of
 --     length; before five hunts are counted there is no usual, and the ink
 --     row stands alone. The line under says the whole: "killed 37 Defias
 --     Rogue Wizards for 6".
 --
--- Which and where (UI/JournalJourney.lua): one card a plate, for the hunt
--- furthest past its yardstick (HuntCard.Past); in the margin after the
--- close call's card and before the people only seen, the first card left
--- off; its words leave the caption while it shows (Text.PlateCaption's
--- `hunted`). Short of room it gives up, a step at a time (card:Smaller),
+-- Which and where (its margin note, at the foot of this file): one card a
+-- plate, for the hunt furthest past its yardstick (HuntCard.Past); in the
+-- margin after the close call's card and before the people only seen, the
+-- first card left off; its words leave the caption while it shows
+-- (Text.PlateCaption's `said.luck`). Short of room it gives up, a step at
+-- a time (card:Smaller),
 -- the lines one a kind for one line ("Sunscale Scytheclaws and others"),
 -- then the lines; then it is left off.
 --
@@ -54,8 +55,9 @@ local addonName, ns = ...
 
 local Style = ns.Style
 
+local Hunts = ns.Hunts
 local HuntCard = {}
-ns.UI.HuntCard = HuntCard
+Hunts.HuntCard = HuntCard
 
 -- The slip: turned at most `turn` degrees; the heading at the hand's own
 -- size, else `small`, else on two lines; `gap` under the heading.
@@ -70,7 +72,7 @@ local ICON = { size = 22, narrow = 18, below = 140, gap = 5, crop = 0.07, edge =
 -- white, `size` (`narrow` on the smaller icon), `inset` px in from the
 -- icon's bottom right.
 local COUNT = { file = "Fonts\\ARIALN.TTF", size = 11, narrow = 10, inset = { 1, 0 }, colour = { 1, 1, 1 } }
--- The strokes, the plate's TALLY (UI/JourneyPlate.lua): uprights `gap`
+-- The strokes, the plate's TALLY (Mark.lua): uprights `gap`
 -- apart, `h` tall, leaning `lean`, `jitter` each; the fifth across from
 -- the lower left, `over` past the outer two, rising `rise`; `width` px.
 -- Gates `apart` px apart, rows `row` px; at most `most` strokes drawn: past
@@ -120,16 +122,15 @@ end
 
 -- How far past its yardstick a hunt was: the kills over those expected
 -- with the drop rates; without, its kills an item over the character's
--- usual (`usual`, Journey.UsualLuck; an item counts the group's copies,
--- Journey.HuntItems), or over the least kills an item
--- that is ever bad luck (Journey.T.luckRatio) before the usual is known.
+-- usual (`usual`, Hunts.UsualLuck; an item counts the group's copies,
+-- Hunts.Items), or over the least kills an item
+-- that is ever bad luck (Hunts.T.luckRatio) before the usual is known.
 function HuntCard.Past(hunt, usual)
     local kills = hunt.kills or 0
     if type(hunt.expected) == "number" and hunt.expected > 0 then return kills / hunt.expected end
-    local per = kills / math.max(ns.Journey.HuntItems(hunt), 1)
+    local per = kills / math.max(Hunts.Items(hunt), 1)
     if type(usual) == "number" and usual > 0 then return per / usual end
-    local T = ns.Journey and ns.Journey.T
-    return per / (T and T.luckRatio or 3)
+    return per / Hunts.T.luckRatio
 end
 
 -- The plate's one hunt card, from its tallies (plate.huntMarks: { list of
@@ -274,10 +275,9 @@ function HuntCard.New(parent)
         self.rates = hunt.expected ~= nil
         self.iconFile, self.itemID, self.iconFrom = HuntCard.Icon(hunt)
         self.step = 0
-        local Text = ns.UI.JourneyText
-        self:SetNote({ name = Text.HuntItem(hunt), strong = true, seed = seed, turn = HUNT.turn,
+        self:SetNote({ name = Hunts.Item(hunt), strong = true, seed = seed, turn = HUNT.turn,
             tip = function()
-                local title, lines = Text.HuntCardTip(hunt, now, self.usual)
+                local title, lines = Hunts.CardTip(hunt, now, self.usual)
                 local list = { { title } }
                 for _, line in ipairs(lines) do list[#list + 1] = { line, 1, 1, 1, true } end
                 return list
@@ -346,7 +346,7 @@ function HuntCard.New(parent)
         Hand(card.figure, FIGURE.size)
         card.figure:SetText(tostring(card.hunt.kills or 0))
         Hand(card.figureWord, FIGURE.word)
-        card.figureWord:SetText(ns.UI.JourneyText.HUNT_KILLED)
+        card.figureWord:SetText(Hunts.KILLED)
         local a, b = Width(card.figure) + 1, Width(card.figureWord) + 1
         return a + FIGURE.space + b, a
     end
@@ -393,7 +393,6 @@ function HuntCard.New(parent)
             prev = at
         end
         local ops, y, w = {}, 0, 0
-        local Text = ns.UI.JourneyText
         for _, row in ipairs(rows) do
             local mid, ruled = y + TALLY.row / 2, false
             for _, at in ipairs(row) do
@@ -403,7 +402,7 @@ function HuntCard.New(parent)
                 elseif at.kind == "rule" then
                     ruled = true
                     ops[#ops + 1] = { kind = "rule", x = at.x + RULE.width / 2, y = mid }
-                    card.label:SetText(Text.HuntExpectedLabel(hunt))
+                    card.label:SetText(Hunts.ExpectedLabel(hunt))
                     local lw = Width(card.label) + 1
                     -- Hung under the rule, as a ruler's figure is, kept in
                     -- the room.
@@ -424,12 +423,12 @@ function HuntCard.New(parent)
     -- Without the rates: this hunt's strokes an item and, once known, the
     -- usual's in graphite, their words lined up past the longer.
     local function Rows()
-        local hunt, Text = card.hunt, ns.UI.JourneyText
+        local hunt = card.hunt
         -- An item the group's kills gave, the group's copies too.
-        local per = math.max(1, math.floor((hunt.kills or 0) / math.max(ns.Journey.HuntItems(hunt), 1) + 0.5))
+        local per = math.max(1, math.floor((hunt.kills or 0) / math.max(Hunts.Items(hunt), 1) + 0.5))
         local usual = card.usual and math.max(1, math.floor(card.usual + 0.5)) or nil
-        local rows = { { n = per, colour = Style.INK_STRONG, word = Text.HUNT_EACH } }
-        if usual then rows[2] = { n = usual, colour = Style.GRAPHITE, word = Text.HUNT_USUALLY } end
+        local rows = { { n = per, colour = Style.INK_STRONG, word = Hunts.EACH } }
+        if usual then rows[2] = { n = usual, colour = Style.GRAPHITE, word = Hunts.USUALLY } end
         local longest = 0
         for i, row in ipairs(rows) do
             if row.n > ROWS.most then
@@ -609,9 +608,8 @@ function HuntCard.New(parent)
         -- the slip's turn.
         local blockRoom = room - size - ICON.gap - 3
         local block = self.rates and Counted(blockRoom) or Rows()
-        local Text = ns.UI.JourneyText
         local step = self.step or 0
-        local words = step < 2 and Text.HuntKills(self.hunt, step >= 1) or {}
+        local words = step < 2 and Hunts.KillLines(self.hunt, step >= 1) or {}
         local lines = {}
         for _, text in ipairs(words) do
             for _, line in ipairs(Wrap(text, room)) do lines[#lines + 1] = line end
@@ -648,7 +646,7 @@ function HuntCard.New(parent)
         return math.ceil(pad[1] + pad[3] + ICON.size + ICON.gap + 3 + block.w + 1)
     end
 
-    -- For the tests: the lines under the tally as said (Text.HuntKills),
+    -- For the tests: the lines under the tally as said (Hunts.KillLines),
     -- before they were wrapped to the column.
     function card:Lines()
         local list = {}
@@ -670,12 +668,11 @@ function HuntCard.Preferred(chosen)
 end
 
 -- The icon's tooltip on `owner`: the item's own (by its ID), and under
--- it, in flavour gold, the card's lines (Text.HuntCardTip). The item's
+-- it, in flavour gold, the card's lines (Hunts.CardTip). The item's
 -- name alone where there is no ID.
 function HuntCard.ShowTip(owner, card)
     local hunt = card and card.hunt
     if not hunt then return end
-    local Text = ns.UI.JourneyText
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
     local id = card.itemID
     local shown = false
@@ -688,7 +685,7 @@ function HuntCard.ShowTip(owner, card)
     end
     if not shown then GameTooltip:SetText(hunt.item or "?") end
     local C = TIP.colour
-    local title, lines = Text.HuntCardTip(hunt, card.now, card.usual)
+    local title, lines = Hunts.CardTip(hunt, card.now, card.usual)
     GameTooltip:AddLine(title, C[1], C[2], C[3], true)
     for _, line in ipairs(lines) do GameTooltip:AddLine(line, C[1], C[2], C[3], true) end
     GameTooltip:Show()
@@ -697,3 +694,32 @@ end
 HuntCard.HUNT, HuntCard.ICON, HuntCard.COUNT, HuntCard.TALLY, HuntCard.RULE, HuntCard.FIGURE, HuntCard.ROWS =
     HUNT, ICON, COUNT, TALLY, RULE, FIGURE, ROWS
 HuntCard.SACK = SACK
+
+--------------------------------------------------------------------------
+-- In the plate's margin (JourneyMargin.Register)
+--------------------------------------------------------------------------
+
+-- A quest's drops that took bad luck (JRN-26, this card): the
+-- mildest of the cards, the first of them left off (the user's choice, 12
+-- Oct). Its words are on the card, so the caption leaves them off while it
+-- shows (`said.luck`).
+ns.UI.JourneyMargin.Register("hunt", {
+    order = 70, pool = "huntPool", count = "huntsWritten",
+    new = function(parent) return HuntCard.New(parent) end,
+    wants = function(it) return HuntCard.Preferred(it.hunt) end,
+    item = function(plate)
+        local h = plate.hunt
+        return h and { hunt = h, top = h.mark[2], x = h.mark[1] } or nil
+    end,
+    write = function(card, it, c)
+        local hunt = it.hunt.hunt
+        card:SetHunt(it.hunt, c.Seed("hunt", hunt.questID or hunt.item or ""), c.now)
+    end,
+    mark = function(it) return it.hunt.mark end,
+    assume = function(said, plate)
+        said.luck = plate.hunt and plate.hunt.hunt
+    end,
+    say = function(said, shown)
+        said.luck = shown[1] and shown[1].hunt.hunt or nil
+    end,
+})
