@@ -1,6 +1,6 @@
 -- The campfire slip (Your Diary's plates; .claude/ui-proposal/campfire.md,
 -- the user's decisions of 14 Oct): a campfire sat by on a plate, told in the
--- margin by one small cut slip of the strip family (UI/PaperStrip.lua) with
+-- margin by one small cut slip of the strip family (UI/Paper/Strip.lua) with
 -- one line in the diary's hand, exactly "sat by a campfire"
 -- (Campfire.WORDS, Text.lua: the user's words), and a pencil leader to the
 -- fire's mark (Mark.lua).
@@ -23,6 +23,7 @@
 
 local addonName, ns = ...
 
+local Style = ns.Style
 local Campfire = ns.Campfire
 local Slip = {}
 Campfire.Slip = Slip
@@ -33,16 +34,12 @@ Campfire.Slip = Slip
 -- on the corner, slanted between the two `slant`s, degrees, seeded), which
 -- crosses the corner on the slip's margin (7 px left, 4 px top), so the
 -- words start clear of it.
-local SLIP = { file = "Interface\\AddOns\\" .. addonName .. "\\Fonts\\Neuton-Italic.ttf", size = 14, turn = 1.4,
+local SLIP = { file = Style.NEUTON_ITALIC, size = 14, turn = 1.4,
     tape = { x = 1, y = 1, w = 22, h = 10, slant = { 39, 51 } } }
 
--- A number from a string, the same every time (PaperStrip's).
-local function Seed(key)
-    local seed = 0
-    key = tostring(key or "")
-    for i = 1, #key do seed = (seed + key:byte(i) * i) % 100003 end
-    return seed
-end
+-- A number from a string, the same every time (the strip's,
+-- UI/Paper/Surface.lua).
+local Seed = ns.UI.Surface.Seed
 
 -- The plate's one slip, from its fires (plate.campfireMarks: { x, y on the
 -- card, list of moments, at = { x, y } on the page }): every sitting on the
@@ -77,11 +74,23 @@ function Slip.Mark(chosen, slip)
     return best or chosen.mark
 end
 
+-- The slip as a card on the strip (UI/Paper/Strip.lua's hooks): laid as a
+-- strip is, `overfull` where its line is wider than the column (it does
+-- not wrap or shrink, so the page leaves it off).
+local CARD = {
+    plan = function(slip, note, width)
+        local l, _, r = slip:Pad()
+        local text = slip.name
+        local natural = (text.GetUnboundedStringWidth and text:GetUnboundedStringWidth() or text:GetStringWidth() or 0)
+            + 2 + l + r
+        slip.overfull = natural > width
+    end,
+}
+
 -- A slip on `parent`. slip:SetCampfire(chosen, seed, now), then
--- slip:Layout(x, y, width) as a strip's; `overfull` where its line is wider
--- than `width` (it does not wrap or shrink, so the page leaves it off).
+-- slip:Layout(x, y, width) as a strip's (CARD).
 function Slip.New(parent)
-    local slip = ns.UI.PaperStrip(parent)
+    local slip = ns.UI.PaperStrip(parent, CARD)
     slip.name:SetFont(SLIP.file, SLIP.size, "")
 
     function slip:SetCampfire(chosen, seed, now)
@@ -90,12 +99,11 @@ function Slip.New(parent)
             local tip = {}
             for _, m in ipairs(chosen.list) do
                 local title, lines = Campfire.Tip(m.campfire or m, now)
-                tip[#tip + 1] = { title }
-                for _, line in ipairs(lines or {}) do tip[#tip + 1] = { line, 1, 1, 1, true } end
+                Style.TipList(title, lines, tip)
             end
             return tip
         end
-        local rand = ns.UI.InkTrail.Random(Seed(seed .. ":tape"))
+        local rand = ns.UI.Pen.Random(Seed(seed .. ":tape"))
         local T = SLIP.tape
         self:SetNote({ name = Campfire.WORDS, strong = true, seed = seed, turn = SLIP.turn, tip = Tip,
             tapeAt = { x = T.x, y = T.y, w = T.w, h = T.h, slant = T.slant[1] + (T.slant[2] - T.slant[1]) * rand() } })
@@ -104,21 +112,11 @@ function Slip.New(parent)
     -- The words as written (for the tests).
     function slip:Words() return self.name:GetText() end
 
-    local Lay = slip.Layout
-    function slip:Layout(x, y, width)
-        local pad = ns.UI.PAPER_STRIP.STRIP.pad
-        local text = self.name
-        local natural = (text.GetUnboundedStringWidth and text:GetUnboundedStringWidth() or text:GetStringWidth() or 0)
-            + 2 + pad[1] + pad[3]
-        self.overfull = natural > width
-        return Lay(self, x, y, width)
-    end
-
     return slip
 end
 
 -- The slip in the plates' margin (ns.UI.JourneyMargin.Register,
--- UI/JournalJourney.lua): one, "sat by a campfire", order 90, last of all,
+-- UI/Journey/Margin.lua): one, "sat by a campfire", order 90, last of all,
 -- after the people only seen (80), so it is the first left off: filler
 -- (the user, 14 Oct), and the caption's words say it then
 -- (`said.campfire`), unless that would cost the caption its place over

@@ -4,7 +4,7 @@
 -- actually walked, in the client.
 --
 -- /sd journey [stats | segments [n] | raw | clear], and /sd pen for tuning
--- the road's fountain pen by eye (UI/InkTrail.lua's PEN). Registered as dev
+-- the road's fountain pen by eye (UI/Ink/Pen.lua's PEN). Registered as dev
 -- commands, listed only while debug is on. Not part of a release: the TOC's
 -- Dev/ block goes.
 
@@ -26,7 +26,7 @@ end
 
 -- One segment in a line.
 local function Describe(seg)
-    local span = ns.UI.Duration(seg.to - seg.from)
+    local span = ns.UI.Format.Duration(seg.to - seg.from)
     local levels = seg.levelFrom == seg.levelTo and ("lvl %s"):format(tostring(seg.levelFrom))
         or ("lvl %s-%s"):format(tostring(seg.levelFrom), tostring(seg.levelTo))
     local head = ("%s  %-7s %-8s %s, %s"):format(Clock(seg.from), seg.kind, span, MapName(seg.mapID), levels)
@@ -43,7 +43,7 @@ local function Describe(seg)
             MapName(seg.mapID2), seg.x2 or 0, seg.y2 or 0)
     end
     return ("%s  %s (%s), %s inside, entry %s"):format(head, tostring(seg.name), tostring(seg.instanceID),
-        ns.UI.Duration(seg.seconds or 0), seg.x and ("%.3f, %.3f"):format(seg.x, seg.y) or "unknown")
+        ns.UI.Format.Duration(seg.seconds or 0), seg.x and ("%.3f, %.3f"):format(seg.x, seg.y) or "unknown")
 end
 
 -- What is being built right now.
@@ -54,12 +54,12 @@ local function Open(j)
     end
     if o.dungeon then
         Line("in %s since %s, %s inside", tostring(o.dungeon.name), Clock(o.dungeon.from),
-            ns.UI.Duration(o.dungeon.seconds or 0))
+            ns.UI.Format.Duration(o.dungeon.seconds or 0))
     end
     local c = o.c
     if c and c.stop then
         Line("staying (a stop) since %s, %s, %s%s", Clock(c.since), MapName(c.mapID),
-            ns.UI.Duration(c.extra + c.last - c.start), c.ex and (", %d sample(s) out of it"):format(#c.ex) or "")
+            ns.UI.Format.Duration(c.extra + c.last - c.start), c.ex and (", %d sample(s) out of it"):format(#c.ex) or "")
     elseif c and c.city then
         Line("in a city since %s, %s", Clock(c.since), MapName(c.mapID))
     elseif c and c.samples then
@@ -109,7 +109,7 @@ local function Stats(j)
         bytes / 1024, ns.EstimateSize() / 1024)
     -- The plates on Your Diary's right page now (JRN-21): how long each
     -- took, its textures, and its ink trail against its share of the caps
-    -- (UI/InkTrail.lua's CAP, UI/JourneyPlate.lua's SHARE).
+    -- (UI/Ink/Trail.lua's CAP, UI/Journey/Plate.lua's SHARE).
     local page = ns.UI.JourneyPage and ns.UI.JourneyPage()
     local cap, plates = ns.UI.InkTrail.CAP, 0
     for i, plate in ipairs(page and page.plates or {}) do
@@ -179,7 +179,7 @@ ns.Slash.Register("journey", Command,
 -- /sd pen: the fountain pen's numbers, changed live
 --------------------------------------------------------------------------
 --
--- Changes UI/InkTrail.lua's PEN table in place and redraws the open zone
+-- Changes UI/Ink/Pen.lua's PEN table in place and redraws the open zone
 -- sheet, for this session only: a /reload puts the file's numbers back.
 -- Found a look you like? `/sd pen` prints the numbers to copy into PEN.
 --
@@ -232,8 +232,8 @@ local function ShowPen(PEN)
 end
 
 local function PenCommand(rest)
-    local Ink = ns.UI.InkTrail
-    local PEN = Ink and Ink.PEN
+    local Pen = ns.UI.Pen
+    local PEN = Pen and Pen.PEN
     if not PEN then
         ns.Print("the ink trail is not loaded.")
         return
@@ -283,7 +283,7 @@ local function PenCommand(rest)
     elseif changed then
         ns.Print("the pen changed (until /reload); open Your Diary to see it.")
     else
-        ns.Print("the pen's numbers (UI/InkTrail.lua PEN).")
+        ns.Print("the pen's numbers (UI/Ink/Pen.lua PEN).")
     end
 end
 

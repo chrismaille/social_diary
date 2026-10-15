@@ -10,11 +10,12 @@
 -- anyone, and forty of them a match would bury the buffer; their GUIDs come
 -- back secret there anyway, which SafeGUID drops.
 --
--- Capture/Together.lua (rares) and Capture/Combat.lua (the hunts', now
--- Features/Hunts/Capture.lua, listed at its line) listen to PARTY_KILL
--- too. This file loads before them now (features come before Capture/), so
--- its handler runs first; Together's takes only creatures and this only
--- players, and Combat's ran after it before as well, so nothing changes.
+-- Rares' capture (once Capture/Together.lua's, now Features/Rares/
+-- Capture.lua, listed after this file) and Capture/Combat.lua (the hunts',
+-- now Features/Hunts/Capture.lua, listed at its line) listen to PARTY_KILL
+-- too. This file loads before them, so its handler runs first; Rares' takes
+-- only creatures and this only players, and Combat's ran after it before
+-- as well, so nothing changes.
 --
 -- Deaths: Deaths' capture (Features/Deaths/Capture.lua) watches every
 -- death and reads the recap; it tells the user's own as SD_YOU_DIED

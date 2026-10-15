@@ -3,7 +3,7 @@
 -- every file that treats one kind apart.
 --
 -- Rows.Register(type, spec) declares a kind or adds to one: the core says
--- how a row of it counts, the ledger (UI/TimelineText.lua) how it reads,
+-- how a row of it counts, the ledger (UI/Words/Timeline.lua) how it reads,
 -- each in its own call, so a feature's folder can do both. Every field is
 -- optional, and a kind nobody declared is still stored and shown, as the
 -- fallbacks below say.
@@ -23,7 +23,7 @@
 --   meeting     a row outside any session that counts as meeting them
 --               (People: times met, last met, the zones)
 --   dealt       the mark it leaves on Recently nearby's day ("together",
---               "trade" or "talk"; Sightings, DEALT_RANK)
+--               "trade" or "talk", Rows.DEALT; Sightings, DEALT_RANK)
 --   matters     the first one makes a person matter, so their first
 --               sighting shows in hindsight (Core/JourneyRecap.lua, JRN-23)
 --   activity    the timeline's activity ("chat", "group", "trade", ...,
@@ -34,7 +34,7 @@
 --               fold into one (a "climb", Core/Timeline.lua's Climbs), each
 --               its own line again when opened; its rows carry context
 --               { from, level }, which the climb's words read ("went from
---               level 1 to 6", UI/TimelineText.lua)
+--               level 1 to 6", UI/Words/Timeline.lua)
 --   fight       "kill" (they died to the user or their group) or "death"
 --               (they killed the user): a fight with the player the row is
 --               on, written at the fight's own time, as the user's route
@@ -70,9 +70,16 @@ ns.Rows = Rows
 local KINDS = {}
 local NONE = {}
 
+-- The marks a kind's `dealt` may leave: Recently nearby ranks them
+-- (Core/Sightings.lua's DEALT_RANK) and words them (UI/Journal/Nearby.lua's
+-- DEALT_TEXT), so a new one is added in all three places.
+Rows.DEALT = { together = true, trade = true, talk = true }
+
 -- Declares `kind`, or adds `spec`'s fields to it. Returns the kind's table.
 function Rows.Register(kind, spec)
     assert(type(kind) == "string", "a row kind is a string")
+    assert(not (spec and spec.dealt) or Rows.DEALT[spec.dealt],
+        "a row kind's `dealt` is one of Rows.DEALT (together, trade, talk)")
     local k = KINDS[kind]
     if not k then
         k = { type = kind }
@@ -99,7 +106,7 @@ end
 -- The kinds the diary has always had
 --------------------------------------------------------------------------
 --
--- Their words and icons are UI/TimelineText.lua's. A feature in
+-- Their words and icons are UI/Words/Timeline.lua's. A feature in
 -- Features/<Name>/ declares its kind whole there, words and icon included
 -- (its Kind.lua; .claude/registry-refactor.md, "A feature's folder").
 

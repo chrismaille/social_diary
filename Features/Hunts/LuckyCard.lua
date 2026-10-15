@@ -90,7 +90,7 @@ local TAG = { pad = { 9, 5, 8, 5 }, line = { [16] = 19, [14] = 17 }, paper = { 0
     turn = { 1.8, 3.0 }, shadow = { 0.6, 0.8, 0.40 }, soft = { out = 0.6, blur = 2.0, alpha = 0.26 },
     tape = { w = 22, h = 10, slant = { 39, 51 } } }
 -- The scribble over the printed expectation: one pen line of tall zigzag
--- strokes with the route's pen (UI/InkTrail.lua: mitred, the nib's share,
+-- strokes with the route's pen (UI/Ink/Pen.lua: mitred, the nib's share,
 -- stroked into quads that share their edges), in ink at `alpha` (a hair of
 -- paper shows through, as ink does; the readability comes from the shape,
 -- not the alpha). Its turns lie `over` px past the figures' cap band (`cap`
@@ -130,7 +130,7 @@ local UNDER = { width = 1.35, nib = SCRIBBLE.nib, drop = 3.4, sag = 0.5, rise = 
 local PRINT = { pad = { 4, 3, 4, 3 }, height = 21, bottom = 2, turn = { 0.2, 0.7 }, struck = 11, hand = 14, line = 17,
     tagPad = { 7, 4, 5, 4 }, clear = 2, drop = 2, icon = 18, gap = 3, share = 0.6, edge = 6, star = 9, near = 22 }
 
-local HAND = "Interface\\AddOns\\" .. addonName .. "\\Fonts\\Neuton-Italic.ttf"
+local HAND = Style.NEUTON_ITALIC
 
 --------------------------------------------------------------------------
 -- Which hunt
@@ -168,16 +168,13 @@ end
 -- The pen
 --------------------------------------------------------------------------
 
--- A number from a string, the same every time (PaperStrip's).
-local function Seed(key)
-    local seed = 0
-    key = tostring(key or "")
-    for i = 1, #key do seed = (seed + key:byte(i) * i) % 100003 end
-    return seed
-end
+-- A number from a string, the same every time (the strip's,
+-- UI/Paper/Surface.lua), and a stream of them; a point of a slip turned
+-- about its middle (Surface.Turned).
+local Seed, Turned = ns.UI.Surface.Seed, ns.UI.Surface.Turned
 
 local function Random(key)
-    local rand = ns.UI.InkTrail.Random(Seed(key))
+    local rand = ns.UI.Pen.Random(Seed(key))
     return function(a, b) return a + (b - a) * rand() end, rand
 end
 
@@ -254,25 +251,25 @@ function LuckyCard.Underline(seed, x0, x1, base)
 end
 
 -- `P` drawn with the pen (SCRIBBLE's or UNDER's look): the quads, as
--- InkTrail's primitives, each vertex's half-width its nib's share of the
--- width, tapered where the pen lands and where it lifts.
+-- the pen's primitives (ns.UI.Pen), each vertex's half-width its nib's
+-- share of the width, tapered where the pen lands and where it lifts.
 function LuckyCard.Pen(P, look)
-    local Ink = ns.UI.InkTrail
+    local Pen = ns.UI.Pen
     local n = #P
     if n < 2 then return {} end
     P[1].s = 0
     for i = 2, n do P[i].s = P[i - 1].s + math.sqrt((P[i].x - P[i - 1].x) ^ 2 + (P[i].y - P[i - 1].y) ^ 2) end
     local total, T = P[n].s, look.taper
-    local M = Ink.Mitres(P)
+    local M = Pen.Mitres(P)
     local function Half(i)
         local a, b = P[math.max(i - 1, 1)], P[math.min(i + 1, n)]
         local t = math.min(1, T.from + (1 - T.from) * P[i].s / T.over)
         local left = total - P[i].s
         if left < T.off then t = t * (T["end"] + (1 - T["end"]) * left / T.off) end
-        return look.width / 2 * Ink.Nib(b.x - a.x, b.y - a.y, look.nib) * t
+        return look.width / 2 * Pen.Nib(b.x - a.x, b.y - a.y, look.nib) * t
     end
     local prims = {}
-    Ink.Stroke(prims, 0, P, M, Half, function() return 0 end, function() return SCRIBBLE.alpha end,
+    Pen.Stroke(prims, 0, P, M, Half, function() return 0 end, function() return SCRIBBLE.alpha end,
         Style.INK_STRONG, nil, look.most)
     return prims
 end
@@ -292,10 +289,8 @@ end
 -- Measures
 --------------------------------------------------------------------------
 
-local function Width(text)
-    if text.GetUnboundedStringWidth then return text:GetUnboundedStringWidth() or 0 end
-    return text:GetStringWidth() or 0
-end
+-- Text measured unbounded (UI/Paper/Surface.lua's).
+local Width = ns.UI.Surface.Width
 
 -- `text` in the diary's hand at `size` (its own, 16, without one).
 local function Hand(text, size)
@@ -329,10 +324,13 @@ end
 -- with LuckyCard.Choose's choice, then card:Layout(x, y, width) as a
 -- strip's; card.overfull where no arrangement fits `width` (the page
 -- leaves it off); card:Smaller() gives up a step. The tag is a slip of its
--- own on the card (card.tag), laid with it.
+-- own on the card (card.tag), laid with it. Laid through the strip's hooks
+-- (UI/Paper/Strip.lua), `hooks`, filled in below, after its drawing.
 function LuckyCard.New(parent)
-    local card = ns.UI.PaperStrip(parent)
-    local Strip = ns.UI.PAPER_STRIP
+    local hooks = {}
+    local card = ns.UI.PaperStrip(parent, hooks)
+    -- The strip's margins round the writing (l, t, r, b).
+    local pad = { card:Pad() }
     local Hunt = Hunts.HuntCard
     local ICON, COUNT = Hunt.ICON, Hunt.COUNT
 
@@ -356,8 +354,10 @@ function LuckyCard.New(parent)
     card.kind = Style.Text(card, Style.FONT.small)
     card.headTail = Style.Text(card, Style.FONT.noteWritten)
     card.ink = {}
-    card.measure = Style.Text(card, Style.FONT.noteWritten)
-    card.measure:Hide()
+    -- A hidden measure in the hand (the card's own, not a field:
+    -- `measure` is the strip's name).
+    local measure = Style.Text(card, Style.FONT.noteWritten)
+    measure:Hide()
 
     -- The icon takes the mouse for the item's own tooltip (the bad-luck
     -- card's), a level over the slip's.
@@ -379,19 +379,20 @@ function LuckyCard.New(parent)
         self.step, self.plan = 0, nil
         local function Tip()
             local title, lines = Hunts.CardTip(hunt, now)
-            local list = { { title } }
-            for _, line in ipairs(lines) do list[#list + 1] = { line, 1, 1, 1, true } end
-            return list
+            return Style.TipList(title, lines)
         end
         self.tipLines = Tip
-        self:SetNote({ name = Hunts.Item(hunt), strong = true, seed = seed, turn = LUCKY.turn, tip = Tip })
+        -- The heading's words as set on the note: its own copy, for Heading
+        -- (Preferred measures a card that is never laid).
+        self.nameWords = Hunts.Item(hunt)
+        self:SetNote({ name = self.nameWords, strong = true, seed = seed, turn = LUCKY.turn, tip = Tip })
     end
 
-    -- A step less, where the margin is short (UI/JournalJourney.lua's
+    -- A step less, where the margin is short (UI/Journey/Margin.lua's
     -- LayNotes): the creature's line, then the icon. A step that gives
     -- nothing up (no creature's line but at XL) is passed over. Whether
     -- there was a step to give up.
-    function card:Smaller()
+    function hooks.smaller(self)
         local step = self.step or 0
         if step >= 2 then return false end
         if step == 0 and not (self.plan and self.plan.creature) then step = 1 end
@@ -403,7 +404,7 @@ function LuckyCard.New(parent)
     -- two (the second, card.headTail): { fits, tail (its words), nameH,
     -- tailH, w (the wider line) }.
     local function Heading(room)
-        local words = card.note and card.note.name or ""
+        local words = card.nameWords or ""
         local function Head(fits, tail)
             card.name:SetSize(0, 0)
             local nameH = math.max(math.ceil(card.name:GetStringHeight() or 0), 14)
@@ -438,9 +439,9 @@ function LuckyCard.New(parent)
     end
 
     local function HandWidth(words, size)
-        Hand(card.measure, size)
-        card.measure:SetText(words)
-        return Width(card.measure)
+        Hand(measure, size)
+        measure:SetText(words)
+        return Width(measure)
     end
 
     -- One arrangement (FORMS[form]) in `width` px: its plan, or nil where it
@@ -449,7 +450,6 @@ function LuckyCard.New(parent)
     -- `H` the card and its tag together, `Wb` by `Hb` the card.
     local function Try(form, width, force)
         local F = FORMS[form]
-        local pad = Strip.STRIP.pad
         local hunt = card.hunt
         local lines = Hunts.LuckyTag(hunt, form)
         local lw = 0
@@ -546,7 +546,6 @@ function LuckyCard.New(parent)
 
     -- The card's writing and the tag, as planned, the card laid `Wb` by `Hb`.
     local function Draw(plan, Wb, Hb)
-        local pad = Strip.STRIP.pad
         local INK = Style.INK
         local seed = card.seedKey or "lucky"
         local function C(x, y) return x - Wb / 2, y - Hb / 2 end
@@ -655,9 +654,10 @@ function LuckyCard.New(parent)
     end
 
     -- Laid as a strip, the first arrangement that fits `width` (FORMS, in
-    -- ORDER, or BARE with the icon given up), the tag laid over it.
-    local layout = card.Layout
-    function card:Layout(x, y, width)
+    -- ORDER, or BARE with the icon given up), the tag laid over it: the
+    -- slip laid at the card's own width (plan.Wb), the card and its tag
+    -- together the note's size (plan.W by plan.H, the strip's box).
+    function hooks.plan(self, note, width)
         local order = (self.step or 0) >= 2 and BARE or ORDER
         local plan
         for _, form in ipairs(order) do
@@ -667,32 +667,30 @@ function LuckyCard.New(parent)
         self.overfull = plan == nil
         plan = plan or Try(order[#order], width, true)
         -- The heading again for the arrangement kept.
-        plan.head = Heading(plan.Wb - Strip.STRIP.pad[1] - Strip.STRIP.pad[3])
-        local pad, note = Strip.STRIP.pad, self.note
+        plan.head = Heading(plan.Wb - pad[1] - pad[3])
         local gap = plan.head.tail and 0 or LUCKY.gap
         note.under = { w = plan.Wb - pad[1] - pad[3], gap = gap, after = 0,
             h = plan.Hb - pad[2] - plan.head.nameH - gap - pad[4] }
         note.least, note.what = plan.Wb, nil
         self.plan = plan
-        local Wb, Hb = layout(self, x, y, plan.Wb)
+        return plan, plan.Wb
+    end
+    function hooks.draw(self, plan, Wb, Hb)
         Draw(plan, Wb, Hb)
         -- For the tests and the page: where it lies, the tag with it.
-        self.box = { x, y, plan.W, plan.H }
         return plan.W, plan.H
     end
 
     -- The width the card would like: the wide arrangement (XL), the tag
     -- beside the struck words. The page gives a row's box this much where
-    -- it has it (UI/JournalJourney.lua's ROW).
+    -- it has it (UI/Journey/Margin.lua's ROW).
     function card:Preferred()
         return Try("XL", 10000, true).W
     end
 
     -- The point of either slip's edge nearest x, y of the page: a leader
     -- leaves the card there, so it never crosses the tag.
-    local nearest = card.Nearest
-    function card:Nearest(x, y)
-        local bx, by = nearest(self, x, y)
+    function hooks.nearest(self, x, y, bx, by)
         local box = self.box
         if not (box and tag.box) then return bx, by end
         local tx, ty = tag:Nearest(x - box[1], y - box[2])
@@ -807,7 +805,8 @@ end
 function LuckyCard.Print(kit, chosen, slot, seed, flat)
     local Hunt = Hunts.HuntCard
     local ICON, COUNT = Hunt.ICON, Hunt.COUNT
-    local STRIP, TAPE = ns.UI.PAPER_STRIP.STRIP, ns.UI.PAPER_STRIP.TAPE
+    -- The strip's look (UI/Paper/Strip.lua's PAPER_LOOK): S is drawn in it.
+    local LOOK, TAPE = ns.UI.PAPER_LOOK, ns.UI.PAPER_LOOK.tape
     local hunt = chosen.hunt
     local left0, right0 = LuckyCard.PrintRoom(slot)
     local plan = LuckyCard.PrintPlan(hunt, right0 - left0)
@@ -830,7 +829,7 @@ function LuckyCard.Print(kit, chosen, slot, seed, flat)
     -- middle, y down) on the card.
     local function To(cx, cy, t, u, v)
         local c, s = math.cos(t), math.sin(t)
-        return cx + u * c + v * s, cy - u * s + v * c
+        return Turned(cx, cy, u, v, c, s)
     end
     local function Corners(cx, cy, t, w, h)
         local list = {}
@@ -874,11 +873,11 @@ function LuckyCard.Print(kit, chosen, slot, seed, flat)
     -- card's stock.
     local Lx, Ly = left + plan.Wb / 2, top + plan.Hb / 2
     if not flat then
-        local sh = STRIP.shadow
+        local sh = LOOK.shadow
         Put(Colour("shadow", INK, sh[3]), Lx, Ly, plan.Wb, plan.Hb, a, sh[1], -sh[2])
     end
-    Put(Colour("edge", INK, flat and STRIP.flatEdge or STRIP.edge), Lx, Ly, plan.Wb + 2, plan.Hb + 2, a)
-    Put(Colour("paper", STRIP.paper, 1), Lx, Ly, plan.Wb, plan.Hb, a)
+    Put(Colour("edge", INK, flat and LOOK.flatEdge or LOOK.edge), Lx, Ly, plan.Wb + 2, plan.Hb + 2, a)
+    Put(Colour("paper", LOOK.paper, 1), Lx, Ly, plan.Wb, plan.Hb, a)
     -- The drop tables' word, and the scribble over it.
     local st = plan.struck
     local mid = P.pad[2] + (plan.Hb - P.pad[2] - P.pad[4]) / 2
@@ -937,7 +936,7 @@ function LuckyCard.Print(kit, chosen, slot, seed, flat)
         local rx, ry = To(Tx, Ty, b, t.w / 2 - 1 + (r + 1) / 2, d / 2 - 0.5)
         Put(right, rx, ry, r + 1, t.h - d - 1, b)
     end
-    Put(Colour("tagEdge", INK, flat and STRIP.flatEdge or STRIP.edge), Tx, Ty, t.w + 2, t.h + 2, b)
+    Put(Colour("tagEdge", INK, flat and LOOK.flatEdge or LOOK.edge), Tx, Ty, t.w + 2, t.h + 2, b)
     Put(Colour("tagPaper", TAG.paper, 1), Tx, Ty, t.w, t.h, b)
     local line = t.lines[1]
     local words = kit.Text("tagText")
@@ -1143,7 +1142,7 @@ ns.UI.JourneyPlate.RegisterPass("print", {
         end
         plate.print = { hunt = hunt, now = now, itemID = s.itemID, form = s.form, s = s, mark = mark, far = far,
             polys = polys, box = { x0, y0, x1 - x0, y1 - y0 }, plate = plate }
-        -- A leader's way off it (UI/JournalJourney.lua's Aim): the point of
+        -- A leader's way off it (UI/Journey/Leaders.lua's Aim): the point of
         -- its top edge nearest the mark, on the page.
         function plate.print:Nearest(x, y)
             local ax, ay, bx, by = edge[1][1], edge[1][2], edge[2][1], edge[2][2]

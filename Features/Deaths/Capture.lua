@@ -39,8 +39,9 @@
 -- its file was) all registered after it before as well, and
 -- Capture/Menus.lua, Group.lua and Together.lua, which came before it,
 -- listen to none of PLAYER_DEAD, UNIT_DIED or PLAYER_REGEN_ENABLED; the UI's
--- PLAYER_REGEN_ENABLED handlers (UI/Settings.lua, UI/Reunion.lua,
--- UI/Intro.lua) still run before it. So the order is what it was.
+-- PLAYER_REGEN_ENABLED handlers (UI/Settings/Macro.lua,
+-- UI/Windows/Reunion/Queue.lua, UI/Windows/Intro/Parcel.lua) still run
+-- before it. So the order is what it was.
 --
 -- Features/CloseCalls/Capture.lua and Features/Hunts/Capture.lua (the
 -- hunts, listed after Capture/) reach LookUp (below) at call time for a close call's or a hunt's
@@ -94,7 +95,7 @@ local function Guess(guid)
     local name = ns.Plain((UnitName(target)))
     if type(name) ~= "string" or name == "" then return nil end
     local killer = Identify({ source = "target", name = name }, UnitGUID(target))
-    if killer.npcID then ns.Journey.NoteName(killer.npcID, name) end
+    if killer.npcID then ns.CreatureNames.Note(killer.npcID, name) end
     -- A player: everything readable about them, while the token still
     -- points at them.
     if killer.player then ns.Characters.ObserveUnit(target) end
@@ -357,11 +358,11 @@ local function Try()
             -- The nameplate's name beats the recap's, for the same mob.
             local guess = item.guess
             -- Else its kind's name as read off a unit, for a recap that
-            -- gave it a surname (Journey.CleanName).
+            -- gave it a surname (CreatureNames.Clean).
             if guess and guess.npcID and guess.npcID == killer.npcID then
                 killer.name = guess.name
             elseif killer.npcID and killer.name then
-                killer.name = ns.Journey.CleanName(ns.Journey.Mine(), killer.npcID, killer.name)
+                killer.name = ns.CreatureNames.Clean(ns.Journey.Mine(), killer.npcID, killer.name)
             end
             if item.death then ns.Sessions.SetKiller(item.death, killer) end
             if item.guid == ns.ownGUID then

@@ -26,22 +26,22 @@
 -- feature's detection:
 --   - the route's count of deaths where they happened (act.deaths,
 --     Capture/Journey.lua's PLAYER_DEAD), the death crosses the plates draw
---     from it (their shape and place, UI/JourneyPlate.lua; the moment kind
+--     from it (their shape and place, UI/Journey/Plate.lua; the moment kind
 --     "death" and its RANK, Core/JourneyRecap.lua), and which segment
 --     counted a death (Journey.CountedOn), which this feature's pass reads
 --     to find a death's cross;
 --   - the session's deaths (Sessions.Death, SetKiller, DeathCount, the
 --     session's deathLog, the timeline's death lines): Capture.lua writes
 --     them, as World PvP writes the route's fight marks;
---   - the creature names read off units for a while (Journey.NoteName,
---     NameOf, CleanName, j.names): close calls and hunts note and read them
---     too. This list is registered `named`, so the cache puts a recap's
---     surname right on it (Journey's Mend);
+--   - the creature names read off units for a while (Core/
+--     CreatureNames.lua: Note, Of, Clean, j.names): close calls and hunts
+--     note and read them too. This list is registered `named`, so the
+--     cache puts a recap's surname right on it (CreatureNames' Mend);
 --   - a creature's name in a sentence (Text.KillerName: close calls,
 --     witnesses and the timeline say theirs with it);
 --   - the user's death told to whoever keeps it (SD_YOU_DIED,
 --     SD_DEATH_RECAP, Core/Events.lua's header: World PvP's fights);
---   - the "death" art (UI/StyleArt.lua), shared with others.
+--   - the "death" art (UI/Style/Art.lua), shared with others.
 --
 -- This file: the route's list of the user's deaths, and its writers.
 

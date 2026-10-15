@@ -1,6 +1,6 @@
 -- Deaths' words on Your Diary's plates: the killer card's (Card.lua), its
 -- tooltip and the death cross's, and the caption's deaths
--- (Text.RegisterCaption, UI/JourneyText.lua). A killer's name in a
+-- (Text.RegisterCaption, UI/Journey/Text/Caption.lua). A killer's name in a
 -- sentence ("a Sunscale Lashtail") is the core's Text.KillerName: close
 -- calls, witnesses and the timeline say theirs with it too. Copy changes
 -- go through the copywriter skill, as every player-read word does.
@@ -36,7 +36,7 @@ function Deaths.KillerTip(k, now)
     if RANK[k.rank] then lines[#lines + 1] = RANK[k.rank] end
     lines[#lines + 1] = Times(k.count or 1, "Killed you here", "Killed you here %s")
         .. (k.spell and (", with " .. k.spell) or "")
-    if k.last then lines[#lines + 1] = "The last time " .. ns.UI.At(k.last, now) end
+    if k.last then lines[#lines + 1] = "The last time " .. ns.UI.Format.At(k.last, now) end
     if k.probable then lines[#lines + 1] = "As near as the diary could tell" end
     return k.name, lines
 end

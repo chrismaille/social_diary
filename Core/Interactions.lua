@@ -94,7 +94,7 @@ end
 -- landed themselves (no context.by), the user's deaths to them, and when
 -- and where the latest fight was. nil when there has been none. The
 -- profile's sentence and the foe's reunion card tell it
--- (ns.UI.FightsText).
+-- (ns.UI.Format.FightsText).
 function Interactions.Fights(guid)
     local rows = Interactions.For(guid)
     if not rows then return nil end

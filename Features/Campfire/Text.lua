@@ -1,7 +1,7 @@
 -- Campfires' words on Your Diary's plates: the slip's (Slip.lua), the
 -- mark's and the slip's tooltip, and the caption's words where the slip
--- found no room (Text.RegisterCaption, UI/JourneyText.lua). Copy changes
--- go through the copywriter skill, as every player-read word does.
+-- found no room (Text.RegisterCaption, UI/Journey/Text/Caption.lua). Copy
+-- changes go through the copywriter skill, as every player-read word does.
 
 local addonName, ns = ...
 

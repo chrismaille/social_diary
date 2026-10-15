@@ -51,6 +51,10 @@ local FILES = {
     "campfire_ui",
     "kinds",
     "margin_caption",
+    "registry",
+    "pages",
+    "paper_strip",
+    "ui_layout",
 }
 
 dofile(here .. "/harness.lua").Run(here, FILES, arg)

@@ -32,14 +32,14 @@
 --     Core/Rows.lua's `witness` flag, which the three kinds here set, so
 --     the route never names them (the joining of a moment to its
 --     witnesses, At below, is this feature's);
---   - the death crosses the card's leader goes to (UI/JourneyPlate.lua),
+--   - the death crosses the card's leader goes to (UI/Journey/Plate.lua),
 --     or the close calls' marks (Features/CloseCalls/Mark.lua,
 --     plate.closeMarks), and
 --     the deaths matched to a cross (cross.deaths, Deaths' pass, which
 --     runs before this feature's);
 --   - a creature's name in a sentence (Text.KillerName) and the timeline's
 --     shared row words (ns.UI.TimelineText.Foe, Place);
---   - the "around" and "together" art (UI/StyleArt.lua), shared with
+--   - the "around" and "together" art (UI/Style/Art.lua), shared with
 --     others.
 --
 -- This file: the kinds, whole (Core/Rows.lua's spec in one call each,

@@ -17,7 +17,8 @@
 -- QUEST_LOG_UPDATE, QUEST_ACCEPTED, PLAYER_ENTERING_WORLD, QUEST_TURNED_IN,
 -- QUEST_REMOVED, PARTY_KILL, LOOT_OPENED and the loot chat, several of
 -- them heard by Capture/ too (Journey's quest taken, loot window and
--- login, Together's turn-in and rares, Group's and Sightings' login), so
+-- login, Together's turn-in, Group's and Sightings' login; and Rares'
+-- kill, run before this one as when it was Together's), so
 -- every event order is the old one by construction, with nothing to
 -- reason about. (The SD_QUEST_* messages the finales hear cover a quest
 -- taken and turned in only; QUEST_REMOVED, QUEST_LOG_UPDATE and the rest

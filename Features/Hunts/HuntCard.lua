@@ -1,6 +1,6 @@
 -- The hunt card (Your Diary's plates, JRN-26): a quest's drops that took
 -- bad luck, as option A of .claude/ui-proposal/hunt-card-proposal.md,
--- "Counted". A paper strip (UI/PaperStrip.lua) taped in the plate's margin
+-- "Counted". A paper strip (UI/Paper/Strip.lua) taped in the plate's margin
 -- with a pencil leader to its tally (Mark.lua's `luck`, TALLY),
 -- and on it the same count written out at length: the mark on the map is
 -- the shorthand, the card the long hand.
@@ -97,7 +97,7 @@ local UNKNOWN = { [134400] = true, ["Interface\\Icons\\INV_Misc_QuestionMark"] =
 -- The gold of the tooltip's lines under the item's own.
 local TIP = { colour = { 1, 0.82, 0 } }
 
-local HAND = "Interface\\AddOns\\" .. addonName .. "\\Fonts\\Neuton-Italic.ttf"
+local HAND = Style.NEUTON_ITALIC
 
 local countFont = CreateFont("SocialDiaryFontHuntCount")
 countFont:SetFont(COUNT.file, COUNT.size, "OUTLINE")
@@ -195,10 +195,8 @@ end
 -- The card
 --------------------------------------------------------------------------
 
-local function Width(text)
-    if text.GetUnboundedStringWidth then return text:GetUnboundedStringWidth() or 0 end
-    return text:GetStringWidth() or 0
-end
+-- Text measured unbounded (UI/Paper/Surface.lua's).
+local Width = ns.UI.Surface.Width
 
 -- A gate of `k` strokes (1 to 5) is this wide.
 local function GateW(k)
@@ -227,10 +225,13 @@ end
 -- A card on `parent` (the right page): card:SetHunt(chosen, seed, now)
 -- with HuntCard.Choose's choice, then card:Layout(x, y, width) as a
 -- strip's; card.overfull where it will not fit `width` (the page leaves it
--- off); card:Smaller() gives up a step.
+-- off); card:Smaller() gives up a step. Laid through the strip's hooks
+-- (UI/Paper/Strip.lua), `hooks`, filled in below, after its drawing.
 function HuntCard.New(parent)
-    local card = ns.UI.PaperStrip(parent)
-    local Strip = ns.UI.PAPER_STRIP
+    local hooks = {}
+    local card = ns.UI.PaperStrip(parent, hooks)
+    -- The strip's margins round the writing (l, t, r, b).
+    local pad = { card:Pad() }
 
     local function Texture(layer, sublevel)
         local texture = card:CreateTexture(nil, layer, nil, sublevel)
@@ -255,8 +256,10 @@ function HuntCard.New(parent)
     card.rowFigures = { Style.Text(card, Style.FONT.noteWritten), Style.Text(card, Style.FONT.noteWritten) }
     card.kills = {}
     card.headTail = Style.Text(card, Style.FONT.noteWritten)
-    card.measure = Style.Text(card, Style.FONT.small)
-    card.measure:Hide()
+    -- A hidden measure in small print (the card's own, not a field:
+    -- `measure` is the strip's name).
+    local measure = Style.Text(card, Style.FONT.small)
+    measure:Hide()
 
     -- The icon takes the mouse for the item's own tooltip, a level over
     -- the slip's.
@@ -275,19 +278,19 @@ function HuntCard.New(parent)
         self.rates = hunt.expected ~= nil
         self.iconFile, self.itemID, self.iconFrom = HuntCard.Icon(hunt)
         self.step = 0
-        self:SetNote({ name = Hunts.Item(hunt), strong = true, seed = seed, turn = HUNT.turn,
+        -- The heading's words as set on the note: its own copy, for Heading.
+        self.nameWords = Hunts.Item(hunt)
+        self:SetNote({ name = self.nameWords, strong = true, seed = seed, turn = HUNT.turn,
             tip = function()
                 local title, lines = Hunts.CardTip(hunt, now, self.usual)
-                local list = { { title } }
-                for _, line in ipairs(lines) do list[#list + 1] = { line, 1, 1, 1, true } end
-                return list
+                return Style.TipList(title, lines)
             end })
     end
 
-    -- A step less, where the margin is short (UI/JournalJourney.lua's
+    -- A step less, where the margin is short (UI/Journey/Margin.lua's
     -- LayNotes): the lines one a kind become one line, then go. Whether
     -- there was a step to give up.
-    function card:Smaller()
+    function hooks.smaller(self)
         if (self.step or 0) >= 2 then return false end
         self.step = (self.step or 0) + 1
         return true
@@ -297,7 +300,7 @@ function HuntCard.New(parent)
     -- two (the second, card.headTail, in the room under it). Whether it
     -- fits, and the second line's words if any.
     local function Heading(room)
-        local words = card.note.name or ""
+        local words = card.nameWords or ""
         for _, size in ipairs({ 0, HUNT.small }) do
             Hand(card.name, size)
             card.name:SetText(words)
@@ -326,7 +329,7 @@ function HuntCard.New(parent)
 
     -- `text` in lines no wider than `room` (FONT.small).
     local function Wrap(text, room)
-        local probe, lines, line = card.measure, {}, ""
+        local probe, lines, line = measure, {}, ""
         for word in text:gmatch("%S+") do
             local try = line == "" and word or (line .. " " .. word)
             probe:SetText(try)
@@ -596,10 +599,7 @@ function HuntCard.New(parent)
     -- Laid as a strip, with its room under the heading, measured for the
     -- column `width`: the heading at the size that fits, the icon and the
     -- count beside it, the lines the step allows.
-    local layout = card.Layout
-    function card:Layout(x, y, width)
-        local note = self.note or {}
-        local pad = Strip.STRIP.pad
+    function hooks.plan(self, note, width)
         local room = width - pad[1] - pad[3]
         local fits, tail = Heading(room)
         local size = width < ICON.below and ICON.narrow or ICON.size
@@ -615,8 +615,8 @@ function HuntCard.New(parent)
         end
         local linesW = 0
         for _, line in ipairs(lines) do
-            self.measure:SetText(line)
-            linesW = math.max(linesW, Width(self.measure) + 2)
+            measure:SetText(line)
+            linesW = math.max(linesW, Width(measure) + 2)
         end
         local blockTop = (size + 2 * ICON.edge - TALLY.row) / 2
         local rowH = math.max(size + 2 * ICON.edge, blockTop + block.h)
@@ -629,18 +629,15 @@ function HuntCard.New(parent)
         note.under = { w = math.ceil(w), h = math.ceil(h), gap = tail and 0 or HUNT.gap, after = 0 }
         note.what = nil
         self.overfull = not fits or block.w > blockRoom or w > room
-        local W, H = layout(self, x, y, width)
-        Draw()
-        return W, H
     end
+    function hooks.draw() Draw() end
 
     -- The width the card would like (px, the column's): the wide
     -- arrangement, the full icon with the whole count on one row beside it,
     -- strokes, rule and "26 killed" (12 Oct, the user: "if there is enough
     -- wide space, draw that"). The page gives a row's box this much where it
-    -- has it (UI/JournalJourney.lua's ROW).
+    -- has it (UI/Journey/Margin.lua's ROW).
     function card:Preferred()
-        local pad = Strip.STRIP.pad
         local block = self.rates and Counted(math.huge) or Rows()
         return math.ceil(pad[1] + pad[3] + ICON.size + ICON.gap + 3 + block.w + 1)
     end

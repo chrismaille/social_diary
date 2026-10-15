@@ -116,14 +116,14 @@ local function SightingTooltip()
     local rows = ns.Sightings.For(guid)
     local summary = ns.Sightings.Summary(guid)
     Step(summary ~= nil, ("sighted before: %d raw row(s)%s"):format(#rows,
-        summary and (", %d in all, first %s"):format(summary.count, ns.UI.At(summary.first, now)) or ""))
+        summary and (", %d in all, first %s"):format(summary.count, ns.UI.Format.At(summary.first, now)) or ""))
 
     local enc, live = ns.Sightings.EncounterState(guid, now)
     if enc then
         DEFAULT_CHAT_FRAME:AddMessage(("   encounter %s, last pulse %ds ago, seen before it: %s"):format(
             live and "under way" or "over", now - enc.last,
             enc.before == nil and "never" or enc.before == false and "unknown (reload)"
-                or ns.UI.At(enc.before, now)))
+                or ns.UI.Format.At(enc.before, now)))
     end
 
     local line, why = ns.UI.SeenLine(guid, now)

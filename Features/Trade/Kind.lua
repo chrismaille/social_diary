@@ -19,13 +19,13 @@
 -- feature's detection:
 --   - the timeline's activity "trade" (Core/Timeline.lua's RANK, Tally's
 --     trade sums: items and money given and received over an episode) and
---     its headline words ("Traded", "N trades"; UI/TimelineText.lua), keyed
+--     its headline words ("Traded", "N trades"; UI/Words/Timeline.lua), keyed
 --     by activity, not by row kind;
 --   - item quality (Timeline.TradeQuality, Timeline.UNCOMMON, TLN-5), which
 --     the episodes read as well as this kind's `moment`;
---   - the "trade" art (UI/StyleArt.lua), the activity's icon too;
+--   - the "trade" art (UI/Style/Art.lua), the activity's icon too;
 --   - the "trade" mark on Recently nearby's day (`dealt`; Core/Sightings.lua's
---     DEALT_RANK, UI/NearbyPage.lua's words);
+--     DEALT_RANK, UI/Journal/Nearby.lua's words);
 --   - ns.Recent's "trade" (Core/Candidates.lua's RECENT_KINDS: the picker's
 --     "you traded with them"), which Capture.lua sets through ns.Recent.Set;
 --   - SD_TRADE_COMPLETED (guid, received), the message Capture.lua fires
@@ -62,9 +62,9 @@ ns.Rows.Register("trade", { proximity = true, opens = true, meeting = true, deal
         local c = row.context or {}
         local parts = {}
         if c.given then parts[#parts + 1] = "gave " .. Items(c.given) end
-        if c.moneyGiven then parts[#parts + 1] = "gave " .. ns.UI.Money(c.moneyGiven) end
+        if c.moneyGiven then parts[#parts + 1] = "gave " .. ns.UI.Format.Money(c.moneyGiven) end
         if c.received then parts[#parts + 1] = "got " .. Items(c.received) end
-        if c.moneyReceived then parts[#parts + 1] = "got " .. ns.UI.Money(c.moneyReceived) end
+        if c.moneyReceived then parts[#parts + 1] = "got " .. ns.UI.Format.Money(c.moneyReceived) end
         if #parts == 0 then return "Traded" end
         return "Traded: " .. table.concat(parts, "; ")
     end,

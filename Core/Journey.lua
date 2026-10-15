@@ -1145,11 +1145,11 @@ Journey.Kept = Kept
 --   cap      the newest this many kept (T[name])
 --   named    true: its records carry a creature's `npcID` and `name` as
 --            the death recap gave them, which may come with a made-up
---            surname; the creature names read off units (NoteName, below)
---            put it right, as soon as one is read and at login (Mend)
+--            surname; the creature names read off units put it right,
+--            as soon as one is read and at login (Core/CreatureNames.lua)
 --   readNames  true: its records carry a creature's `npcID` and `name` as
 --            read off a unit when the record was made, so a creature's
---            name may be taken from them (NameOf, below: the newest
+--            name may be taken from them (CreatureNames.Of: the newest
 --            first), where no name read lately and no QuestieDB says it.
 --            Or a function(j, npcID) → name or nil: the feature reads its
 --            names itself, where they are not the newest record's first
@@ -1157,7 +1157,7 @@ Journey.Kept = Kept
 --            that it keeps beside the list)
 --   prune    optional function(j, now): at login (Journey.Prune), for
 --            each character's route, before the creature names are put
---            right and dropped (ForgetNames, which asks NameOf): what the
+--            right and dropped (CreatureNames.Prune, which asks Of): what the
 --            feature keeps on the route beside its list given up when it
 --            is stale (say, a record under way left open too long, or a
 --            person's GUID kept on a record while the buffer still held
@@ -1176,10 +1176,11 @@ Journey.Kept = Kept
 local LISTS = {}
 -- Every registered list, by name (for tests/kinds.lua; read only).
 Journey.LISTS = LISTS
--- The lists registered `readNames`, in the order they registered (NameOf
--- asks them in turn), and those registered with a `prune` or a `forget`,
--- likewise.
+-- The lists registered `readNames`, in the order they registered
+-- (CreatureNames.Of asks them in turn; read only), and those registered
+-- with a `prune` or a `forget`, likewise.
 local READ_NAMES, PRUNES, FORGETS = {}, {}, {}
+Journey.READ_NAMES = READ_NAMES
 
 function Journey.RegisterList(name, spec)
     spec = spec or {}
@@ -1335,113 +1336,10 @@ function Journey.CountedOn(j, t)
     return nil
 end
 
---------------------------------------------------------------------------
--- Creature names, for a while
---------------------------------------------------------------------------
---
--- The death recap may give a mob a made-up surname ("Murloc Forager
--- Olwynne" for a Murloc Forager), and where it names the mob only once
--- there is nothing to take it off by (the deaths' capture tries: names in
--- common).
--- A creature's name as read off a unit (target, mouseover, a nameplate)
--- puts it right. They are kept by npcID, { name, when last read }, for
--- NAMES.days and at most NAMES.most, the least recent dropped first: a
--- name only has to outlive the recap, and a record it puts right keeps it
--- (a list registered `named`, RegisterList).
--- Where the user runs QuestieDB, it knows every creature's name by its id
--- (EXT-1), so a creature never read off a unit is put right too.
-
-local NAMES = { days = 3, most = 60 }
-
--- Whether `long` is `name` with words tacked on.
-local function Surnamed(long, name)
-    return type(long) == "string" and type(name) == "string" and #long > #name + 1
-        and long:sub(1, #name + 1) == name .. " "
-end
-
--- The name a creature of kind `npcID` goes by: as last read off a unit,
--- else as QuestieDB has it, where the user runs it (EXT-1), else as a
--- list registered `readNames` kept it (the lists in the order they
--- registered: the newest of its records first, or as the list's own
--- function reads them). Nil where none says.
-function Journey.NameOf(j, npcID)
-    if not (j and npcID) then return nil end
-    local known = j.names and j.names[npcID]
-    if known then return known[1] end
-    local db = ns.QuestieBridge and ns.QuestieBridge.NpcName(npcID)
-    if db then return db end
-    for _, name in ipairs(READ_NAMES) do
-        local read = LISTS[name].readNames
-        if type(read) == "function" then
-            local found = read(j, npcID)
-            if found then return found end
-        else
-            local list = j[name] or {}
-            for i = #list, 1, -1 do
-                if list[i].npcID == npcID and list[i].name then return list[i].name end
-            end
-        end
-    end
-    return nil
-end
-
--- `name`, as the recap gave a creature of kind `npcID`, without the
--- surname where its own name is known.
-function Journey.CleanName(j, npcID, name)
-    local known = Journey.NameOf(j, npcID)
-    if known and Surnamed(name, known) then return known end
-    return name
-end
-
--- The records of the lists registered `named` put down to a creature of
--- kind `npcID` (every kind when nil) under a surname, put right. Whether
--- any was.
-local function Mend(j, npcID)
-    local any = false
-    for name, spec in pairs(LISTS) do
-        if spec.named then
-            for _, d in ipairs(j[name] or {}) do
-                if d.npcID and d.name and (not npcID or d.npcID == npcID) then
-                    local clean = Journey.CleanName(j, d.npcID, d.name)
-                    if clean ~= d.name then d.name, any = clean, true end
-                end
-            end
-        end
-    end
-    if any then Touch() end
-    return any
-end
-
--- A creature's name read off a unit now: kept a while (NAMES), and every
--- record of a `named` list put down to its kind under a surname put right.
-function Journey.NoteName(npcID, name, now)
-    name = ns.Plain(name)
-    local j = Kept()
-    if not (j and type(npcID) == "number" and type(name) == "string" and name ~= "") then return end
-    j.names = j.names or {}
-    j.names[npcID] = { name, now or ns.Now() }
-    local n, least, at = 0, nil, nil
-    for id, rec in pairs(j.names) do
-        n = n + 1
-        if not at or rec[2] < at then least, at = id, rec[2] end
-    end
-    if n > NAMES.most then j.names[least] = nil end
-    Mend(j, npcID)
-end
-
--- The names past NAMES.days dropped, once what they put right is mended.
-local function ForgetNames(j, now)
-    Mend(j)
-    for id, rec in pairs(j.names or {}) do
-        if now - rec[2] > NAMES.days * 24 * 60 * 60 then j.names[id] = nil end
-    end
-    if j.names and next(j.names) == nil then j.names = nil end
-end
-
 -- At login: a mark kept with a GUID whose person has left the diary is a
 -- stranger's again once the buffer has let them go. A feature's tables
 -- registered with a `prune` give up what is stale (RegisterList), before
--- the names are put right.
+-- the creature names are put right (Core/CreatureNames.lua).
 function Journey.Prune(now)
     local cutoff = ns.Cutoff(now)
     local function Stale(guid, t)
@@ -1452,7 +1350,7 @@ function Journey.Prune(now)
             if Stale(mark.guid, mark.t) then mark.guid = nil end
         end
         for _, name in ipairs(PRUNES) do LISTS[name].prune(j, now or ns.Now()) end
-        ForgetNames(j, now or ns.Now())
+        ns.CreatureNames.Prune(j, now or ns.Now())
     end
 end
 

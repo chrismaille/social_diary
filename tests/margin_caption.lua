@@ -207,7 +207,7 @@ for i in ipairs(page.recap.entries) do
             for _, it in ipairs(plate.margin or {}) do
                 local at = POS[it.kind]
                 if it.kind == "person" then
-                    -- Its tier (UI/JournalJourney.lua's TIER, or a joined
+                    -- Its tier (UI/Journey/People.lua's TIER, or a joined
                     -- moment's `person.tier`): something done together, or
                     -- only seen.
                     local tier = 3
@@ -259,3 +259,63 @@ Check(Margin.KINDS.scrap == nil and Text.CAPTIONS.scrap == nil, "the kind is sti
 local after = Pages()
 for i = 1, #before do Eq(after[i], before[i], "entry " .. i .. " as it was") end
 Eq(Caption({ SCRAP, DEATH }), "A death.", "a scrap's words gone")
+
+--------------------------------------------------------------------------
+Section("at equal numbers, the diary's own first")
+
+-- The diary's own paragraphs, leads and people stand first among the kinds
+-- at their numbers (the registries' core entries, Core/Registry.lua): a
+-- kind at the same number goes after them, never before.
+Text.RegisterLines("tie", { at = 30, lines = function() return nil end })
+Eq(Paragraphs(), "opening 10, time 20, people 30, tie 30, find 40, finale 50, skill 60, close 70, hunts 75",
+    "a paragraph at the people's number went before them")
+Text.RemoveLines("tie")
+
+Text.RegisterCaption("tie", { moment = "tie",
+    lead = { at = 45, say = function() return "A tie" end },
+    tail = { at = 45, say = function() return "a tie" end } })
+Eq(Caption({ { kind = "fight", outcome = "won" }, { kind = "tie" } }), "A fight, won, and a tie.",
+    "a lead at the fights' number led before them")
+Text.RemoveCaption("tie")
+
+local function Tier(it)
+    local tier = 3
+    for _, m in ipairs(it.g.moments) do tier = math.min(tier, TIER[m.kind] or (m.person and m.person.tier) or 2) end
+    return tier == 1 and "close" or "seen"
+end
+-- The people who did something with you. Those only seen stand first at
+-- PEOPLE.seen the same way, but no testdata margin shows one to check it.
+do
+    local people = "close"
+    Margin.Register("scrap", {
+        order = Margin.PEOPLE[people], pool = "scrapPool",
+        new = function(parent)
+            local note = CreateFrame("Frame", nil, parent)
+            function note:Layout(x, y, w) self.box = { x, y, w, 20 }; return w, 20 end
+            function note:Nearest() return self.box[1], self.box[2] end
+            return note
+        end,
+        item = function(plate) local s = plate.slot; return { scrap = plate, top = s.y + s.pad, x = s.x + s.pad } end,
+        write = function() end,
+        mark = function(it) local s = it.scrap.slot; return { s.x + s.w / 2, s.y + s.h / 2 } end,
+    })
+    local both = 0
+    for i in ipairs(page.recap.entries) do
+        Open(i)
+        for _, plate in ipairs(page.plates) do
+            if plate:IsShown() then
+                local scrap, person
+                for k, it in ipairs(plate.margin or {}) do
+                    if it.kind == "scrap" then scrap = scrap or k end
+                    if it.kind == "person" and Tier(it) == people then person = k end
+                end
+                if scrap and person then
+                    both = both + 1
+                    Check(person < scrap, "a kind at the " .. people .. " people's number went before them, entry " .. i)
+                end
+            end
+        end
+    end
+    Check(both > 0, "no plate with a scrap and the " .. people .. " people both in its margin")
+    Margin.Remove("scrap")
+end

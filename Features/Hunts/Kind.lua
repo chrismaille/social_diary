@@ -26,11 +26,12 @@
 --
 -- What stays core, because it is the diary's substrate and not this
 -- feature's detection:
---   - the creature names read off units for a while (Journey.NoteName,
---     NameOf, j.names): a kill names its creature there too, and this list
---     is registered `readNames` (its own reading: the finished hunts oldest
---     first, then the ones under way), so NameOf takes a creature's name
---     from it where none was read lately (Core/Journey.lua);
+--   - the creature names read off units for a while (Core/
+--     CreatureNames.lua: Note, Of, j.names): a kill names its creature
+--     there too, and this list is registered `readNames` (its own reading:
+--     the finished hunts oldest first, then the ones under way), so
+--     CreatureNames.Of takes a creature's name from it where none was read
+--     lately;
 --   - QuestieDB (Core/Bridges/Questie.lua, ns.QuestieBridge): a creature's
 --     name for every kind, and for the hunts the item a quest wants, who
 --     drops it and at what rate, asked at call time;
@@ -109,8 +110,8 @@ Hunts.T = T
 -- it is read (BadLuck, GoodLuck). The newest 400 are kept a character.
 --
 -- Its creatures' names are as read off their units, so the list is
--- registered `readNames`; with a reading of its own, which NameOf asked
--- before the list was registered (Core/Journey.lua kept it then): the
+-- registered `readNames`; with a reading of its own, which the name
+-- cache asked before the list was registered (Core/Journey.lua kept it then): the
 -- finished hunts oldest first (the default reads a list newest first),
 -- then the hunts under way, which are not on the list. Kept as it was, so
 -- no creature's name changes where two hunts kept one kind under two
@@ -167,7 +168,7 @@ function Hunts.Kill(j, npcID, name)
         hunt.kills[npcID] = (hunt.kills[npcID] or 0) + 1
         if name and not hunt.names[npcID] then hunt.names[npcID] = name end
     end
-    Journey.NoteName(npcID, name)
+    ns.CreatureNames.Note(npcID, name)
 end
 
 -- Item `item` (its name, `itemID` where the link says) seen in the loot
@@ -277,7 +278,7 @@ function Hunts.Done(j, questID, index, rec, where)
         local n = hunt.kills[id] or 0
         if n > 0 then
             kills, kinds = kills + n, kinds + 1
-            byKind[id] = { n = n, name = hunt.names[id] or Journey.NameOf(j, id) }
+            byKind[id] = { n = n, name = hunt.names[id] or ns.CreatureNames.Of(j, id) }
             if n > most or (n == most and id < npcID) then npcID, most = id, n end
         end
     end

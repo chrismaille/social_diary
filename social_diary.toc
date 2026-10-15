@@ -18,6 +18,7 @@ Core/Identity.lua
 Core/Location.lua
 Core/Characters.lua
 Core/Heat.lua
+Core/Registry.lua
 Core/Rows.lua
 Core/Interactions.lua
 Core/Sightings.lua
@@ -31,44 +32,107 @@ Core/Timeline.lua
 Core/People.lua
 Core/Candidates.lua
 Core/Journey.lua
+Core/CreatureNames.lua
 Core/JourneyRecap.lua
 Core/Events.lua
 Core/Slash.lua
 
-UI/Shared.lua
-UI/StyleTokens.lua
-UI/StyleArt.lua
-UI/StyleBook.lua
-UI/StyleWidgets.lua
-UI/KeyCapture.lua
-UI/PaperStrip.lua
-UI/Entry.lua
-UI/Picker.lua
-UI/LooseSheet.lua
-UI/MapOverlayData.lua
-UI/MapArt.lua
-UI/InkBlot.lua
-UI/HeatMap.lua
-UI/InkTrail.lua
-UI/JourneyPlate.lua
-UI/LinkSheet.lua
-UI/NoteSheet.lua
-UI/TimelineText.lua
-UI/JourneyText.lua
-UI/Journal.lua
-UI/JournalJourney.lua
-UI/JournalTimeline.lua
-UI/JournalPeople.lua
-UI/JournalProfile.lua
-UI/NearbyPage.lua
-UI/JournalFront.lua
-UI/JournalFrontispiece.lua
-UI/JournalEmpty.lua
-UI/Reunion.lua
-UI/Tooltip.lua
-UI/Settings.lua
-UI/Intro.lua
-UI/SocialTab.lua
+UI/Kit/Chrome.lua
+UI/Kit/List.lua
+UI/Words/Format.lua
+# The Style files in UI/Style/Tokens.lua's order: Draw before Book, which
+# takes Style.Noise as it loads; Cover and Person after it, for its brass.
+UI/Style/Tokens.lua
+UI/Style/Art.lua
+UI/Style/Sound.lua
+UI/Style/Draw.lua
+UI/Style/Book.lua
+UI/Style/Cover.lua
+UI/Style/Widgets.lua
+UI/Style/Person.lua
+UI/Kit/Keys.lua
+UI/Kit/Confirm.lua
+# Pool and Surface make nothing as they load: kits for the paper after them.
+UI/Kit/Pool.lua
+UI/Paper/Surface.lua
+UI/Paper/Strip.lua
+UI/Windows/Entry.lua
+UI/Windows/Picker.lua
+UI/Paper/Sheet.lua
+UI/Map/OverlayData.lua
+UI/Map/Art.lua
+UI/Ink/Blot.lua
+UI/Map/HeatSheet.lua
+UI/Ink/Pen.lua
+UI/Ink/Trail.lua
+UI/Journey/Plate.lua
+UI/Paper/LinkSheet.lua
+UI/Paper/NoteSheet.lua
+UI/Words/Timeline.lua
+# Your Diary's words (ns.UI.JourneyText): the module and its grammar first,
+# then each file after those whose helpers it takes as it loads.
+UI/Journey/Text/Grammar.lua
+UI/Journey/Text/Time.lua
+UI/Journey/Text/Notes.lua
+UI/Journey/Text/Prose.lua
+UI/Journey/Text/Zones.lua
+UI/Journey/Text/Tips.lua
+UI/Journey/Text/Caption.lua
+UI/Journey/Text/Margin.lua
+UI/Journal/Book.lua
+UI/Journal/Pages.lua
+# Your Diary's page (ns.UI.YourDiary): the module and its look first, each
+# file after those it takes from as it loads, the page itself last.
+UI/Journey/Look.lua
+UI/Journey/Left.lua
+UI/Journey/Layouts.lua
+UI/Journey/Leaders.lua
+UI/Journey/People.lua
+UI/Journey/Margin.lua
+UI/Journey/Caption.lua
+UI/Journey/Full.lua
+UI/Journey/Empty.lua
+UI/Journey/Page.lua
+UI/Journal/Timeline.lua
+UI/Journal/People.lua
+UI/Journal/Profile.lua
+UI/Journal/Nearby.lua
+UI/Journal/Front.lua
+UI/Journal/Corner.lua
+UI/Journal/Frontispiece.lua
+UI/Journal/IntroLabel.lua
+UI/Journal/Empty.lua
+# The reunion toast: the card first (ns.UI.Toast), its words, the queue and
+# the entry point, then placing it.
+UI/Windows/Reunion/Toast.lua
+UI/Windows/Reunion/Words.lua
+UI/Windows/Reunion/Queue.lua
+UI/Windows/Reunion/Placing.lua
+UI/Blizzard/Tooltip.lua
+# Settings: the page first (ns.UI.Settings), then its kit, the quiet list,
+# the macros, and a file per section in the order the page lists them; the
+# signpost after them, where the page's PLAYER_LOGIN handler was.
+UI/Settings/Page.lua
+UI/Settings/Kit.lua
+UI/Settings/Quiet.lua
+UI/Settings/Macro.lua
+UI/Settings/Sections/Recording.lua
+UI/Settings/Sections/Interface.lua
+UI/Settings/Sections/Toasts.lua
+UI/Settings/Sections/Shortcuts.lua
+UI/Settings/Sections/Sounds.lua
+UI/Settings/Sections/Integrations.lua
+UI/Settings/Sections/Memory.lua
+UI/Settings/Sections/About.lua
+UI/Blizzard/Signpost.lua
+# The parcel at login: its scene first (ns.UI.Parcel, and the fonts made
+# as it loads), wrapped, torn, then the host and the entry points.
+UI/Windows/Intro/Scene.lua
+UI/Windows/Intro/Wrapped.lua
+UI/Windows/Intro/Torn.lua
+UI/Windows/Intro/Parcel.lua
+UI/Blizzard/SocialTab.lua
+UI/Blizzard/Bindings.lua
 
 # Features: each detection in a folder of its own (Features/<Name>/), which
 # registers itself into the registries of Core/ and UI/ above, so it loads
@@ -81,8 +145,9 @@ UI/SocialTab.lua
 # campfire's row. Deaths, Close calls, then Witnesses: Close calls wear
 # Deaths' card (registered at load), the witnesses chart a rescue as a
 # close call's card does; their Dev.lua write at "route" in that order.
-# Hunts after Close calls: both lists give NameOf creatures' names, read in
-# the order they registered (close calls' first, as before). Firsts before
+# Hunts after Close calls: both lists give CreatureNames.Of creatures'
+# names, read in the order they registered (close calls' first, as before).
+# Firsts before
 # Profession caps: both take their first reading on SD_WORLD_SETTLED, the
 # bags' first, as when they were one of Capture/Journey.lua's timers.
 Features/LevelUps/Kind.lua
@@ -112,6 +177,8 @@ Features/QuestFinales/Mark.lua
 Features/QuestFinales/Capture.lua
 Features/WorldPvP/Kind.lua
 Features/WorldPvP/Capture.lua
+Features/Rares/Kind.lua
+Features/Rares/Capture.lua
 Features/Deaths/Kind.lua
 Features/Deaths/Text.lua
 Features/Deaths/Card.lua

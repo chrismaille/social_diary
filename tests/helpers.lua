@@ -251,51 +251,51 @@ C_Timer.After = After
 Section("wording")
 
 local UI = ns.UI
-Eq(UI.Count(0, "day", "days"), "0 days", "none")
-Eq(UI.Count(1, "person", "people"), "1 person", "one")
-Eq(UI.Count(3, "time", "times"), "3 times", "many")
+Eq(UI.Format.Count(0, "day", "days"), "0 days", "none")
+Eq(UI.Format.Count(1, "person", "people"), "1 person", "one")
+Eq(UI.Format.Count(3, "time", "times"), "3 times", "many")
 
 local function L(n) local t = {} for i = 1, n do t[i] = string.char(64 + i) end return t end
-Eq(UI.List({}), nil, "an empty list")
-Eq(UI.List(L(1)), "A", "one name")
-Eq(UI.List(L(2)), "A and B", "two names")
-Eq(UI.List(L(4)), "A, B, C and D", "every name, without a limit")
-Eq(UI.List(L(3), { oxford = true }), "A, B, and C", "clauses")
-Eq(UI.List(L(2), { oxford = true }), "A and B", "two clauses take no comma")
+Eq(UI.Format.List({}), nil, "an empty list")
+Eq(UI.Format.List(L(1)), "A", "one name")
+Eq(UI.Format.List(L(2)), "A and B", "two names")
+Eq(UI.Format.List(L(4)), "A, B, C and D", "every name, without a limit")
+Eq(UI.Format.List(L(3), { oxford = true }), "A, B, and C", "clauses")
+Eq(UI.Format.List(L(2), { oxford = true }), "A and B", "two clauses take no comma")
 
 -- The journal's three shapes: places, rares, the others in a visit.
 local PLACES = { max = 3, shown = 2 }
-Eq(UI.List(L(3), PLACES), "A, B and C", "three places, all named")
-Eq(UI.List(L(4), PLACES), "A, B and 2 more", "four places")
-Eq(UI.List(L(1), { max = 1 }), "A", "one rare under a limit of one")
-Eq(UI.List(L(3), { max = 1 }), "A and 2 more", "rares past a limit of one")
-Eq(UI.List(L(5), { max = 3, shown = 2, more = "others" }), "A, B and 3 others", "people past the limit")
+Eq(UI.Format.List(L(3), PLACES), "A, B and C", "three places, all named")
+Eq(UI.Format.List(L(4), PLACES), "A, B and 2 more", "four places")
+Eq(UI.Format.List(L(1), { max = 1 }), "A", "one rare under a limit of one")
+Eq(UI.Format.List(L(3), { max = 1 }), "A and 2 more", "rares past a limit of one")
+Eq(UI.Format.List(L(5), { max = 3, shown = 2, more = "others" }), "A, B and 3 others", "people past the limit")
 
 -- Days, at a fixed noon so the calendar does not move under the checks.
 local day = os.time({ year = 2026, month = 10, day = 7, hour = 12, min = 0, sec = 0 })
 local lastYear = os.time({ year = 2025, month = 10, day = 6, hour = 12, min = 0, sec = 0 })
 local monday = os.time({ year = 2026, month = 10, day = 5, hour = 9, min = 0, sec = 0 })
-Eq(UI.DayMonth(day), "7 October", "a day and month, unpadded")
-Eq(UI.DayMonth(lastYear), "6 October", "no year without `now`")
-Eq(UI.DayMonth(day, day), "7 October", "this year's date took a year")
-Eq(UI.DayMonth(lastYear, day), "6 October 2025", "last year's date without its year")
-Eq(UI.DayLabel(day - 3600, day), "Today", "today")
-Eq(UI.DayLabel(ns.DayStart(day) - 60, day), "Yesterday", "a minute before midnight")
-Eq(UI.DayLabel(monday, day), date("%A", monday) .. ", 5 October", "an earlier day")
-Eq(UI.DayLabel(lastYear, day), date("%A", lastYear) .. ", 6 October 2025", "a day last year")
-Eq(UI.At(ns.DayStart(day) - 60, day), "yesterday at " .. date("%H:%M", ns.DayStart(day) - 60),
+Eq(UI.Format.DayMonth(day), "7 October", "a day and month, unpadded")
+Eq(UI.Format.DayMonth(lastYear), "6 October", "no year without `now`")
+Eq(UI.Format.DayMonth(day, day), "7 October", "this year's date took a year")
+Eq(UI.Format.DayMonth(lastYear, day), "6 October 2025", "last year's date without its year")
+Eq(UI.Format.DayLabel(day - 3600, day), "Today", "today")
+Eq(UI.Format.DayLabel(ns.DayStart(day) - 60, day), "Yesterday", "a minute before midnight")
+Eq(UI.Format.DayLabel(monday, day), date("%A", monday) .. ", 5 October", "an earlier day")
+Eq(UI.Format.DayLabel(lastYear, day), date("%A", lastYear) .. ", 6 October 2025", "a day last year")
+Eq(UI.Format.At(ns.DayStart(day) - 60, day), "yesterday at " .. date("%H:%M", ns.DayStart(day) - 60),
     "At and DayLabel disagree about yesterday")
--- Moved out of Style (UI/Shared.lua), still inked in Style's colours.
-Eq(UI.WhoLine({ level = 6, race = "Tauren", class = "DRUID", faction = "Horde" }, "Kin"),
-    "Level 6 Tauren Druid  ·  |cff8c1a12Horde|r  |cff705936<Kin>|r", "UI.WhoLine")
+-- Moved out of Style (UI/Words/Format.lua), still inked in Style's colours.
+Eq(UI.Format.WhoLine({ level = 6, race = "Tauren", class = "DRUID", faction = "Horde" }, "Kin"),
+    "Level 6 Tauren Druid  ·  |cff8c1a12Horde|r  |cff705936<Kin>|r", "UI.Format.WhoLine")
 -- The toast drops the faction when it is the player's own (SELF is Horde).
 Eq(UnitFactionGroup("player"), "Horde", "the player is not Horde")
-Eq(UI.WhoLine({ level = 6, race = "Tauren", class = "DRUID", faction = "Horde" }, nil, true),
+Eq(UI.Format.WhoLine({ level = 6, race = "Tauren", class = "DRUID", faction = "Horde" }, nil, true),
     "Level 6 Tauren Druid", "own faction kept on the toast")
-Eq(UI.WhoLine({ level = 5, race = "Human", class = "ROGUE", faction = "Alliance" }, nil, true),
+Eq(UI.Format.WhoLine({ level = 5, race = "Human", class = "ROGUE", faction = "Alliance" }, nil, true),
     "Level 5 Human Rogue  ·  |cff" .. ns.Style.HEX.alliance .. "Alliance|r", "other faction dropped from the toast")
 
--- The colour codes are written out from the RGB palette (UI/StyleTokens.lua).
+-- The colour codes are written out from the RGB palette (UI/Style/Tokens.lua).
 -- These are the strings they were typed as by hand: the inks must not move.
 local HEX = ns.Style.HEX
 Eq(HEX.strong, "211408", "HEX.strong from INK_STRONG")

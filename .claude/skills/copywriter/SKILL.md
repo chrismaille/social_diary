@@ -21,12 +21,12 @@ yours in the same file before writing, and match them.
 
 | Register | Where | Sounds like |
 |---|---|---|
-| **Book prose** | Your Diary entries (`UI/JourneyText.lua`, `Core/JourneyRecap.lua`), the profile story (`UI/JournalProfile.lua`), front matter, frontispiece, empty states, map keys | “Reached level 12 on 6 October. The road goes on.” |
-| **Book ledger** | Timeline rows (`UI/TimelineText.lua`), People list, Nearby page, tooltips, card tags and margin words | “Quested together for 1 h 5 min” · “killed you twice” |
+| **Book prose** | Your Diary entries (`UI/Journey/Text/`, `Core/JourneyRecap.lua`), the profile story (`UI/Journal/Profile.lua`), front matter, frontispiece, empty states, map keys | “Reached level 12 on 6 October. The road goes on.” |
+| **Book ledger** | Timeline rows (`UI/Words/Timeline.lua`), People list, Nearby page, tooltips, card tags and margin words | “Quested together for 1 h 5 min” · “killed you twice” |
 | **Book furniture** | Settings, keybinds, link-choices, confirms, the Blizzard settings stub | “Keep my own route” / “Applies to every character.” |
 | **Chat** | `ns.Print` output, `/sd` help (`Core/Slash.lua`) | `Social Diary added Thex to the diary.` |
 
-The **parcel** (`UI/Intro.lua`) is the one place the diary speaks as “I”
+The **parcel** (`UI/Windows/Intro/`) is the one place the diary speaks as “I”
 and jokes (goblin shopkeepers, “no refunds”). It is role-play, kept on the
 envelope.
 
@@ -51,7 +51,7 @@ envelope.
   automatically noted down”. This holds for headings, toasts, the
   frontispiece and the addon's own description too.
 - **Vary the prose** that repeats per level or per row. Use the existing
-  seeded variant tables (`STOPS` etc. in `UI/JourneyText.lua`) rather than
+  seeded variant tables (`STOPS` etc. in `UI/Journey/Text/Prose.lua`) rather than
   one fixed template.
 - **Quiet.** No exclamation marks (only exception: the find card's “Your
   first green!”). Warnings are carried by colour and rules, not words: “A
@@ -89,16 +89,16 @@ Never show internal words: *interaction(s)*, *data*, *session*, *buffer*,
 
 Use the helpers; don't hand-format numbers or dates.
 
-- **Durations.** Prose speaks them: `Spoken()` in `UI/JourneyText.lua`
-  (“half an hour”, “three hours”). Ledger uses `ns.UI.Duration()`
+- **Durations.** Prose speaks them: `Spoken()` in `UI/Journey/Text/Time.lua`
+  (“half an hour”, “three hours”). Ledger uses `ns.UI.Format.Duration()`
   (“1 h 5 min”). Mock-ups and samples must match the live formatter.
 - **Counts.** Prose: words up to ten (`Count`, `Plural`, number words).
-  Ledger: figures (`ns.UI.Times()` → “4 times”). Never mix both in one
+  Ledger: figures (`ns.UI.Format.Times()` → “4 times”). Never mix both in one
   sentence. Keep a number and its unit together with the no-break space the
   helpers use.
 - **Dates.** Recent is relative (“today”, “yesterday”, a weekday within the
   week). Older is “6 October”, with the year only when it isn't this year
-  (`ns.UI.DayMonth`, `ns.UI.DayLabel`, `ns.UI.Ago`, `ns.UI.At`). No
+  (`ns.UI.Format.DayMonth`, `ns.UI.Format.DayLabel`, `ns.UI.Format.Ago`, `ns.UI.Format.At`). No
   ordinals, no zero padding. Timeline rows show only the time; the day is
   in the heading.
 - **Case.** Sentence case for everything a player reads, including setting

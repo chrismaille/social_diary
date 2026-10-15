@@ -77,7 +77,7 @@ local VITALS = {
 }
 Card.VITALS = VITALS
 
-local HAND = "Interface\\AddOns\\" .. addonName .. "\\Fonts\\Neuton-Italic.ttf"
+local HAND = Style.NEUTON_ITALIC
 
 --------------------------------------------------------------------------
 -- Which creature
@@ -210,7 +210,8 @@ local function DrawVitals(card, barW, inline)
     local f, room = card.foe, card.under
     if not (f and room) then return end
     local v, B, R, INK = Vitals(card), VITALS.bar, Style.RUBRIC, Style.INK
-    local P = ns.UI.PAPER_STRIP.STRIP.paper
+    -- The bar's empty part is the slip's own stock.
+    local P = card:Paper()
     local pct = math.max(0, math.min(100, (f.call and f.call.pct) or 0))
     -- The bar at the room's left, its foot on the room's.
     local left, foot = room.lx - room.w / 2, room.ly + room.h / 2
@@ -307,9 +308,7 @@ FACE = ns.Deaths.Card.RegisterFace("foe", {
                 tapeAt = KILLER.tapeAt, turn = KILLER.turn,
                 tip = function()
                     local title, lines = CloseCalls.FoeTip(f.call, now)
-                    local list = { { title } }
-                    for _, line in ipairs(lines or {}) do list[#list + 1] = { line, 1, 1, 1, true } end
-                    return list
+                    return Style.TipList(title, lines)
                 end })
         end,
         -- The close call's deed as written, on the row or under it (for

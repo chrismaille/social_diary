@@ -1,6 +1,7 @@
 -- When a reunion toast is due (REU-1, REU-5): the settings and the
--- per-person cooldown. UI/Reunion.lua shows the toast; this file decides
--- whether there should be one, so the rule is testable without a frame.
+-- per-person cooldown. UI/Windows/Reunion/ shows the toast; this file
+-- decides whether there should be one, so the rule is testable without a
+-- frame.
 --
 -- Both kinds share one per-person cooldown (settings.toastCooldownMinutes).
 -- The PRD's "once per login" was replaced at the user's request: a friend
@@ -101,7 +102,7 @@ function Reunions.FoeAlert(guid, now)
 end
 
 -- PRV-3: a forgotten person's stamp goes. The toasts still waiting are
--- UI/Reunion.lua's own store.
+-- UI/Windows/Reunion/Queue.lua's own store.
 ns.RegisterStore("greeted", function(guid)
     local greeted = ns.db.meta.greeted
     if guid == nil then wipe(greeted) else greeted[guid] = nil end

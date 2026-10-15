@@ -227,7 +227,7 @@ do
     Check(zrow.dots:IsShown() and zrow.dots:GetText():find("^[ .]+$") and #zrow.dots:GetText() > 4,
         "a zone row has no dot leaders: " .. tostring(zrow.dots:GetText()))
     -- The leaders fill the row between the name and the time, no more.
-    local rowW = ns.UI.JOURNAL.LEFT_W - ns.UI.SCROLLBAR_WIDTH - 2
+    local rowW = ns.UI.Journal.BOOK.LEFT_W - ns.UI.SCROLLBAR_WIDTH - 2
     local used = zrow.zone:GetUnboundedStringWidth() + zrow.dots:GetUnboundedStringWidth()
         + zrow.time:GetUnboundedStringWidth()
     Check(used <= rowW - 13, "the dot leaders run past the row: " .. used .. " of " .. rowW)
@@ -631,7 +631,7 @@ do
     Open(10)
 end
 
--- Each note is a paper strip taped beside the plate (UI/PaperStrip.lua),
+-- Each note is a paper strip taped beside the plate (UI/Paper/Strip.lua),
 -- turned a little its own way, the same every drawing; strips touch
 -- neither each other nor a plate.
 local STRIP = ns.UI.PAPER_STRIP.STRIP
@@ -680,8 +680,8 @@ end
 do
     local strip = ns.UI.PaperStrip(page.right)
     local Text = ns.UI.JourneyText
-    local TAPE = ns.UI.PAPER_STRIP.TAPE
-    local pad = STRIP.pad
+    local TAPE = ns.UI.PAPER_LOOK.tape
+    local pad = { strip:Pad() }
     -- As the strip wrapped before it balanced its lines: greedy, by the
     -- mock's widths (6 px a byte).
     local function Greedy(text, width)
@@ -733,7 +733,7 @@ do
     -- denser than before (10 Oct: { .92, .84, .60 } at .50 was too faint).
     Check(TAPE.alpha >= 0.6 and TAPE.tint[3] < TAPE.tint[1] - 0.3 and TAPE.edgeAlpha >= 0.45,
         "the tape is too faint to see")
-    Check(STRIP.shadow[3] >= 0.35 and ns.UI.PAPER_STRIP.STRIP.soft.alpha >= 0.25, "the strip's shadow is too faint")
+    Check(ns.UI.PAPER_LOOK.shadow[3] >= 0.35 and STRIP.soft.alpha >= 0.25, "the strip's shadow is too faint")
     strip:Hide()
 end
 -- Their own note quoted on the strip (11 Oct, the user: not "a note" but
@@ -743,7 +743,7 @@ end
 -- and fewer lines where the page asks or the margin is short.
 do
     local strip = ns.UI.PaperStrip(page.right)
-    local Q, pad = STRIP.quote, STRIP.pad
+    local Q, pad = STRIP.quote, { strip:Pad() }
     local function Lay(quote, width, lines)
         strip:SetNote({ name = "Tester", what = "35\194\160min together", quote = quote, quoteLines = lines,
             guid = A, seed = "quote" })
@@ -891,7 +891,7 @@ Check(bram.scripts.OnUpdate == nil, "the hover's OnUpdate did not stop itself")
 Check(bram.tapeShadow:IsShown(), "the lifted tape throws no shadow")
 local lifted = Look(bram)
 Check(lifted ~= lying, "the hover changed nothing")
-Check(select(4, unpack(bram.tape.recorded.calls.SetColorTexture)) > ns.UI.PAPER_STRIP.TAPE.alpha,
+Check(select(4, unpack(bram.tape.recorded.calls.SetColorTexture)) > ns.UI.PAPER_LOOK.tape.alpha,
     "the lifted tape is not brighter")
 -- Nothing moved: the writing and the tape lie where they lay.
 local function Places(look) return look:match("^.-|.-|.-|.-|.-|.-| (.*)$") end
@@ -1168,7 +1168,7 @@ do
 end
 
 -- "Always show the whole map" adds every area the client's tables have
--- (UI/MapOverlayData.lua), each once, explored or not.
+-- (UI/Map/OverlayData.lua), each once, explored or not.
 local data = ns.UI.MapOverlayData[1412]
 Check(data and #data > 10, "no overlay data for Mulgore")
 Eq(select(3, ns.UI.MapArt.For(1412)), 1, "areas shown with only the explored")
@@ -2086,9 +2086,56 @@ do
     end
     Eq(room, 6, "the mark does not claim its radius")
 
-    -- Gone again, so nothing after this draws it.
-    Plate.MARKS.tested, Plate.CAP.tested = nil, nil
-    table.remove(Plate.MARK_ORDER, 6)
+    -- Gone again, so nothing after this draws it: out of the order, its
+    -- cap with it, and off the plate drawn again.
+    Plate.RemoveMark("tested")
+    kinds = {}
+    for _, spec in ipairs(Plate.MARK_ORDER) do kinds[#kinds + 1] = spec.kind end
+    Eq(table.concat(kinds, " "), "find finale skill close luck fortune campfire", "the kind taken out stayed")
+    Eq(Plate.MARKS.tested, nil, "the kind taken out is still registered")
+    Eq(Plate.CAP.tested, nil, "the kind taken out left its cap")
+    drawn = {}
+    p:Draw(ns.JourneyRecap.SheetFor(SELF.guid, mapID), nil, Plate.Window(mapID, 0.5, 0.5, 200, 124),
+        { moments = moments })
+    Eq(#drawn, 0, "the kind taken out is still drawn")
+    Eq(p.counts.tested, nil, "the kind taken out is still counted")
+
+    -- The core's marks stand at their fixed turns among the kinds (the
+    -- registry's core entries): a door before a kind ordered before all,
+    -- and the deaths on the road after a kind at their own number. The
+    -- first down keeps its spot; the later steps aside (Apart).
+    local at = {}
+    Plate.RegisterMark("early", { order = -1000, cap = 5, count = "early",
+        draw = function(_, x, y) at.early = { x, y } end })
+    Plate.RegisterMark("tied", { order = Plate.ROAD_DEATHS, cap = 5, count = "tied",
+        draw = function(_, x, y) at.tied = { x, y } end })
+    local road = { kind = "road", mapID = mapID }
+    local spot = { 0.5, 0.5 }
+    local other = { 0.5 + 60 * perX, 0.5 + 30 * perY }
+    local function Marks(list)
+        at = {}
+        p:Draw(ns.JourneyRecap.SheetFor(SELF.guid, mapID), nil, Plate.Window(mapID, 0.5, 0.5, 200, 124),
+            { moments = list })
+        return at
+    end
+    local EARLY = { kind = "early", mapID = mapID, x = spot[1], y = spot[2], t = now }
+    local DOOR = { kind = "dungeon", mapID = mapID, x = spot[1], y = spot[2], t = now, seg = { name = "A door" } }
+    local TIED = { kind = "tied", mapID = mapID, x = other[1], y = other[2], t = now }
+    local DEATH = { kind = "death", mapID = mapID, x = other[1], y = other[2], t = now, seg = road }
+    local alone = Marks({ EARLY, TIED })
+    local function Moved(a, b) return math.abs(a[1] - b[1]) + math.abs(a[2] - b[2]) > 1 end
+    Marks({ DEATH })
+    Check(p.crosses[1] ~= nil, "a death on the road drew no cross")
+    local crossAlone = { p.crosses[1].x, p.crosses[1].y }
+    local both = Marks({ EARLY, DOOR, TIED, DEATH })
+    Check(both.early and both.tied and p.crosses[1], "the marks for the order were not drawn")
+    Check(Moved(both.early, alone.early), "a kind ordered before all did not step aside from a core door")
+    Check(not Moved(both.tied, alone.tied), "a kind at the road deaths' number stepped aside from them")
+    Check(Moved({ p.crosses[1].x, p.crosses[1].y }, crossAlone),
+        "the deaths on the road did not step aside from a kind at their own number")
+    Plate.RemoveMark("early")
+    Plate.RemoveMark("tied")
+    Eq(Plate.MARKS.early or Plate.MARKS.tied, nil, "the order's kinds are still registered")
     p:Hide()
 end
 

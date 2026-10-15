@@ -1,5 +1,5 @@
 -- Close calls' words (JRN-25): a close call in the level's prose
--- (Text.RegisterLines, UI/JourneyText.lua), the plates' caption words
+-- (Text.RegisterLines, UI/Journey/Text/Prose.lua), the plates' caption words
 -- (Text.RegisterCaption), the cross's tooltip (Mark.lua) and the card's:
 -- its heading, its tag, its deed and its tooltip (Card.lua's SetFoe). A
 -- creature's name in a sentence ("a Plainstrider", "Hogger") is the

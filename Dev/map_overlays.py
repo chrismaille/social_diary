@@ -1,6 +1,6 @@
-"""Writes UI/MapOverlayData.lua: every area overlay of every zone map, from the
-client's own tables (WorldMapOverlay, WorldMapOverlayTile, UiMapXMapArt), for
-the "Always show the whole map" setting (UI/MapArt.lua).
+"""Writes UI/Map/OverlayData.lua: every area overlay of every zone map, from
+the client's own tables (WorldMapOverlay, WorldMapOverlayTile, UiMapXMapArt),
+for the "Always show the whole map" setting (UI/Map/Art.lua).
 
 The tables come from wago.tools' DB2 exports for one build:
 
@@ -20,7 +20,7 @@ import urllib.request
 
 TABLES = ("WorldMapOverlay", "WorldMapOverlayTile", "UiMapXMapArt", "UiMap")
 TILE = 256  # every classic zone layer's tile size
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "UI", "MapOverlayData.lua")
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "UI", "Map", "OverlayData.lua")
 
 
 def fetch(table, build):
@@ -59,7 +59,7 @@ def main(build):
         "--",
         "-- Every area overlay of a zone map, by uiMapID: { width, height, offsetX,",
         "-- offsetY, { file, ... } }, as C_MapExplorationInfo.GetExploredMapTextures",
-        "-- hands back an explored one (UI/MapArt.lua).",
+        "-- hands back an explored one (UI/Map/Art.lua).",
         "",
         "local addonName, ns = ...",
         "",

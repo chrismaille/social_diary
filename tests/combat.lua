@@ -113,7 +113,7 @@ Eq(ns.CloseCalls.Is(95, 0), false, "no maximum")
 
 Fight({ Mob(STRIDER1, "Plainstrider") }, 50)
 Eq(#ns.CloseCalls.List(j), 0, "half the health taken was a close call")
--- Any foe's name read off a unit is kept a while (Journey.NoteName), for
+-- Any foe's name read off a unit is kept a while (CreatureNames.Note), for
 -- a death recap that gives its kind a surname.
 Eq(j.names and j.names[2955] and j.names[2955][1], "Plainstrider", "a foe's name read off its target was not kept")
 
@@ -342,7 +342,7 @@ Eq(ns.Hunts.Hunting(j, 790, 1), nil, "a month-old hunt kept")
 
 -- A creature's name from the hunts, where none was read lately (j.names)
 -- and no QuestieDB says it: their list is registered `readNames` with a
--- reading of its own (Features/Hunts/Kind.lua), as Journey.NameOf read
+-- reading of its own (Features/Hunts/Kind.lua), as CreatureNames.Of reads
 -- them before they moved: the finished hunts oldest first (a list's
 -- default is newest first), then the hunts under way.
 do
@@ -350,9 +350,9 @@ do
     j.names = nil
     j.hunts = { { t = 1, npcID = 4901, name = "Plainstrider" }, { t = 2, npcID = 4901, name = "Elder Plainstrider" } }
     j.hunting = { ["1:1"] = { names = { [4902] = "Kolkar Marauder" } } }
-    Eq(J.NameOf(j, 4901), "Plainstrider", "two hunts of one creature not read oldest first")
-    Eq(J.NameOf(j, 4902), "Kolkar Marauder", "a hunt under way did not name its creature")
-    Eq(J.NameOf(j, 4903), nil, "a creature no hunt kept named")
+    Eq(ns.CreatureNames.Of(j, 4901), "Plainstrider", "two hunts of one creature not read oldest first")
+    Eq(ns.CreatureNames.Of(j, 4902), "Kolkar Marauder", "a hunt under way did not name its creature")
+    Eq(ns.CreatureNames.Of(j, 4903), nil, "a creature no hunt kept named")
     j.names, j.hunts, j.hunting = names, hunts, hunting
 end
 

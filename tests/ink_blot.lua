@@ -1,4 +1,4 @@
--- The map sheet's heat as ink blots, its arithmetic alone (UI/InkBlot.lua):
+-- The map sheet's heat as ink blots, its arithmetic alone (UI/Ink/Blot.lua):
 -- the grid with its folds, a lone blot round and the size its field says,
 -- every level one layer of ink (no piece overlapping another, no crack
 -- between them, even where the outline wobbles or splits at a saddle), no

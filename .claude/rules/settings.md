@@ -1,10 +1,11 @@
 ---
 paths:
-  - "UI/Settings.lua"
+  - "UI/Settings/**/*.lua"
   - "Core/DB.lua"
-  - "UI/Intro.lua"
-  - "UI/JournalFront.lua"
-  - "UI/JournalFrontispiece.lua"
+  - "UI/Windows/Intro/*.lua"
+  - "UI/Journal/Front.lua"
+  - "UI/Journal/Frontispiece.lua"
+  - "UI/Journal/IntroLabel.lua"
 ---
 
 # Adding or moving a setting: per character or per account?

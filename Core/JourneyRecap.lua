@@ -16,7 +16,7 @@
 --                        diary, cached until the route or the diary moves
 --
 -- Pure over its inputs, no frames and no unit tokens: the words are
--- UI/JourneyText.lua's, the drawing UI/JourneyPlate.lua's. Like the timeline,
+-- in UI/Journey/Text/, the drawing UI/Journey/Plate.lua's. Like the timeline,
 -- nothing here is stored; names and colours come from the diary when a page
 -- is drawn, so a rename or a new alt grouping shows everywhere at once.
 
@@ -55,7 +55,7 @@ Recap.RANK = RANK
 -- A plate's weight (plate-weight proposal, 13 Oct): it is light when all it
 -- holds is a place, nothing for the margin and a line of words at most, and
 -- the right page gives it a small print instead of a full slot
--- (UI/JournalJourney.lua's LAYOUT). A first visit, a dungeon's door, a
+-- (UI/Journey/Look.lua's LAYOUT). A first visit, a dungeon's door, a
 -- stay, the road, a level's pin. Anything else is full: a
 -- kind that puts a note in the margin (people, a feature's card) or one
 -- no one has weighed yet, so a
@@ -92,10 +92,10 @@ Recap.LIGHT = LIGHT
 --           gave you) may carry `person` = { tier, say = function(m) →
 --           words }: how it stands among that person's own moments on
 --           their margin note, once its mark joins their marks (the
---           plate mark's `join`, UI/JourneyPlate.lua): `tier` the note's
---           (UI/JournalJourney.lua's Tier: 1 for something done together),
+--           plate mark's `join`, UI/Journey/Plate.lua): `tier` the note's
+--           (UI/Journey/People.lua's Tier: 1 for something done together),
 --           `say` its phrase, first under their name
---           (UI/JourneyText.lua's MarginWhat)
+--           (UI/Journey/Text/Margin.lua's MarginWhat)
 --
 -- An entry with any feature's records is kept, as one with people or time
 -- on the road is (Recap.Build's weeks).

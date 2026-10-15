@@ -1,5 +1,5 @@
 -- Firsts found's words (JRN-24): a first in a sentence, the level's prose
--- (Text.RegisterLines, UI/JourneyText.lua), the plates' caption words
+-- (Text.RegisterLines, UI/Journey/Text/Prose.lua), the plates' caption words
 -- (Text.RegisterCaption), the pouch's tooltip (Mark.lua), the card's
 -- heading and the line under its item (Card.lua), and a giver's words on
 -- their margin note (Firsts.PERSON). Copy changes go through the
@@ -131,7 +131,7 @@ end
 -- A gift is its giver's moment too (Kind.lua's moment: `person`): on
 -- their margin note it is something done together (tier 1, as time
 -- together is), and the first thing said under their name, "gave you
--- your first blue" (UI/JourneyText.lua's MarginWhat), held together by
+-- your first blue" (UI/Journey/Text/Margin.lua's MarginWhat), held together by
 -- no-break spaces as the note's other phrases are.
 Firsts.PERSON = {
     tier = 1,

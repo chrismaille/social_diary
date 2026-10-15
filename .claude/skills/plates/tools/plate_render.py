@@ -2,7 +2,7 @@
 overlaps. Run through plates.sh, or: python3 -I plate_render.py <dir>
 
 Draws, in page px (the right page, 466 x 534, from its top left): the page
-edge and its 10 px margin, the not-kept line (OFF in UI/JournalJourney.lua,
+edge and its 10 px margin, the not-kept line (OFF in UI/Journey/Look.lua,
 x 246 y 512, shown with "Keep my own route" off) in red, each plate's card,
 art box, photo corners and shadow (SHADOW/LIFT from the dump's CONST line),
 headings (dark blue) and caption words (light blue) as boxes, margin notes

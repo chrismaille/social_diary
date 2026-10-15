@@ -21,7 +21,7 @@
 --
 -- This file decides the structure: which layer each thing is, which
 -- activities an episode's headline names and so which moments are summed up
--- rather than given lines (TLN-6). The words are UI/TimelineText.lua's.
+-- rather than given lines (TLN-6). The words are UI/Words/Timeline.lua's.
 -- Everything is computed per read; nothing here is saved (TLN-1), so older
 -- history follows any change to these rules.
 
@@ -117,7 +117,7 @@ local function AddItems(into, list)
     end
 end
 
--- What the episode's rows add up to, for its details line (UI/TimelineText.lua).
+-- What the episode's rows add up to, for its details line (UI/Words/Timeline.lua).
 function Timeline.Tally(episode)
     local t = { chat = 0, trades = 0, chatterTrades = 0, other = 0,
         given = { byLink = {} }, received = { byLink = {} }, moneyGiven = 0, moneyReceived = 0 }
@@ -354,7 +354,7 @@ end
 --
 -- What the user wrote (Core/Notes.lua) while a run was going on belongs to
 -- the run's own description: `episode.notes`, oldest first, shown whether it
--- is open or folded (UI/JournalTimeline.lua), and not among what it hides. Any
+-- is open or folded (UI/Journal/Timeline.lua), and not among what it hides. Any
 -- other note is a top-level line at its own time. Notes are placed after
 -- Fold, so a loose one can never split or join an exchange.
 

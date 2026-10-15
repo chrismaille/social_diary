@@ -1,5 +1,5 @@
 -- A campfire's mark on Your Diary's plates (Plate.RegisterMark,
--- UI/JourneyPlate.lua; .claude/ui-proposal/campfire.md), drawn on every
+-- UI/Journey/Plate.lua; .claude/ui-proposal/campfire.md), drawn on every
 -- plate and the full zone page through the plate's kit.
 
 local addonName, ns = ...

@@ -34,6 +34,12 @@ for _, kind in ipairs(ns.Rows.All()) do
     end
 end
 
+-- Recently nearby ranks and words only the marks it knows: a kind with
+-- another `dealt` is refused as it registers, not at the first hover.
+Check(not pcall(ns.Rows.Register, "kinds_test_dealt", { dealt = "hugged" }),
+    "a kind registers a `dealt` Recently nearby cannot word")
+Check(ns.Rows.Get("kinds_test_dealt").type == nil, "a refused kind is declared anyway")
+
 --------------------------------------------------------------------------
 Section("every recap moment is ranked, gathered and marked")
 
@@ -140,11 +146,70 @@ for _, name in ipairs(features) do
 end
 Check(Read(".pkgmeta"):find("Features/*/Dev.lua", 1, true) ~= nil, ".pkgmeta does not leave the features' Dev.lua out")
 
-for _, dir in ipairs({ "Core", "Core/Bridges", "UI", "Capture", "Dev" }) do
-    for _, file in ipairs(Ls("ls -1 " .. dir .. "/*.lua 2>/dev/null")) do
+-- Every file under these folders, however deep (UI's areas are folders).
+for _, dir in ipairs({ "Core", "UI", "Capture", "Dev" }) do
+    for _, file in ipairs(Ls("find " .. dir .. " -name '*.lua' 2>/dev/null | sort")) do
         local code = Read(file)
         for _, name in ipairs(features) do
             Check(not code:find("ns%." .. name .. "[^%w_]"), file .. " names the feature ns." .. name)
         end
     end
 end
+
+--------------------------------------------------------------------------
+Section("every feature's card keeps to the strip's contract")
+
+-- A card on the paper strip (UI/Paper/Strip.lua, the comment over
+-- ns.UI.PaperStrip) is laid through its hooks (plan, draw, again,
+-- smaller, nearest) and uses only the strip's public fields and methods.
+-- It does not patch the strip's methods (`local layout = card.Layout`,
+-- `function card:Layout`, `:Smaller`, `:Nearest`), read the strip's
+-- tables (ns.UI.PAPER_STRIP: PAPER_LOOK is the look, for drawings that are
+-- not strips), or touch a field of the strip's own (`card.note`,
+-- `self.lines`, ...), nor give one of its own fields a strip's name. The
+-- strip's own fields are taken from a strip laid here with everything a
+-- note can ask (so a new one is caught without this list knowing it),
+-- less the fields the contract gives a card.
+local PUBLIC = { name = true, picture = true, under = true, box = true, turn = true, flat = true, turnsText = true,
+    overfull = true }
+local probe = ns.UI.PaperStrip(UIParent)
+probe:SetNote({ name = "Tester", what = "made up for the test", quote = "a note to quote, of a few words", guid = "g",
+    rival = true, seed = "kinds", tip = function() return {} end, onClick = function() end,
+    picture = { w = 20, h = 10 }, under = { w = 20, h = 10 }, soft = { out = 1, blur = 1, alpha = 0.1 } })
+probe:Layout(0, 0, 160, 200)
+local private = {}
+for key, value in pairs(probe) do
+    if type(key) == "string" and type(value) ~= "function" and not PUBLIC[key] then private[#private + 1] = key end
+end
+table.sort(private)
+Check(#private > 10, "the strip's own fields were not found: " .. table.concat(private, ","))
+
+-- What a feature's file may not say: the pattern, and why.
+local BANNED = {
+    { "PAPER_STRIP", "reads ns.UI.PAPER_STRIP (the strip's tables)" },
+    { "[%w_]%.Layout%f[^%w_]", "reaches the strip's Layout (a card is laid through its hooks)" },
+    { "function%s+[%w_]+:Layout%f[^%w_]", "defines its own :Layout on a strip" },
+    { "function%s+[%w_]+:Smaller%f[^%w_]", "defines :Smaller on a strip (the `smaller` hook)" },
+    { "function%s+[%w_]+:Nearest%f[^%w_]", "defines :Nearest on a strip (the `nearest` hook)" },
+    { "[%w_]%.Smaller%s*=[^=]", "assigns a strip's Smaller" },
+    { "[%w_]%.Nearest%s*=[^=]", "assigns a strip's Nearest" },
+}
+-- A strip in a card's file goes by one of these names (the card, its
+-- slip, a tag of its own, `self` in its methods and hooks).
+local STRIPS = { "card", "self", "slip", "strip", "tag" }
+local function Conform(file, code)
+    local wrong = {}
+    for _, ban in ipairs(BANNED) do
+        if code:find(ban[1]) then wrong[#wrong + 1] = ban[2] end
+    end
+    for _, key in ipairs(private) do
+        for _, who in ipairs(STRIPS) do
+            -- (Not a field of a field: plan.tag.lines is the plan's.)
+            if code:find("%f[%w_%.]" .. who .. "%." .. key .. "%f[^%w_]") then
+                wrong[#wrong + 1] = "touches the strip's own field " .. who .. "." .. key
+            end
+        end
+    end
+    Check(#wrong == 0, file .. " " .. table.concat(wrong, "; "))
+end
+for _, file in ipairs(Ls("find Features -name '*.lua' 2>/dev/null | sort")) do Conform(file, Read(file)) end

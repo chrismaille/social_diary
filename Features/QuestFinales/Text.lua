@@ -1,5 +1,5 @@
 -- Quest chain finales' words (JRN-28): a sentence each in the level's
--- prose (Text.RegisterLines, UI/JourneyText.lua), the plates' caption
+-- prose (Text.RegisterLines, UI/Journey/Text/Prose.lua), the plates' caption
 -- words (Text.RegisterCaption) and the tailpiece's tooltip (Mark.lua).
 -- Copy changes go through the copywriter skill, as every player-read word
 -- does.
@@ -72,7 +72,7 @@ function QuestFinales.Tip(f, now)
     local start = f.started
     if start and start.t then
         local zone = MapName(start.mapID)
-        lines[#lines + 1] = "Begun " .. (zone and ("in " .. zone .. ", ") or "") .. ns.UI.At(start.t, now)
+        lines[#lines + 1] = "Begun " .. (zone and ("in " .. zone .. ", ") or "") .. ns.UI.Format.At(start.t, now)
     end
     lines[#lines + 1] = When(f.t, f.level, now)
     return Capital(QuestFinales.Words(f)), lines

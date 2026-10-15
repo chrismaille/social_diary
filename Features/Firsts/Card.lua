@@ -1,6 +1,6 @@
 -- The first found card (Your Diary's plates, JRN-24): a first bag,
 -- shoulders, green, blue or epic, shown as the thing itself. A paper strip
--- (UI/PaperStrip.lua) taped in the plate's margin with a pencil leader to
+-- (UI/Paper/Strip.lua) taped in the plate's margin with a pencil leader to
 -- its pouch (Mark.lua), the heading in the diary's hand, "Your first green item!",
 -- and under it the item boxed as the game shows it, its icon and then its
 -- name in its colour, set a little askew on the slip, as a thing pasted in
@@ -90,7 +90,7 @@ local NAME = { lines = 3, fonts = { { "strong", 15 }, { "small", 13 } } }
 -- The tooltip's line of how and when, in the game's flavour gold.
 local TIP = { colour = { 1, 0.82, 0 } }
 
-local HAND = "Interface\\AddOns\\" .. addonName .. "\\Fonts\\Neuton-Italic.ttf"
+local HAND = Style.NEUTON_ITALIC
 
 -- A first's quality from what it was a first of, where its link says none.
 local KIND_QUALITY = { uncommon = 2, rare = 3, epic = 4 }
@@ -179,27 +179,20 @@ end
 -- The card
 --------------------------------------------------------------------------
 
--- A number from a string, the same every time.
-local function Seed(key)
-    local seed = 0
-    key = tostring(key or "")
-    for i = 1, #key do seed = (seed + key:byte(i) * i) % 100003 end
-    return seed
-end
-
-local function Width(text)
-    if text.GetUnboundedStringWidth then return text:GetUnboundedStringWidth() or 0 end
-    return text:GetStringWidth() or 0
-end
+-- A number from a string, the same every time; text measured unbounded;
+-- a point of the box turned about its middle (the turned plane's kit,
+-- UI/Paper/Surface.lua).
+local Seed, Width, Turned = ns.UI.Surface.Seed, ns.UI.Surface.Width, ns.UI.Surface.Turned
 
 -- A card on `parent` (the right page): a paper strip with the box under
 -- its heading. card:SetFind(item, seed, now, gift) with an item of
 -- FindCard.Items and the line under the box (Firsts.GiftLine) or nil, then
 -- card:Layout(x, y, width) as a strip's; card.overfull where it will not
--- fit `width` (the page leaves it off).
+-- fit `width` (the page leaves it off). Laid through the strip's hooks
+-- (UI/Paper/Strip.lua), `hooks`, filled in below, after the box's drawing.
 function FindCard.New(parent)
-    local card = ns.UI.PaperStrip(parent)
-    local Strip = ns.UI.PAPER_STRIP
+    local hooks = {}
+    local card = ns.UI.PaperStrip(parent, hooks)
 
     local function Texture(sublevel)
         local texture = card:CreateTexture(nil, "ARTWORK", nil, sublevel)
@@ -283,9 +276,9 @@ function FindCard.New(parent)
 
     -- The heading at the first size and words that fit `room` on one line,
     -- the full words before the short; else the full words on two (the
-    -- second, card.headTail, opens the room under the name: "Your first /
-    -- shoulders!"). Whether it fits, and the second line's words if any.
-    local function Heading(room)
+    -- shoulders!"), on `note` (the strip's). Whether it fits, and the
+    -- second line's words if any.
+    local function Heading(room, note)
         local Firsts = ns.Firsts
         for _, short in ipairs({ false, true }) do
             local words = Firsts.Heading(card.found.whats, short)
@@ -293,7 +286,7 @@ function FindCard.New(parent)
                 Hand(card.name, size)
                 card.name:SetText(words)
                 if Width(card.name) <= room then
-                    card.note.name = words
+                    note.name = words
                     return true, nil
                 end
             end
@@ -315,7 +308,7 @@ function FindCard.New(parent)
             card.name:SetText(first)
             card.headTail:SetText(rest or "")
             if rest and Width(card.name) <= room and Width(card.headTail) <= room then
-                card.note.name = first
+                note.name = first
                 return true, rest
             end
         end
@@ -397,7 +390,7 @@ function FindCard.New(parent)
         end
         card.lean = lean
         local c, s = math.cos(lean), math.sin(lean)
-        local function At(u, v) return mx + u * c + v * s, my - u * s + v * c end
+        local function At(u, v) return Turned(mx, my, u, v, c, s) end
         local function Lay(region, u, v, w, h)
             local lx, ly = At(u, v)
             card:Lay(region, lx, ly, w, h, lean)
@@ -495,14 +488,12 @@ function FindCard.New(parent)
 
     -- Laid as a strip, with the box's room under the heading, measured for
     -- the column `width`: the heading at the size that fits, the name in
-    -- the lines that hold it, the gift's line in ink.
-    local layout = card.Layout
-    function card:Layout(x, y, width)
+    -- the lines that hold it; then the gift's line in ink, and the box.
+    function hooks.plan(self, note, width)
         self.column = width
-        local note = self.note or {}
-        local pad = Strip.STRIP.pad
-        local room = width - pad[1] - pad[3]
-        local fits, tail = Heading(room)
+        local l, _, r = self:Pad()
+        local room = width - l - r
+        local fits, tail = Heading(room, note)
 
         local size = self.iconFile and (width < ICON.below and ICON.narrow or ICON.size) or 0
         local L = FIND.lean
@@ -552,11 +543,11 @@ function FindCard.New(parent)
             fits = fits and bw <= room
         end
         self.overfull = not (fits and lines)
-        local w, h = layout(self, x, y, width)
+    end
+    function hooks.draw(self)
         local INK = Style.INK
-        for i = 1, self.shownLines or 0 do self.lines[i]:SetTextColor(INK[1], INK[2], INK[3]) end
+        for _, line in ipairs(self:WhatLines()) do line:SetTextColor(INK[1], INK[2], INK[3]) end
         Box()
-        return w, h
     end
 
     card:Hot(false)

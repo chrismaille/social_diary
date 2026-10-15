@@ -68,7 +68,7 @@ Eq(#got, 0, "a client event reached an SD_ handler")
 ns.Off("SD_CLIENT", m2)
 
 -- Who listens to what, after the addon loaded.
-Check(ns.IsRegistered("SD_REUNION"), "UI/Reunion.lua does not listen for SD_REUNION")
+Check(ns.IsRegistered("SD_REUNION"), "UI/Windows/Reunion/Queue.lua does not listen for SD_REUNION")
 Check(ns.IsRegistered("SD_DIARY_CHANGED"), "the journal does not listen for SD_DIARY_CHANGED")
 
 -- The paper: the journal's book listens once it is built (/sd art).

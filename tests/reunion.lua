@@ -374,13 +374,13 @@ Eq(Seen(B), nil, "a nameplate outside the diary was recorded")
 
 -- The words.
 local at = Seen(A).time
-Eq(ns.UI.SeenText(Seen(A), at), "Last seen today at " .. date("%H:%M", at)
+Eq(ns.UI.Format.SeenText(Seen(A), at), "Last seen today at " .. date("%H:%M", at)
     .. " in Red Cloud Mesa, Mulgore", "the last seen line")
-Eq(ns.UI.At(at - DAY, at), "yesterday at " .. date("%H:%M", at - DAY), "yesterday")
-Check(ns.UI.At(at - 10 * DAY, at):find("^on %d%d %a+ at %d%d:%d%d$"), "this year: " .. ns.UI.At(at - 10 * DAY, at))
-Check(ns.UI.At(at - 400 * DAY, at):find("%d%d%d%d at"), "an older year shows the year")
-Eq(ns.UI.SeenText(nil), "Not seen nearby yet.", "never seen")
-Eq(ns.UI.SeenText({ time = at, zone = "Orgrimmar", subZone = "Orgrimmar" }, at),
+Eq(ns.UI.Format.At(at - DAY, at), "yesterday at " .. date("%H:%M", at - DAY), "yesterday")
+Check(ns.UI.Format.At(at - 10 * DAY, at):find("^on %d%d %a+ at %d%d:%d%d$"), "this year: " .. ns.UI.Format.At(at - 10 * DAY, at))
+Check(ns.UI.Format.At(at - 400 * DAY, at):find("%d%d%d%d at"), "an older year shows the year")
+Eq(ns.UI.Format.SeenText(nil), "Not seen nearby yet.", "never seen")
+Eq(ns.UI.Format.SeenText({ time = at, zone = "Orgrimmar", subZone = "Orgrimmar" }, at),
     "Last seen today at " .. date("%H:%M", at) .. " in Orgrimmar", "a subzone named like its zone")
 
 -- On the profile, and as a sort: the story is the list's own line, above
@@ -645,7 +645,7 @@ Check(mock.MenuClick("Map 9999 (5)"), "no entry for a map without a name")
 Eq(HM.tileCount, 0, "tiles for a map without art")
 Eq(HM.cellCount, 1, "heat on a map without art")
 
--- The heat is ink blots (UI/InkBlot.lua): pieces of flat ink with their
+-- The heat is ink blots (UI/Ink/Blot.lua): pieces of flat ink with their
 -- corners on the sheet, three inks one over another. Where a sheet point
 -- lies, for a cell; which levels have ink near a point; and whether every
 -- piece stays in the map's box.

@@ -53,7 +53,7 @@ local DIARY = {
     meta = {
         lastLogin = nil,
         -- [guid] = when that character began this diary, for the bookplate
-        -- on the front matter (UI/JournalFront.lua): { time, zone, level }.
+        -- on the front matter (UI/Journal/Front.lua): { time, zone, level }.
         begun = {},
 
         nextSessionId = 1,
@@ -79,10 +79,10 @@ local ACCOUNT_SETTINGS = {
     shareDiary = false,
     -- PRV-4: the book's front matter, which says what is kept, has been
     -- read. Until it has, the parcel asks for it at every login
-    -- (UI/Intro.lua) and the journal opens on it.
+    -- (UI/Windows/Intro/Parcel.lua) and the journal opens on it.
     frontRead = false,
     -- The introduction turned through to its end, or its label under
-    -- the book dismissed: the label stops asking (UI/JournalFrontispiece.lua).
+    -- the book dismissed: the label stops asking (UI/Journal/IntroLabel.lua).
     introDone = false,
     debug = false,
 }
@@ -102,16 +102,16 @@ local CHARACTER_SETTINGS = {
     toastCooldownMinutes = 10,  -- at most one toast per person this often
     foeToastsUncooled = false,  -- ...except for foes, if asked (world PvP)
     -- toastAt: where the toast lies, { x, y } of its top from the
-    -- screen's top middle, once moved (UI/Reunion.lua). Unset is the
-    -- default place.
+    -- screen's top middle, once moved (UI/Windows/Reunion/Toast.lua). Unset is
+    -- the default place.
     foeAlert = false,   -- a raid warning when a foe comes into view (Core/Reunions.lua)
     tooltips = true,    -- REU-4
     tooltipSeen = false,  -- REU-6: "Seen N times" for people outside the diary
     bookStack = true,   -- the journal's page stack grows with the diary and turns with the page
     flatSheets = false,  -- "Flat paper only": loose sheets (the map, notes) without folds, bends or grime
-    revealMap = false,  -- "Always show the whole map": the map sheets fill in unexplored areas too (UI/MapArt.lua)
+    revealMap = false,  -- "Always show the whole map": the map sheets fill in unexplored areas too (UI/Map/Art.lua)
     -- The parcel at login has been torn open: from then on it comes back
-    -- torn, the diary's note beside the book (UI/Intro.lua).
+    -- torn, the diary's note beside the book (UI/Windows/Intro/Parcel.lua).
     parcelOpened = false,
     detectSightings = true,  -- SIG-1: passive detection in the open world
     keepRoute = true,   -- JRN-17: Your Diary keeps the character's own route

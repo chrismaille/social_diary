@@ -303,8 +303,8 @@ function People.Query(q)
 end
 
 -- How many are pencilled in: everyone in the buffer or seen recently,
--- outside the diary. The empty People page (UI/JournalEmpty.lua) and the
--- parcel's note (UI/Intro.lua) say it.
+-- outside the diary. The empty People page (UI/Journal/Empty.lua) and the
+-- parcel's note (UI/Windows/Intro/Torn.lua) say it.
 function People.PencilledCount()
     local seen, n = {}, 0
     for _, store in ipairs({ ns.db.interactions, ns.db.sightings }) do

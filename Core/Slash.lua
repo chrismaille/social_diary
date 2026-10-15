@@ -251,7 +251,7 @@ local function SightingRecent(text)
             -- Wide enough for "yesterday at 18:02" and "on 12 Sep at 18:02".
             DEFAULT_CHAT_FRAME:AddMessage(("      %-22s lvl %-3s %-18s %s%s%s"):format(
                 ns.Characters.FullName(entry.guid) or entry.guid,
-                tostring(row.level or "?"), ns.UI.At(ns.Sightings.Last(row), now), row.src or "",
+                tostring(row.level or "?"), ns.UI.Format.At(ns.Sightings.Last(row), now), row.src or "",
                 row.hostile and "  |cffc04040hostile|r" or "",
                 ns.Diary.IsDiary(entry.guid) and "  |cffffd100[diary]|r" or ""))
         end

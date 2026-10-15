@@ -72,7 +72,7 @@ local function Foe(unit)
     kind.n = kind.n + 1
     kind.name = kind.name or Name(unit)
     -- Kept a while, to put right a recap that gives it a surname.
-    if kind.name then Journey.NoteName(npcID, kind.name) end
+    if kind.name then ns.CreatureNames.Note(npcID, kind.name) end
     -- Its level as it showed: -1 is the skull, a level not told.
     local level = ns.Plain(UnitLevel(unit))
     if type(level) == "number" and level ~= 0 then kind.level = level end

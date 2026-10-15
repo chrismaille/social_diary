@@ -36,7 +36,7 @@ it). If you add or change words a player reads, hand the copy to the
 ## 1. The pipeline (data → page)
 
 ```
-Core/JourneyRecap.lua                       UI/JournalJourney.lua                     UI/JourneyPlate.lua
+Core/JourneyRecap.lua                       UI/Journey/*.lua (page)                   UI/Journey/Plate.lua
 Recap.Build(j) → entries (levels, weeks)
 Recap.Moments(j, e, ctx) → moments ───────► PlatesOf(e)
 Recap.Plates(j, e, ctx, cover) → plates ◄──   groups at SMALLEST[1..3] windows,
@@ -50,6 +50,16 @@ Recap.Holds(plate, w, h)  ◄────────────────  L
                                                  leaders (Aim/Pencil/Follow)               plate.killer/.foe/.hunt,
                                              DrawFull(e): FULL page, zoom/pan             plate.where[m] = page xy)
 ```
+
+The page is one module, `ns.UI.YourDiary`, a file per question (the
+header of `UI/Journey/Look.lua` lists them and the state they share):
+`Look.lua` the look tables (`LAYOUT`, `CAPTION`, `LEADER`, ...),
+`Layouts.lua` `PlatesOf`/`LayoutFor`/`SMALLEST`, `Leaders.lua` the plates
+and pools handed out and the leaders, `People.lua` `Tier`, `Margin.lua`
+the margin registry and `WriteMargin`/`LayNotes`, `Caption.lua` `Heading`,
+`Plated`, `DrawPlates` (F+L), `Full.lua` the full page, `Left.lua` the
+left page, `Empty.lua` the empty page, `Page.lua` build and refresh. The
+page singleton is `YourDiary.page` (`ns.UI.JourneyPage()` in tests).
 
 - **Moment kinds** (all of them): `session fight note first find death
   close luck fortune finale skill arrive dungeon campfire stay road level`.
@@ -66,7 +76,7 @@ Recap.Holds(plate, w, h)  ◄────────────────  L
   (`arrive dungeon stay road level finale skill fortune campfire`). It's a whitelist,
   so a new kind counts as full until someone weighs it.
 
-## 2. Layouts (`UI/JournalJourney.lua`, `LAYOUT` and the comment above it)
+## 2. Layouts (`UI/Journey/Look.lua`, `LAYOUT` and the comment above it)
 
 Right page: 466 × 534 px (`RIGHT_H`), coordinates from its top left, y down.
 A slot is `{ x, y, w, h, t (turn °, clockwise), pad (card margin round the
@@ -137,7 +147,7 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   card, `fortune` `{ hunt, print }`, `witness` a witness left off,
   `campfire` true when the slip is left off).
 - **Caption registry** (`Text.RegisterCaption(key, spec)`, spec comment above
-  `PlateCaption`; every kind registered from its feature's folder:
+  `PlateCaption` in `UI/Journey/Text/Caption.lua`; every kind registered from its feature's folder:
   find's in `Features/Firsts/Text.lua`, campfire's in `Features/Campfire/Text.lua`,
   skill's in `Features/ProfessionCaps/Text.lua`, finale's in
   `Features/QuestFinales/Text.lua`, death's in `Features/Deaths/Text.lua`,
@@ -159,12 +169,12 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   90; coda witness 10 (Witnesses'). Shared helpers are exported on `Text` (`When`,
   `Capital`, `MapName`, `Who`, `Day`, `Times`, `NUMBER`, `WORDS`, `Count`,
   `ItemWord`, `Items`, `Health`,
-  `Cut`, `Join`, `List`, `Glue`, plus the older `Short`, `Plural`, ...; list
-  above the exports), the timeline's row helpers on `ns.UI.TimelineText`
+  `List`, `Glue`, plus the older `Short`, `Plural`, ...; each file of
+  `UI/Journey/Text/` exports its own at its foot), the timeline's row helpers on `ns.UI.TimelineText`
   (`Items`, `Quote`, `Place`, `Foe`).
 - **Entry prose registry** (`Text.RegisterLines(key, { at, run, lines =
   function(e, now, index) → paragraph or nil })`, spec comment above
-  `Text.Lines`; `Text.Paragraphs()` / `Text.RemoveLines(key)`): the left
+  `Text.Lines` in `UI/Journey/Text/Prose.lua`; `Text.Paragraphs()` / `Text.RemoveLines(key)`): the left
   page's paragraphs for a level. Core (hand-written `PARAGRAPHS`): opening
   10, time (stops + flights) 20, people (+ fights) 30; kinds: find 40 in
   `Features/Firsts/Text.lua`, finale 50 in `Features/QuestFinales/Text.lua`,
@@ -175,7 +185,7 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   `run` write one paragraph: close 70 and hunts 75 are the run "combat",
   the second running on after the first (after a space), or starting it.
 - **Margin registry** (`ns.UI.JourneyMargin.Register(kind, spec)`, spec
-  comment above `MarginOrder` in JournalJourney.lua; every kind from its
+  comment above `MarginOrder` in UI/Journey/Margin.lua; every kind from its
   feature's folder: find's in `Features/Firsts/Card.lua`, campfire's in
   `Features/Campfire/Slip.lua`, killer's in `Features/Deaths/Card.lua`,
   foe's in `Features/CloseCalls/Card.lua`, witness's in
@@ -211,7 +221,7 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   mark's x.
 - **Notes** are laid by `LayNotes` into `boxes` (column under the caption,
   or `row` boxes, shared by `Shared`/`ROW.most`). Pools: `notePool`
-  (`UI/PaperStrip.lua`), `findPool` (`Features/Firsts/Card.lua`), `killerPool`
+  (`UI/Paper/Strip.lua`), `findPool` (`Features/Firsts/Card.lua`), `killerPool`
   (`Features/Deaths/Card.lua`, `ns.Deaths.Card`, also the close-call card:
   the card wears a face of the close calls' (`Card.RegisterFace`,
   `Features/CloseCalls/Card.lua`: `card:SetFoe`, `card:Deed`, the chart
@@ -221,6 +231,9 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   and its tag, a second slip, `card.tag`), `campfirePool` (`Features/Campfire/Slip.lua`),
   `leaderPool`, `dotPool`. Every registered kind's pool is made by
   `EnsurePools` (`page.marginPools` for `Mark`/`Undo`, `page.rightPools`).
+  Each is a `YourDiary.Handout`, which is `ns.UI.Pool.New(make)`
+  (`UI/Kit/Pool.lua`, a loose sheet's `K.Pool` too): `Begin`/`Next`/`Finish`,
+  `pool.used`, the same one handed out again for the same place.
 - **Campfire slip left off** (Rule B, the user's choice 14 Oct): where it
   has no room (always under FL's print, whose caption starts at y 474; often
   under F+L's tucked print; first to go in a full margin), the caption's
@@ -240,9 +253,10 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   pen (not ink), leave the strip's nearest edge, enter over the plate edge
   nearest the strip, bow down slightly, end `stop` px short in a dot.
   `plate.where[m]` gives a mark's page position (through `plate:OnPage`).
-- Copy lives in `UI/JourneyText.lua` (`PlateHeading`, `PlateCaption`,
-  `MarginWhat`, `MarginQuote`, `KillerName`,
-  `ZoneFoot`, tooltips), and a moved feature's in its own
+- Copy lives in `UI/Journey/Text/` (`Caption.lua`: `PlateHeading`,
+  `PlateCaption`; `Margin.lua`: `MarginWhat`; `Notes.lua`: `MarginQuote`;
+  `Grammar.lua`: `KillerName`; `Zones.lua`: `ZoneFoot`; `Tips.lua`:
+  tooltips), and a moved feature's in its own
   `Features/<Name>/Text.lua` (firsts found: `ns.Firsts.Words`, `ItemName`,
   `Heading`, `GiftLine`, `Giver`, `Sentence`, `Lines`, `Tip`, `PERSON`;
   campfire: `ns.Campfire.WORDS`, `At`, `Tip`;
@@ -257,7 +271,7 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   `ns.Witnesses.Name`, `Others`, `Look`, `Deed`, `Foe`, `Caption`, `Tip`).
   Changes there go through the copywriter skill.
 
-## 4. The plate itself (`UI/JourneyPlate.lua`, header comment = spec)
+## 4. The plate itself (`UI/Journey/Plate.lua`, header comment = spec)
 
 The card is `ns.UI.LooseSheet(..., glued)`: everything is placed through its
 toolkit (`K.Place`, `K.Quad`, `K.PlaceText`, `K.Pool`) so it turns with the
@@ -313,10 +327,19 @@ fields on them and on the plate. Today's: in `Features/Deaths/Card.lua`
 clearing the killer or foe it replaces); in
 `Features/Hunts/LuckyCard.lua` `print` 90 (S on a light plate's print,
 `plate.print`, the only pass with a `new` today).
-The ink trail is `UI/InkTrail.lua`; map art and explored
-overlays are `UI/MapArt.lua`. "Flat paper only" lays everything flat (no
+The ink trail is `UI/Ink/Trail.lua` (its pen, the stroke kit the leaders
+share, is `UI/Ink/Pen.lua`); map art and explored overlays are
+`UI/Map/Art.lua`. "Flat paper only" lays everything flat (no
 turn, shadow, lift, glue, vignette). Drawing is pooled, deterministic
 (seeded), once per open/turn, and nothing runs per frame.
+The strip and the cards share the turned plane, `UI/Paper/Surface.lua`
+(`ns.UI.Surface`): `New(owner)` (the strip's Out/Screen/In/Place/Quad),
+`Corners`/`Unbend` (a loose sheet's too), `Turned` (a point turned about
+another), `Width` (unbounded) and `Seed` (a string to a number: what a slip
+turns, tears and is scribbled by). Use them, don't copy them; the plate's
+own kit stays inside `Plate.lua`'s `New` for now. `Clamp` is the pen's
+(`ns.UI.Pen.Clamp`); the leaders keep their own (it differs where
+`lo` passes `hi`).
 
 ## 5. Decisions already made (don't reopen without asking the user)
 

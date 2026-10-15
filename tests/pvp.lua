@@ -167,10 +167,10 @@ Eq(Lines(FOE)[1], "Romulus probably killed you in Hillsbrad Foothills", "a guess
 ns.Interactions.Remove(FOE, guessed.row)
 
 -- The profile's story says the score.
-Eq(ns.UI.FightsText(ns.Interactions.Fights(FOE)), "You and your group have killed them twice and they've killed you twice.",
+Eq(ns.UI.Format.FightsText(ns.Interactions.Fights(FOE)), "You and your group have killed them twice and they've killed you twice.",
     "the profile's sentence")
-Eq(ns.UI.FightsText({ kills = 1, yours = 0, deaths = 0 }), "Your group has killed them once.", "the group alone")
-Eq(ns.UI.FightsText({ kills = 0, yours = 0, deaths = 3 }), "They've killed you 3 times.", "deaths alone")
+Eq(ns.UI.Format.FightsText({ kills = 1, yours = 0, deaths = 0 }), "Your group has killed them once.", "the group alone")
+Eq(ns.UI.Format.FightsText({ kills = 0, yours = 0, deaths = 3 }), "They've killed you 3 times.", "deaths alone")
 
 --------------------------------------------------------------------------
 Section("the foe's reunion card")

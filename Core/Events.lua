@@ -13,14 +13,15 @@
 --   SD_REUNION (guid, reason)  a diary entry joined the group ("group") or
 --                              came into view ("nearby"). Fired by
 --                              Core/Roster.lua, before Sessions sees the
---                              join, and Capture/Nearby.lua; UI/Reunion.lua
---                              toasts it (REU-1, REU-5).
+--                              join, and Capture/Nearby.lua;
+--                              UI/Windows/Reunion/Queue.lua toasts it
+--                              (REU-1, REU-5).
 --   SD_DIARY_CHANGED ()        the user edited or removed diary data: the
 --                              entry form, the settings page's deletes,
---                              /sd testdata. UI/Journal.lua refreshes the
+--                              /sd testdata. UI/Journal/Book.lua refreshes the
 --                              journal and the loose entry sheet.
 --   SD_PAPER_CHANGED ()        the paper or its grain changed (/sd art).
---                              Fired by UI/StyleArt.lua and UI/StyleBook.lua;
+--                              Fired by UI/Style/Art.lua and UI/Style/Book.lua;
 --                              the journal's book repaints.
 --   SD_WORLD_SETTLED ()        a few seconds after entering the world (a
 --                              login, a /reload, a loading screen), when the

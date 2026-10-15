@@ -64,11 +64,13 @@ The journal is an open book on parchment, not a window. In brief:
   strings. No Blizzard frame templates, to avoid taint.
 - Every art file has a list of candidates and a flat-colour fallback.
 - Light theme: dark ink on warm parchment. Shared colours, fonts and sizes
-  live in `UI/Style*.lua`; use them rather than new values.
+  live in `UI/Style/`; use them rather than new values.
 - Lapis blue is for ornament only, since blue on the page also reads Alliance.
 - New settings are per character unless there is a reason otherwise
   (`.claude/rules/settings.md`).
 - Work on _Your Diary_'s map plates follows `.claude/skills/plates/`.
+- Where UI code goes, how pages, settings sections, marks and cards plug
+  in, and how to prove a refactor changed nothing: `.claude/rules/ui.md`.
 
 ## Changelog
 

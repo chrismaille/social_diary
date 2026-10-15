@@ -95,7 +95,7 @@ ns.UI.CloseJournal()
 
 -- The left page still ends above the introduction's link (its foot is
 -- 22 above the page's, and it is 18 tall), clear of the ribbons.
-local BOOK = ns.UI.JOURNAL
+local BOOK = ns.UI.Journal.BOOK
 Check(P.navBottom < BOOK.BOOK_H - 22 - 18 - 8,
     ("the sections run down to %d, into the introduction's link"):format(P.navBottom))
 
@@ -960,7 +960,7 @@ local JOURNAL, REMEMBER = P.keys.SOCIALDIARY_JOURNAL, P.keys.SOCIALDIARY_REMEMBE
 Check(JOURNAL and REMEMBER, "a binding from Bindings.xml has no key on the page")
 
 -- Both keys, unbound to begin with, bound from here as the empty People
--- page binds Remember this (UI/KeyCapture.lua).
+-- page binds Remember this (UI/Kit/Keys.lua).
 mock.bindings = {}
 JOURNAL:Refresh()
 REMEMBER:Refresh()
@@ -1087,3 +1087,42 @@ for _, line in ipairs(P.commands) do
     Check(word and registered[word], "a slash command listed that does not exist: " .. line:GetText())
 end
 ns.UI.CloseJournal()
+
+--------------------------------------------------------------------------
+Section("every ribbon page in the contents and on the parcel (decision 4)")
+
+-- The front matter's cut-outs and the parcel's ribbons are placed by hand,
+-- by the page's key, and take the page's colour and name from the
+-- registry (UI/Journal/Pages.lua): a ribbon page added without its
+-- cut-out (unless it says contents = false) or its ribbon on the closed
+-- book fails here. And neither places one for a page that has no ribbon.
+local ribbonKeys = {}
+for _, ribbon in ipairs(ns.UI.Journal.Ribbons()) do
+    local key = ribbon.key
+    ribbonKeys[key] = true
+    local entry = ns.UI.FrontMatter().contents[key]
+    if ribbon.page.contents == false then
+        Eq(entry, nil, key .. " is in the contents, though it says it is not")
+    else
+        Check(entry and entry.cut, key .. " has no cut-out in the front matter's contents")
+        Eq(entry and entry.link.label:GetText(), ribbon.label, key .. "'s name in the contents is not its ribbon's")
+    end
+    local cloth = ns.UI.Slip().book.ribbons[key]
+    Check(cloth ~= nil, key .. " has no ribbon on the parcel's closed book")
+    local want = ns.Style.RIBBONS[ribbon.colour].cloth
+    local got = cloth and cloth.recorded.calls.SetColorTexture or {}
+    Eq(table.concat({ tostring(got[1]), tostring(got[2]), tostring(got[3]) }, " "),
+        table.concat({ want[1], want[2], want[3] }, " "), key .. "'s ribbon on the parcel is not its cloth")
+end
+for key, entry in pairs(ns.UI.FrontMatter().contents) do
+    if type(entry) == "table" and entry.cut then
+        Check(ribbonKeys[key], "the contents have a cut-out for " .. key .. ", which has no ribbon")
+    end
+end
+for key in pairs(ns.UI.Slip().book.ribbons) do
+    Check(ribbonKeys[key], "the parcel has a ribbon for " .. key .. ", which has no ribbon in the book")
+end
+-- The empty People page's arrow points at Recently nearby's ribbon, under
+-- a link in the page's own name.
+Eq(ns.UI.JournalFrame().welcome.nearby.label:GetText(), ns.UI.Journal.Page("nearby").ribbon.label,
+    "the empty page's link is not in Recently nearby's name")

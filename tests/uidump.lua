@@ -25,6 +25,11 @@ local root = here .. "/.."
 local mock = dofile(here .. "/wowmock.lua")
 DEFAULT_CHAT_FRAME.AddMessage = function() end
 
+-- Today's date, where the addon asks for it without a time (the parcel's
+-- postmark), is a fixed day, so two dumps either side of midnight compare.
+local wallDate = _G.date
+_G.date = function(format, time) return wallDate(format, time or 1791460000) end
+
 -- LuaJIT seeds its string hash per process, so `pairs` order changes from
 -- run to run, and the addon builds some frames in that order (the
 -- medallion's two faces). Here `pairs` walks keys sorted, which is one of

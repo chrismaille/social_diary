@@ -35,15 +35,15 @@
 --   - the route's fight marks (JRN-10; Core/Journey.lua's Fight, Fought,
 --     Refight, FightWho, FightIndex, kind "fight" on j.marks), which the
 --     plates draw as people marks and Your Diary's words tell ("beat
---     Tullus", UI/JourneyText.lua): this file writes them through
+--     Tullus", UI/Journey/Text/Prose.lua): this file writes them through
 --     ns.Journey.Fought / Refight. FightIndex finds a stranger's name by
 --     the time of a row whose kind sets Core/Rows.lua's `fight`, which
 --     both kinds here do, so the route never names them;
 --   - the score with someone (ns.Interactions.Fights, Core/Interactions.lua:
 --     kills, yours, deaths, the latest's time and zone, counted by the same
 --     flag), which the profile, the foe's reunion card and
---     ns.UI.FightsText (UI/Shared.lua) read;
---   - the "hostile" and "death" art (UI/StyleArt.lua), shared with others;
+--     ns.UI.Format.FightsText (UI/Words/Format.lua) read;
+--   - the "hostile" and "death" art (UI/Style/Art.lua), shared with others;
 --   - the foe tag and its toasts (Core/Reunions.lua, the settings' "World
 --     PvP" heading), which are about a person, not a fight.
 -- The user's deaths are Deaths' (Features/Deaths/), which tell this

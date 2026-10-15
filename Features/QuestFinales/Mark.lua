@@ -1,5 +1,5 @@
 -- A chain's finale's mark on Your Diary's plates (Plate.RegisterMark,
--- UI/JourneyPlate.lua), drawn on every plate and the full zone page
+-- UI/Journey/Plate.lua), drawn on every plate and the full zone page
 -- through the plate's kit.
 
 local addonName, ns = ...

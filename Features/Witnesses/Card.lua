@@ -3,7 +3,7 @@
 -- .claude/ui-proposal/witness-card-proposal.md. It takes the killer card's
 -- place in the margin (or the close call's, for a rescue: the user's call,
 -- 14 Oct, a person in the moment is the better story than the creature):
--- a paper strip (UI/PaperStrip.lua) taped in the margin with a pencil
+-- a paper strip (UI/Paper/Strip.lua) taped in the margin with a pencil
 -- leader to the death cross or the close call's mark, and on it, down the
 -- slip:
 --
@@ -33,7 +33,7 @@
 -- A watcher's card was laid on a page you bled on (BLOOD): dried blood,
 -- splashed across the slip's corner and off its edge onto the page, a pool,
 -- a run or two over the edge and droplets flung past it, built as the heat
--- map's ink blots are (UI/InkBlot.lua: drops that run together, a darker
+-- map's ink blots are (UI/Ink/Blot.lua: drops that run together, a darker
 -- rim where it dried), in the card's own turn. It may run under the ends of
 -- the lines nearest its corner, never under the name or the rest of a line,
 -- and under a word it is the wash alone, lighter (BLOOD.soft, .under): the
@@ -151,12 +151,10 @@ local BLOOD = {
     step = 0.8, warp = { 0.6, 8 }, cap = 560,
 }
 
-local HAND = "Interface\\AddOns\\" .. addonName .. "\\Fonts\\Neuton-Italic.ttf"
+local HAND = Style.NEUTON_ITALIC
 
-local function Width(text)
-    if text.GetUnboundedStringWidth then return text:GetUnboundedStringWidth() or 0 end
-    return text:GetStringWidth() or 0
-end
+-- Text measured unbounded (UI/Paper/Surface.lua's).
+local Width = ns.UI.Surface.Width
 
 -- `text` in the diary's hand at `size` (its own, 16, without one).
 local function Hand(text, size)
@@ -164,16 +162,11 @@ local function Hand(text, size)
     if size and size ~= 16 then text:SetFont(HAND, size, "") end
 end
 
--- A number from a string, the same every time (PaperStrip's), and a
--- stream of them.
-local function Seed(key)
-    local seed = 0
-    key = tostring(key or "")
-    for i = 1, #key do seed = (seed + key:byte(i) * i) % 100003 end
-    return seed
-end
+-- A number from a string, the same every time (the strip's,
+-- UI/Paper/Surface.lua), and a stream of them.
+local Seed = ns.UI.Surface.Seed
 local function Random(key)
-    local rand = ns.UI.InkTrail.Random(Seed(key))
+    local rand = ns.UI.Pen.Random(Seed(key))
     return function(a, b) return a + (b - a) * rand() end, rand
 end
 
@@ -354,10 +347,13 @@ end
 -- strip's; card.overfull where no arrangement fits `width` (the page
 -- leaves it off); card:Smaller() gives up a step. card.form says which
 -- arrangement it took, card.plan.foe whether the foe's line is written,
--- card.blood what of the blood was spilt.
+-- card.blood what of the blood was spilt. Laid through the strip's hooks
+-- (UI/Paper/Strip.lua), `hooks`, filled in below, after its drawing.
 function WitnessCard.New(parent)
-    local card = ns.UI.PaperStrip(parent)
-    local Strip = ns.UI.PAPER_STRIP
+    local hooks = {}
+    local card = ns.UI.PaperStrip(parent, hooks)
+    -- The strip's margins round the writing (l, t, r, b).
+    local pad = { card:Pad() }
 
     local function Texture(layer, sublevel)
         local texture = card:CreateTexture(nil, layer, nil, sublevel)
@@ -376,28 +372,31 @@ function WitnessCard.New(parent)
     card.barPaper = Texture("ARTWORK", 2)
     card.barFill = Texture("ARTWORK", 3)
     card.barTick = Texture("ARTWORK", 4)
-    -- Hidden measures, in the hand and in small print.
-    card.measure = Style.Text(card, Style.FONT.noteWritten)
-    card.measure:Hide()
+    -- Hidden measures, in the hand and in small print. (The hand's is the
+    -- card's own, not a field: `measure` is the strip's name.)
+    local measure = Style.Text(card, Style.FONT.noteWritten)
+    measure:Hide()
     card.small = Style.Text(card, Style.FONT.small)
     card.small:Hide()
 
     function card:SetWitness(w, seed, now, guid, onClick)
         self.witness, self.now, self.seedKey = w, now, seed
         self.step, self.plan, self.form = 0, nil, nil
-        self:SetNote({ name = Witnesses.Name(w), strong = true, seed = seed, turn = WITNESS.turn, guid = guid,
+        -- The name as set on the note: its own copy, for Try (Preferred
+        -- measures a card that is never laid).
+        self.nameWords = Witnesses.Name(w)
+        self:SetNote({ name = self.nameWords, strong = true, seed = seed, turn = WITNESS.turn, guid = guid,
             onClick = onClick, tip = function()
                 local title, lines = Witnesses.Tip(w, now)
-                local list = { { title } }
-                for _, line in ipairs(lines) do list[#list + 1] = { line, 1, 1, 1, true } end
+                local list = Style.TipList(title, lines)
                 if guid then list[#list + 1] = { "Click to open their page in the diary", 0.6, 0.6, 0.6, true } end
                 return list
             end })
     end
 
-    -- A step less, where the margin is short (UI/JournalJourney.lua's
+    -- A step less, where the margin is short (UI/Journey/Margin.lua's
     -- LayNotes): the foe's line. Whether there was one to give up.
-    function card:Smaller()
+    function hooks.smaller(self)
         if (self.step or 0) >= 1 or not Witnesses.Foe(self.witness) then return false end
         self.step = 1
         return true
@@ -429,11 +428,11 @@ function WitnessCard.New(parent)
     -- The same, never one word alone on the last line where there are
     -- more ("mercilessly watched you / die"): wrapped again narrower,
     -- `step` px at a time down to `least` of the room, keeping as many
-    -- lines (PaperStrip's STRIP.balance).
+    -- lines (the strip's balance, PAPER_LOOK.balance).
     local function Balanced(probe, text, room, most)
         local lines = Wrap(probe, text, room, most)
         if not lines or #lines < 2 or lines[#lines]:find("%s") then return lines end
-        local B = Strip.STRIP.balance
+        local B = ns.UI.PAPER_LOOK.balance
         local w = room - B.step
         while w >= room * B.least do
             local try = Wrap(probe, text, w, most)
@@ -458,9 +457,9 @@ function WitnessCard.New(parent)
         local w = card.witness
         if WitnessCard.Evidence(w) ~= "chart" then return nil end
         local V = ns.CloseCalls.Card.VITALS
-        Hand(card.measure, V.figure.size)
-        card.measure:SetText((w.pct or 0) .. "%")
-        local fw = Width(card.measure) + 2
+        Hand(measure, V.figure.size)
+        measure:SetText((w.pct or 0) .. "%")
+        local fw = Width(measure) + 2
         return { kind = "chart", bar = FORMS[form].bar, fw = fw, w = math.ceil(FORMS[form].bar + V.figure.gap + fw),
             h = math.max(V.figure.size, V.bar.h + 2) }
     end
@@ -470,13 +469,12 @@ function WitnessCard.New(parent)
     -- and leave off). Heights and widths of what goes under the name.
     local function Try(form, width, force)
         local F = FORMS[form]
-        local pad = Strip.STRIP.pad
         local room = width - pad[1] - pad[3]
         local w = card.witness
         local step = card.step or 0
         local fail = width < F.least
         -- The name, and who else was there on its line where that fits.
-        local name = card.note and card.note.name or ""
+        local name = card.nameWords or ""
         Hand(card.name, F.name)
         local others = Witnesses.Others(w.others)
         local line = others and (name .. " " .. others) or name
@@ -491,13 +489,13 @@ function WitnessCard.New(parent)
         if nameW > room then fail = true end
         -- The deed, in the hand.
         local deedText, under = Witnesses.Deed(w)
-        Hand(card.measure, F.deed)
-        local deed = Balanced(card.measure, deedText, room, F.deedLines)
+        Hand(measure, F.deed)
+        local deed = Balanced(measure, deedText, room, F.deedLines)
         if not deed then
             fail = true
             deed = { deedText }
         end
-        local deedW = Widest(card.measure, deed)
+        local deedW = Widest(measure, deed)
         -- The foe, in small print.
         local foeText = step < 1 and Witnesses.Foe(w) or nil
         local foe
@@ -648,7 +646,6 @@ function WitnessCard.New(parent)
 
     -- Everything but the name, as planned, the slip laid `W` by `H`.
     local function Draw(plan, W, H)
-        local pad = Strip.STRIP.pad
         local INK, STRONG = Style.INK, Style.INK_STRONG
         local left = -W / 2 + pad[1]
         local nameTop = -H / 2 + pad[2]
@@ -678,11 +675,11 @@ function WitnessCard.New(parent)
             -- "Mercilessly", underlined twice.
             local at = plan.under and words:find(plan.under, 1, true)
             if at then
-                Hand(card.measure, plan.deedSize)
-                card.measure:SetText(words:sub(1, at - 1))
-                local x0 = left + (at > 1 and Width(card.measure) or 0)
-                card.measure:SetText(plan.under)
-                local x1 = x0 + Width(card.measure)
+                Hand(measure, plan.deedSize)
+                measure:SetText(words:sub(1, at - 1))
+                local x0 = left + (at > 1 and Width(measure) or 0)
+                measure:SetText(plan.under)
+                local x1 = x0 + Width(measure)
                 local base = ly + 0.3 * plan.deedSize
                 local seed = card.seedKey or "witness"
                 local first = Lucky.Underline(seed .. ":u1", x0, x1, base)
@@ -717,7 +714,7 @@ function WitnessCard.New(parent)
         -- figure beside it.
         local row = plan.row
         if row then
-            local V, R, P = ns.CloseCalls.Card.VITALS, Style.RUBRIC, Strip.STRIP.paper
+            local V, R, P = ns.CloseCalls.Card.VITALS, Style.RUBRIC, card:Paper()
             local B = V.bar
             local pct = math.max(0, math.min(100, card.witness.pct or 0))
             local foot = top + plan.rowTop + row.h
@@ -745,8 +742,7 @@ function WitnessCard.New(parent)
 
     -- Laid as a strip, the first arrangement that fits `width` (FORMS, in
     -- ORDER), everything under the name in the room the strip keeps there.
-    local layout = card.Layout
-    function card:Layout(x, y, width)
+    function hooks.plan(self, note, width)
         local plan
         for _, form in ipairs(ORDER) do
             plan = Try(form, width)
@@ -758,21 +754,21 @@ function WitnessCard.New(parent)
         -- others).
         Hand(self.name, plan.F.name)
         self.name:SetText(plan.line)
-        local note = self.note
         note.under = { w = plan.w, h = plan.h, gap = 0, after = 0 }
         note.least, note.what = nil, nil
         self.plan, self.form, self.underlined = plan, plan.form, nil
-        local W, H = layout(self, x, y, width)
+        return plan
+    end
+    function hooks.draw(self, plan, W, H)
         -- (The strip writes its note's name; the line with the others is
         -- the card's.)
         self.name:SetText(plan.line)
         Draw(plan, W, H)
-        return W, H
     end
 
     -- The width the card would like: XL, all of it on its lines, and never
     -- less than XL's least. The page gives a row's box this much where it
-    -- has it (UI/JournalJourney.lua's ROW).
+    -- has it (UI/Journey/Margin.lua's ROW).
     function card:Preferred()
         return math.max(FORMS.XL.least, Try("XL", 10000, true).W)
     end

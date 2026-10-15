@@ -1,5 +1,5 @@
 -- Hunts' marks on Your Diary's plates (Plate.RegisterMark,
--- UI/JourneyPlate.lua), drawn on every plate and the full zone page
+-- UI/Journey/Plate.lua), drawn on every plate and the full zone page
 -- through the plate's kit: the tally (bad luck, `luck`) and the lucky star
 -- (good luck, `fortune`), each choosing the plate's one card of its kind.
 

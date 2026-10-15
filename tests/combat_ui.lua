@@ -250,7 +250,7 @@ Check(v.tagPaper:IsShown() and v.tagText:GetText() == "Lv 7", "a common creature
 -- The heading over everything, in the hand, as the margin's other cards
 -- have theirs; clear of the slip's tape.
 local B = card.box
-local pad = ns.UI.PAPER_STRIP.STRIP.pad
+local pad = { card:Pad() }
 Check(v.heading:IsShown(), "the card has no heading")
 Eq(v.heading:GetText(), "A close call", "the card's heading")
 Eq(v.heading.recorded.calls.SetFontObject[1], ns.Style.FONT.noteWritten, "the heading is not in the hand")
@@ -554,7 +554,7 @@ do
         .. "Barrens, "), "the begun chain's tailpiece: " .. table.concat(marked, "; "))
     -- (Humar's week is a full plate and a light one, laid as F+L: the
     -- full plate under its caption, its notes in a row under it, the
-    -- light plate's print beside them (UI/JournalJourney.lua's LAYOUT).
+    -- light plate's print beside them (UI/Journey/Look.lua's LAYOUT).
     -- In the row Humar's card has room for its deed; on the two-plate
     -- page before (LAYOUT[2], its column 176 by 222) it gave the deed up.)
     table.sort(foes)

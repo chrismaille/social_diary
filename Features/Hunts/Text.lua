@@ -1,9 +1,9 @@
 -- Hunts' words (JRN-26 bad luck, EXT-3 good luck): a hunt in a few words,
 -- its mark's tooltip (Mark.lua), the cards' words and tooltips
 -- (HuntCard.lua, LuckyCard.lua, and S on a light plate's print), the
--- level's prose (Text.RegisterLines, UI/JourneyText.lua) and the plates'
--- caption words (Text.RegisterCaption), for bad luck (`luck`) and good
--- (`fortune`). The shared words are the core's (UI/JourneyText.lua's
+-- level's prose (Text.RegisterLines, UI/Journey/Text/Prose.lua) and the
+-- plates' caption words (Text.RegisterCaption), for bad luck (`luck`) and
+-- good (`fortune`). The shared words are the core's (UI/Journey/Text/Grammar.lua's
 -- exports): a figure held to its noun (Text.Count), a creature's name for
 -- more than one (Text.Plural), an item's (Text.ItemWord, Text.Items), counts
 -- in words (Text.NUMBER, Text.WORDS) and a tooltip's last line

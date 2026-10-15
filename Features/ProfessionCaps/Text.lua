@@ -1,5 +1,5 @@
 -- Profession caps' words (JRN-29): a sentence each in the level's prose
--- (Text.RegisterLines, UI/JourneyText.lua), the plates' caption words
+-- (Text.RegisterLines, UI/Journey/Text/Prose.lua), the plates' caption words
 -- (Text.RegisterCaption) and the stairs' tooltip (Mark.lua). Copy changes
 -- go through the copywriter skill, as every player-read word does.
 

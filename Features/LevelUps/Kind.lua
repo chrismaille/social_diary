@@ -26,9 +26,9 @@
 --   - the climb: level-ups one after another folded into one line on the
 --     timeline (Core/Timeline.lua's Climbs, by Core/Rows.lua's `climb`
 --     flag, which this kind sets), with its words ("Tester went from level 1
---     to 6") and icon in UI/TimelineText.lua, reading the rows' context
+--     to 6") and icon in UI/Words/Timeline.lua, reading the rows' context
 --     { from, level };
---   - the "levelup" art (UI/StyleArt.lua), the climb's icon too;
+--   - the "levelup" art (UI/Style/Art.lua), the climb's icon too;
 --   - the sessions' levelStart/levelEnd (SES-4: Capture/Group.lua's
 --     UNIT_LEVEL, Core/Sessions.lua), read off the same readings but not
 --     from these rows.

@@ -1,6 +1,6 @@
 -- The killer card (Your Diary's plates, JRN-21; Kind.lua): what killed you on a plate,
 -- as option A of .claude/ui-proposal/killer-models-proposal.md, "Cut in
--- ink". A paper strip (UI/PaperStrip.lua) taped in the plate's margin, last
+-- ink". A paper strip (UI/Paper/Strip.lua) taped in the plate's margin, last
 -- of its notes, with a pencil leader to its death cross; on it, straight on
 -- the slip's paper, the creature as a flat silhouette in ink, its head and
 -- shoulders in profile, facing the cross (a Victorian cut-paper portrait,
@@ -107,7 +107,7 @@ local MATCH = { slack = 30, near = 24 }
 -- What outranks what (Capture.lua's ranks); a common creature none.
 local RANK = { worldboss = 4, rareelite = 3, rare = 2, elite = 1 }
 
-local HAND = "Interface\\AddOns\\" .. addonName .. "\\Fonts\\Neuton-Italic.ttf"
+local HAND = Style.NEUTON_ITALIC
 
 -- The displays a model drew nothing from this session (KILLER.check): their
 -- cards are the print from the start.
@@ -398,9 +398,11 @@ end
 -- when first wanted. card:SetKiller(k, seed, now) with Choose's killer
 -- (and k.mark, its cross on `parent`), then card:Layout(x, y, width) as a
 -- strip's; card.mode says what its picture is: "ink", "print" or "name".
+-- Laid through the strip's hooks (UI/Paper/Strip.lua), `hooks`, filled in
+-- below, after its picture's drawing.
 function KillerCard.New(parent)
-    local card = ns.UI.PaperStrip(parent)
-    local Strip = ns.UI.PAPER_STRIP
+    local hooks = {}
+    local card = ns.UI.PaperStrip(parent, hooks)
     for _, face in ipairs(FACES) do
         for name, fn in pairs(face.methods or {}) do card[name] = fn end
     end
@@ -569,7 +571,7 @@ function KillerCard.New(parent)
     -- gives up what the face says it can (RegisterFace's `smaller`); a
     -- killer's has nothing to give up. Whether there was anything left to
     -- give up (the page lays it again).
-    function card:Smaller()
+    function hooks.smaller(self)
         if not self.face then return false end
         return self.face.smaller(self)
     end
@@ -579,36 +581,24 @@ function KillerCard.New(parent)
     -- is long, its words in ink; wearing a face, with the room its plan
     -- asks over and under the name, its picture drawn small (card.compact)
     -- where it would stand taller than `room` px (the margin's height
-    -- left, where the page says). card.overfull where the name will not
-    -- fit `width` even so (the page leaves it off).
-    local layout = card.Layout
-    local Lay
-    function card:Layout(x, y, width, room)
-        self.room, self.compact = room, nil
-        local w, h = Lay(self, x, y, width)
-        if self.face and self.picture and room and h > room then
-            self.compact = true
-            w, h = Lay(self, x, y, width)
-        end
-        return w, h
-    end
-    function Lay(self, x, y, width)
+    -- left, where the page says: `again`). card.overfull where the name
+    -- will not fit `width` even so (the page leaves it off).
+    --
+    -- The slip's tape `tapeAt` of the way along, the slip wide enough for
+    -- it to start KILLER.clear px past what is at its top (`over` px
+    -- wide): a killer's picture, a face's heading (the strip's Least).
+    local function Least(over, tapeAt) return card:Least(over, tapeAt, KILLER.clear) end
+    function hooks.plan(self, note, width, room, again)
+        -- The first laying: the margin's room kept (for a laying of its
+        -- own, Picture's), the picture at its size.
+        if not again then self.room, self.compact = room, nil end
         self.column = width
-        local note = self.note or {}
         local pic = self.mode ~= "name" and (width < KILLER.narrow.below and KILLER.narrow or KILLER.picture) or nil
-        local pad, T = Strip.STRIP.pad, Strip.TAPE
-        local room = width - pad[1] - pad[3]
-        -- The slip's tape `tapeAt` of the way along, the slip wide enough
-        -- for it to start KILLER.clear px past what is at its top (`over`
-        -- px wide): a killer's picture, a face's heading. Its middle is at
-        -- most TAPE.inset from the end.
-        local function Least(over, tapeAt)
-            local reach = pad[1] + over + KILLER.clear + T.w / 2
-            return math.ceil(math.max(reach / tapeAt, reach + T.inset))
-        end
+        local l, _, r = self:Pad()
+        local inside = width - l - r
         local plan
         if self.face then
-            plan = self.face.plan(self, note, width, room, pic, Least)
+            plan = self.face.plan(self, note, width, inside, pic, Least)
         else
             note.under = nil
             note.picture = pic
@@ -617,20 +607,30 @@ function KillerCard.New(parent)
         end
         self.name:SetFontObject(Style.FONT.noteWritten)
         self.name:SetText(note.name or "")
-        if (self.name:GetUnboundedStringWidth() or 0) > room then self.name:SetFont(HAND, KILLER.small, "") end
-        self.overfull = (self.name:GetUnboundedStringWidth() or 0) > room
-            or (note.least or 0) > width or (note.under ~= nil and note.under.w > room)
-            or (note.picture ~= nil and note.picture.w > room)
-        local w, h = layout(self, x, y, width)
+        if (self.name:GetUnboundedStringWidth() or 0) > inside then self.name:SetFont(HAND, KILLER.small, "") end
+        self.overfull = (self.name:GetUnboundedStringWidth() or 0) > inside
+            or (note.least or 0) > width or (note.under ~= nil and note.under.w > inside)
+            or (note.picture ~= nil and note.picture.w > inside)
+        return plan
+    end
+    -- Wearing a face, laid once more with its picture drawn small where it
+    -- stood taller than the margin's room.
+    function hooks.again(self, w, h, room)
+        if self.face and self.picture and room and h > room then
+            self.compact = true
+            return true
+        end
+        return false
+    end
+    function hooks.draw(self, plan)
         local INK = Style.INK
-        for i = 1, self.shownLines or 0 do self.lines[i]:SetTextColor(INK[1], INK[2], INK[3]) end
+        for _, line in ipairs(self:WhatLines()) do line:SetTextColor(INK[1], INK[2], INK[3]) end
         -- A killer's card has nothing of a face's (the pool hands the same
         -- card to a killer and a close call by turns, two a plate).
         for _, face in ipairs(FACES) do face.hide(self) end
         if self.face then self.face.top(self, plan) end
         Picture()
         if self.face then self.face.under(self, plan) end
-        return w, h
     end
 
     return card
@@ -640,9 +640,7 @@ end
 -- its lines (Text.lua's KillerTip).
 function KillerCard.Tip(k, now)
     local title, lines = ns.Deaths.KillerTip(k, now)
-    local list = { { title } }
-    for _, line in ipairs(lines or {}) do list[#list + 1] = { line, 1, 1, 1, true } end
-    return list
+    return Style.TipList(title, lines)
 end
 
 KillerCard.KILLER, KillerCard.RANK = KILLER, RANK

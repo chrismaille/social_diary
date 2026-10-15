@@ -1,7 +1,8 @@
 -- The zone sheet's ink trail (JRN-14), its arithmetic alone
--- (UI/InkTrail.lua): the user's rule that a longer stay never makes the
--- ground larger, no ink outside a footprint, seamless strokes that are
--- never dashed, droplets, pace, merging and the caps. Pure functions over
+-- (UI/Ink/Trail.lua, and its pen, UI/Ink/Pen.lua): the user's rule that a
+-- longer stay never makes the ground larger, no ink outside a footprint,
+-- seamless strokes that are never dashed, droplets, pace, merging and the
+-- caps. Pure functions over
 -- plain tables, so nothing here needs a sheet; tests/journey_ui.lua checks
 -- the same promises as drawn on one.
 
@@ -9,6 +10,7 @@ local T = ...
 local Section, Check, Eq = T.Section, T.Check, T.Eq
 local ns = T.Boot()
 local Ink = ns.UI.InkTrail
+local Pen = ns.UI.Pen
 local POOL, FOOT, CAP, LAYER = Ink.POOL, Ink.FOOT, Ink.CAP, Ink.LAYER
 
 -- A 500 x 340 map, as if the whole of it were on the sheet.
@@ -154,9 +156,9 @@ Check(not moved, "a pool's ink moved between drawings")
 --------------------------------------------------------------------------
 Section("a stroke is seamless and never dashed")
 
-local P = Ink.Resample({ 0, 0, 20, 5, 40, 0, 60, 12 }, 4)
+local P = Pen.Resample({ 0, 0, 20, 5, 40, 0, 60, 12 }, 4)
 local out = {}
-Ink.Stroke(out, LAYER.road, P, Ink.Mitres(P), function() return 1 end, function() return 0 end,
+Pen.Stroke(out, LAYER.road, P, Pen.Mitres(P), function() return 1 end, function() return 0 end,
     function() return 0.8 end, ns.Style.INK_STRONG)
 Eq(#out, #P - 1, "a stroke is not one quad a piece")
 local apart = 0
@@ -176,7 +178,7 @@ for i = 2, #P - 1 do
 end
 Eq(off, 0, "resampled points off their step")
 -- Chaikin keeps the ends and cuts the corners.
-local smooth = Ink.Chaikin({ 0, 0, 10, 0, 10, 10 }, 1)
+local smooth = Pen.Chaikin({ 0, 0, 10, 0, 10, 10 }, 1)
 Eq(#smooth, 12, "Chaikin's points: two cuts a corner, the ends kept")
 Check(smooth[1] == 0 and smooth[2] == 0 and smooth[11] == 10 and smooth[12] == 10, "Chaikin lost the ends")
 
@@ -335,7 +337,7 @@ Check(quads + discs == #bprims and discs > 0 and quads > 0, "the primitives' kin
 --------------------------------------------------------------------------
 Section("the pen: a broad nib, flow in the curves, lag, beads")
 
-local PEN, ROAD = Ink.PEN, Ink.ROAD
+local PEN, ROAD = Pen.PEN, Ink.ROAD
 -- The pen's own effects alone: no wobble or flicker while measuring.
 local wobble, flicker = ROAD.wobble, ROAD.flicker
 ROAD.wobble, ROAD.flicker = 0, 0
@@ -348,8 +350,8 @@ local function Profile(flat, p, fresh, room)
     local ends = fresh and {} or { first = { e = { x = -1e4, y = -1e4, a1 = 3, a2 = 3, theta = 0 }, T = 0,
         tint = Ink.TINT.stayed } }
     local _, dots = Ink.Road(out, { from = 0, to = 300 }, flat, p, ends, 5, room or { quads = 9999, dots = 9999 })
-    local P, total = Ink.Resample(Ink.Chaikin(flat, ROAD.smooth), ROAD.step)
-    local M = Ink.Mitres(P)
+    local P, total = Pen.Resample(Pen.Chaikin(flat, ROAD.smooth), ROAD.step)
+    local M = Pen.Mitres(P)
     local quads, beads, at = {}, {}, {}
     for _, prim in ipairs(out) do
         if prim.layer == LAYER.road then
@@ -359,7 +361,7 @@ local function Profile(flat, p, fresh, room)
     for i = 1, #quads do
         local q, a, b = quads[i], P[math.max(i - 1, 1)], P[math.min(i + 1, #P)]
         local w = math.sqrt((q.x1 - q.x4) ^ 2 + (q.y1 - q.y4) ^ 2) / M[i].k
-        at[i] = { x = P[i].x, y = P[i].y, s = P[i].s, w = w, nib = Ink.Nib(b.x - a.x, b.y - a.y), a = q.a }
+        at[i] = { x = P[i].x, y = P[i].y, s = P[i].s, w = w, nib = Pen.Nib(b.x - a.x, b.y - a.y), a = q.a }
         at[i].ink = w / at[i].nib * q.a
     end
     return at, quads, beads, total, dots
@@ -470,14 +472,14 @@ Check(InkAt(backward, A) < 1.01 * InkAt(backward, A30), "walked back, the ink st
 local zigzag = { 0, 100, 30, 100 }
 for k = 1, 6 do zigzag[#zigzag + 1], zigzag[#zigzag + 2] = 30 + 9 * k, k % 2 == 1 and 78 or 100 end
 zigzag[#zigzag + 1], zigzag[#zigzag + 2] = 120, 100
-local corners = Ink.Beads(Ink.Chaikin(zigzag, ROAD.smooth))
+local corners = Pen.Beads(Pen.Chaikin(zigzag, ROAD.smooth))
 Check(#corners >= 4, "the zig-zag's corners have no beads: " .. #corners)
 local arc = {}
 for k = 0, 20 do
     local a = math.pi / 2 * k / 20
     arc[#arc + 1], arc[#arc + 2] = 100 + 60 * math.cos(a), 100 + 60 * math.sin(a)
 end
-Eq(#Ink.Beads(Ink.Chaikin(arc, ROAD.smooth)), 0, "beads on a gentle arc")
+Eq(#Pen.Beads(Pen.Chaikin(arc, ROAD.smooth)), 0, "beads on a gentle arc")
 local _, _, zbeads = Profile(zigzag, 0.45, true)
 Eq(#zbeads, #corners + 1, "the zig-zag's beads drawn, and the fresh pen's")
 local _, _, held2 = Profile(arc, 0.45, false)

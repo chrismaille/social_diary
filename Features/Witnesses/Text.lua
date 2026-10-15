@@ -3,7 +3,7 @@
 -- rows) so the card and the profile's row say the same thing: who (the
 -- subject, in the hand), what they did (the hand), what it was against
 -- (small print); its tooltip; and the caption's sentence where the card
--- has no room (Text.RegisterCaption, UI/JourneyText.lua). `w` is the
+-- has no room (Text.RegisterCaption, UI/Journey/Text/Caption.lua). `w` is the
 -- plate's witness (Card.lua's Choose). A creature's name in a sentence
 -- ("a Ragged Young Wolf") is the core's Text.KillerName. Copy changes go
 -- through the copywriter skill, as every player-read word does.
@@ -83,8 +83,8 @@ function Witnesses.Tip(w, now)
     if record then
         local who = {}
         if record.level then who[#who + 1] = "Level " .. record.level end
-        who[#who + 1] = ns.UI.RaceName(record)
-        who[#who + 1] = ns.UI.ClassName(record)
+        who[#who + 1] = ns.UI.Format.RaceName(record)
+        who[#who + 1] = ns.UI.Format.ClassName(record)
         if #who > 0 then lines[#lines + 1] = table.concat(who, " ") end
     end
     local look = Witnesses.Look(w)

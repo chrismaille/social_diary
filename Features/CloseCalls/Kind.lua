@@ -26,10 +26,10 @@
 --
 -- What stays core, because it is the diary's substrate and not this
 -- feature's detection:
---   - the creature names read off units for a while (Journey.NoteName,
---     NameOf, j.names): the judge notes every foe it reads, and this list
---     is registered `readNames`, so NameOf takes a creature's name from it
---     where none was read lately (Core/Journey.lua);
+--   - the creature names read off units for a while (Core/
+--     CreatureNames.lua: Note, Of, j.names): the judge notes every foe it
+--     reads, and this list is registered `readNames`, so CreatureNames.Of
+--     takes a creature's name from it where none was read lately;
 --   - a creature's name in a sentence (Text.KillerName) and the health
 --     left held together (Text.Health): the witnesses say theirs with
 --     them too;
@@ -78,7 +78,7 @@ local Journey = ns.Journey
 -- foe was never targeted. `display` read as a killer's is, by its NPC id
 -- (the deaths' capture looks it up). The newest 300 are kept a character.
 -- Its creatures' names are as read off their units (Capture.lua), so the
--- list is registered `readNames` (Core/Journey.lua's NameOf asks it).
+-- list is registered `readNames` (Core/CreatureNames.lua's Of asks it).
 
 local LIST = "closeCalls"
 Journey.RegisterList(LIST, { cap = 300, readNames = true })

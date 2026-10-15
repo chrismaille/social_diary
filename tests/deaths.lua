@@ -362,7 +362,7 @@ local MURLOC = "Creature-0-4615-1-72-46-0000AAAA04"
 local SPIDER = "Creature-0-4615-1-72-30-0000AAAA05"
 local BEAR = "Creature-0-4615-1-72-822-0000AAAA06"
 mock.SetUnit("target", nil)
-J.NoteName(46, "Murloc Forager", mock.now)
+ns.CreatureNames.Note(46, "Murloc Forager", mock.now)
 mock.now = mock.now + 300
 recaps.latest = { Hit(MURLOC, "Murloc Forager Olwynne", SELF.guid, mock.now) }
 mock.fire("PLAYER_DEAD")
@@ -377,7 +377,7 @@ mock.fire("PLAYER_DEAD")
 mock.RunTimers()
 local spider = Latest()
 Eq(spider.name, "Forest Spider Grimm", "setup: a surname with no name known")
-J.NoteName(30, "Forest Spider", mock.now)
+ns.CreatureNames.Note(30, "Forest Spider", mock.now)
 Eq(spider.name, "Forest Spider", "a death kept with a surname was not put right when the name was read")
 
 -- A name of three words with none known is left as it is: nothing is
@@ -387,7 +387,7 @@ recaps.latest = { Hit(BEAR, "Young Forest Bear", SELF.guid, mock.now) }
 mock.fire("PLAYER_DEAD")
 mock.RunTimers()
 Eq(Latest().name, "Young Forest Bear", "a name cut with none known")
-J.NoteName(822, "Young Forest Bear", mock.now)
+ns.CreatureNames.Note(822, "Young Forest Bear", mock.now)
 Eq(Latest().name, "Young Forest Bear", "a name its own name changed")
 
 -- An old death mended from a close call's name, at login; the names read
@@ -410,7 +410,7 @@ J.RegisterList("scrapsNamed", { named = true })
 J.RegisterList("scrapsPlain", {})
 j.scrapsNamed = { { t = mock.now, npcID = 3100, name = "Mottled Boar Grunwald" } }
 j.scrapsPlain = { { t = mock.now, npcID = 3100, name = "Mottled Boar Grunwald" } }
-J.NoteName(3100, "Mottled Boar", mock.now)
+ns.CreatureNames.Note(3100, "Mottled Boar", mock.now)
 Eq(j.scrapsNamed[1].name, "Mottled Boar", "a list registered `named` was not put right")
 Eq(j.scrapsPlain[1].name, "Mottled Boar Grunwald", "a list not registered `named` was put right")
 j.scrapsNamed, j.scrapsPlain = nil, nil
@@ -432,7 +432,7 @@ do
             if route.scrapsOpen and now > route.scrapsOpen.stale then route.scrapsOpen = nil end
         end })
     j.scrapsOpen = { [3101] = "Bristleback Quilboar", stale = mock.now - 1 }
-    Eq(J.NameOf(j, 3101), "Bristleback Quilboar", "a list's own reading of its names not asked")
+    Eq(ns.CreatureNames.Of(j, 3101), "Bristleback Quilboar", "a list's own reading of its names not asked")
     local older = { t = mock.now - 100, npcID = 3101, name = "Bristleback Quilboar Hamm" }
     table.insert(j.deaths, 1, older)
     J.Prune(mock.now)
@@ -441,7 +441,7 @@ do
     j.scrapsOpen = { [3101] = "Bristleback Quilboar", stale = mock.now - 1 }
     J.RegisterList("scrapsRead", {})
     asked = 0
-    Eq(J.NameOf(j, 3101), nil, "a list registered again without its reading still read")
+    Eq(ns.CreatureNames.Of(j, 3101), nil, "a list registered again without its reading still read")
     Eq(asked, 0, "a list registered again without its reading still asked")
     J.Prune(mock.now)
     Check(j.scrapsOpen ~= nil, "a list registered again without its prune still pruned")
@@ -476,7 +476,7 @@ do
 end
 
 -- At most sixty, the least recent dropped.
-for id = 1001, 1061 do J.NoteName(id, "Mob " .. id, mock.now + id) end
+for id = 1001, 1061 do ns.CreatureNames.Note(id, "Mob " .. id, mock.now + id) end
 local n = 0
 for _ in pairs(j.names) do n = n + 1 end
 Eq(n, 60, "the names read kept")
@@ -484,7 +484,7 @@ Eq(j.names[1001], nil, "the least recent name kept over the limit")
 
 -- Route off: nothing read is kept.
 ns.db.settings.keepRoute = false
-J.NoteName(2000, "Gnoll Brute", mock.now)
+ns.CreatureNames.Note(2000, "Gnoll Brute", mock.now)
 Eq(j.names[2000], nil, "a name kept with the route off")
 ns.db.settings.keepRoute = true
 

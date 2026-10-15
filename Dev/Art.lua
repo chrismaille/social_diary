@@ -1,6 +1,6 @@
 -- /sd art: which journal art this client resolved, and the paper and grain
--- trials (Style.NextPaper in UI/StyleArt.lua, Style.SetGrain in
--- UI/StyleBook.lua). Development tooling, listed in /sd help only while
+-- trials (Style.NextPaper in UI/Style/Art.lua, Style.SetGrain in
+-- UI/Style/Book.lua). Development tooling, listed in /sd help only while
 -- debug is on.
 
 local addonName, ns = ...

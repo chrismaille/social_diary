@@ -3,8 +3,9 @@
 -- Core/Sessions.lua holds the model and never touches a unit token; this file
 -- is where the client's signals are read and handed to it: the lifecycle
 -- (login, the tick, logout) and what happens during a session -- zones,
--- quests, rares and world bosses. Deaths are a feature's, which writes them
--- into the session (Sessions.Death).
+-- quests, levels. Rares and deaths are features' (Features/Rares/,
+-- Features/Deaths/), which write them into the session (Sessions.Rare,
+-- Sessions.Death).
 
 local addonName, ns = ...
 
@@ -90,38 +91,4 @@ end)
 ns.On("PLAYER_LEVEL_UP", function(_, level)
     ns.Sessions.MyLevel(level)
     ns.JourneyCapture.LevelUp(level)
-end)
-
--- Rares and world bosses. PARTY_KILL gives plain attacker and victim GUIDs
--- (Session 1, even under combat lockdown), but no classification: that has
--- to come off a unit token still pointing at the corpse.
-local RARE_KINDS = { rare = true, rareelite = true, worldboss = true }
-
--- The plates come last, after every token the user points at on purpose.
-local VICTIM_UNITS = { "target", "focus", "mouseover" }
-for i = 1, 5 do VICTIM_UNITS[#VICTIM_UNITS + 1] = "boss" .. i end
-
-local function FindUnit(guid)
-    local function On(unit)
-        if UnitExists(unit) and ns.Plain(UnitGUID(unit)) == guid then return unit end
-    end
-    return ns.Units.Each(VICTIM_UNITS, On) or ns.Units.Each(ns.Units.Plates, On)
-end
-
-ns.On("PARTY_KILL", function(_, attacker, victim)
-    if not ns.Sessions.Current() then return end
-
-    attacker = ns.SafeGUID(attacker)
-    if not attacker or not (attacker == ns.ownGUID or ns.Roster.Has(attacker)) then return end
-
-    victim = ns.Plain(victim)
-    if type(victim) ~= "string" or ns.SafeGUID(victim) then return end
-
-    local unit = FindUnit(victim)
-    local kind = unit and UnitClassification and ns.Plain(UnitClassification(unit))
-    if not kind or not RARE_KINDS[kind] then return end
-
-    local name = ns.Plain((UnitName(unit)))
-    local n = ns.Sessions.Rare({ name = name, npcID = ns.NpcID(victim), kind = kind }, Grouped)
-    if n > 0 then ns.Debug("%s %s counted for %d participant(s)", kind, tostring(name), n) end
 end)

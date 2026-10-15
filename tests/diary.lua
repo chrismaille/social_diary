@@ -184,7 +184,7 @@ Check(seen, "added off a sighting, still not seen nearby")
 Eq(seen.time, mock.now - 3000, "last seen is not the latest sighting")
 Eq(seen.mapID, 1413, "last seen is not the latest sighting's map")
 Eq(seen.x, 0.5, "the place is not where the zone-hour's row began")
-Eq(ns.UI.SeenText(seen):match(" in (.+)$"), "The Barrens", "the profile line names no zone")
+Eq(ns.UI.Format.SeenText(seen):match(" in (.+)$"), "The Barrens", "the profile line names no zone")
 
 -- A later `seen` (a trade, a nameplate once in the diary) is not overwritten.
 local LATER = "Player-4620-00EEEE07"

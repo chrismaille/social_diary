@@ -290,8 +290,8 @@ Diary.ToggleTag = OnDiary(Edit.ToggleTag)
 -- Drafts: somebody being written up, not added yet
 --------------------------------------------------------------------------
 
--- The add page writes on a draft until Done (UI/Entry.lua), so closing it
--- without Done adds nobody (DIA-1: they enter because the user said so).
+-- The add page writes on a draft until Done (UI/Windows/Entry.lua), so closing
+-- it without Done adds nobody (DIA-1: they enter because the user said so).
 -- A draft answers the same calls as Diary -- Get, HasTag and the edits, by
 -- GUID -- on an entry of its own; Save adds the person as written. `opts`
 -- is Add's, read now. Nil when the character cannot be identified.

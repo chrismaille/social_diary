@@ -28,9 +28,9 @@
 --     the first visits (a zone new to the road), the recap's own `first`
 --     and `arrive`; they share only the word;
 --   - the people's margin notes and marks (a gift from someone in the
---     diary joins them: the mark's `join`, UI/JourneyPlate.lua; and the
+--     diary joins them: the mark's `join`, UI/Journey/Plate.lua; and the
 --     moment's `person`, which says how it stands among their own
---     moments: UI/JournalJourney.lua's Tier, UI/JourneyText.lua's
+--     moments: UI/Journey/People.lua's Tier, UI/Journey/Text/Margin.lua's
 --     MarginWhat);
 --   - the item qualities' inks, washes and game colours (ns.Style:
 --     QualityInk, QualityNameInk, QualityWash, QualityGameColour), the
@@ -168,9 +168,9 @@ Journey.RegisterList("firsts", {
 --
 -- A gift is its giver's moment too: `guid`, and `person` (Text.lua's
 -- Firsts.PERSON, read when the moment is made), how it stands among a
--- person's own moments on their margin note (UI/JournalJourney.lua's
--- Tier, UI/JourneyText.lua's MarginWhat). Mark.lua's `join` keeps it with
--- the giver's marks where the diary knows them.
+-- person's own moments on their margin note (UI/Journey/People.lua's
+-- Tier, UI/Journey/Text/Margin.lua's MarginWhat). Mark.lua's `join` keeps
+-- it with the giver's marks where the diary knows them.
 ns.JourneyRecap.RegisterMoment("find", { order = 10, entry = "finds", rank = 2,
     gather = function(j, a, b, e)
         for _, f in ipairs(Firsts.List(j)) do

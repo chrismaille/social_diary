@@ -20,14 +20,14 @@
 --   - chat text as such, driven by a kind's `chat` flag (Core/Rows.lua):
 --     the excerpt's cap and TrimExcerpts in Core/Interactions.lua, the
 --     storeChat and chatLines settings and their switches in
---     UI/Settings.lua;
+--     UI/Settings/Sections/Recording.lua;
 --   - the chat events' plumbing, ns.OnChat and ns.ChatHandler
 --     (Core/Events.lua), and the restricted-chat rule (ns.SafeGUID);
 --   - the Nearby engine's own ears, Capture/Sightings.lua's FromChat
 --     (people heard in /say and /yell are sightings, whoever they are);
 --   - the timeline's activity "chat" and its headline words ("Chatted",
 --     "N messages"), keyed by activity, not by row kind
---     (UI/TimelineText.lua), and the "talk" bubble they share with a
+--     (UI/Words/Timeline.lua), and the "talk" bubble they share with a
 --     /say;
 --   - ns.Recent's "whisper" (Core/Candidates.lua: the picker's "last
 --     whisperer"), which Capture.lua sets through ns.Recent.Set.

@@ -1,5 +1,5 @@
 -- Firsts found's mark on Your Diary's plates (Plate.RegisterMark,
--- UI/JourneyPlate.lua), drawn on every plate and the full zone page
+-- UI/Journey/Plate.lua), drawn on every plate and the full zone page
 -- through the plate's kit: a drawstring pouch where each first was found,
 -- firsts on one spot (a green bag is a first bag and a first green) one
 -- pouch, in the ink of the best of them, its tooltip telling each. A gift

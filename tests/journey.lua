@@ -1171,7 +1171,7 @@ Step()
 SlashCmdList.SOCIALDIARY("journey raw")
 
 -- /sd pen changes the fountain pen live, and puts it back.
-local PEN = ns.UI.InkTrail.PEN
+local PEN = ns.UI.Pen.PEN
 local thin, cap, size, most = PEN.nib.thin, PEN.flow.cap, PEN.bead.size, PEN.width[2]
 SlashCmdList.SOCIALDIARY("pen")
 Eq(PEN.nib.thin, thin, "/sd pen alone changed the pen")
