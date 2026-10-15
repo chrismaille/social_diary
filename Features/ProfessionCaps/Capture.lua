@@ -6,7 +6,7 @@
 -- Aid", 1, 75, 129). Each change reads every profession and holds it
 -- against the last reading, by the profession's id; the first reading
 -- after the diary was not watching only sets the mark, as the bags' does
--- (Capture/Journey.lua's firsts). CHAT_MSG_SKILL's words can be secret, so
+-- (Features/Firsts/Capture.lua). CHAT_MSG_SKILL's words can be secret, so
 -- it is a cue to read and never read itself; a burst of skill-ups (a
 -- mining run) is one reading.
 --

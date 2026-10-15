@@ -586,7 +586,6 @@ function HuntCard.New(parent)
             local px, py = card:Out(ix + corner[1] * half, iy + corner[2] * half)
             x0, y0, x1, y1 = math.min(x0, px), math.min(y0, py), math.max(x1, px), math.max(y1, py)
         end
-        card.itemRect = { x0, y0, x1, y1 }
         card.item:SetFrameLevel(card:GetFrameLevel() + 2)
         card.item:ClearAllPoints()
         card.item:SetPoint("TOPLEFT", parent, "TOPLEFT", x0, -y0)
@@ -691,8 +690,7 @@ function HuntCard.ShowTip(owner, card)
     GameTooltip:Show()
 end
 
-HuntCard.HUNT, HuntCard.ICON, HuntCard.COUNT, HuntCard.TALLY, HuntCard.RULE, HuntCard.FIGURE, HuntCard.ROWS =
-    HUNT, ICON, COUNT, TALLY, RULE, FIGURE, ROWS
+HuntCard.ICON, HuntCard.COUNT, HuntCard.TALLY = ICON, COUNT, TALLY
 HuntCard.SACK = SACK
 
 --------------------------------------------------------------------------

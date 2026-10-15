@@ -12,7 +12,6 @@ local Section, Check, Eq = T.Section, T.Check, T.Eq
 local DAY = T.DAY
 local ns = T.Boot()
 local SELF = F.SELF
-local Text = ns.UI.JourneyText
 local Card = ns.Hunts.HuntCard
 local NB = "\194\160"
 

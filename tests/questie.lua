@@ -18,10 +18,6 @@ local ADULT = "Creature-0-4615-1-832-2956-00004B69B1"
 local WOLF = "Creature-0-4615-1-832-2958-00004B6A01"
 local MEAT = "|cffffffff|Hitem:4739::::::::5:::::|h[Plainstrider Meat]|h|r"
 
-local function Mob(guid, name)
-    return { guid = guid, name = { name }, isPlayer = false, hostile = true }
-end
-
 -- QuestieDB as its contract 3 has it: entities read by field name, the
 -- drop tables in its support data (wowhead and cmangos as Lua text, the
 -- corrections a live table). `db.locale` is the language its names are

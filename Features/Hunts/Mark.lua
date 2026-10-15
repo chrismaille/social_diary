@@ -56,7 +56,6 @@ ns.UI.JourneyPlate.RegisterMark("luck", {
 -- never as the five strokes of a pentagram. About 12 px, the tally's size.
 -- (12 Oct, a rasterised render: at 13 px it outweighed the death beside it.)
 local FORTUNE = { r = 6.2, inner = 0.45, turn = -0.10, drop = 0.095, ray = 2.4, halo = 16 }
-Hunts.FORTUNE = FORTUNE
 -- The stars are kept (plate.fortuneMarks) for the plate's one lucky card
 -- (LuckyCard.lua): the luckiest hunt (plate.lucky), in the margin, or
 -- on the print of a light plate (LuckyCard.lua's pass, "print"). After

@@ -87,12 +87,7 @@ function Rows.Get(kind)
     return KINDS[kind] or NONE
 end
 
--- Whether `kind` was declared at all.
-function Rows.Known(kind)
-    return KINDS[kind] ~= nil
-end
-
--- Every declared kind's name, sorted (for the tests and /sd debug).
+-- Every declared kind's name, sorted (for the tests).
 function Rows.All()
     local list = {}
     for kind in pairs(KINDS) do list[#list + 1] = kind end

@@ -73,7 +73,6 @@ local function Sample(now)
     return { t = now, wx = wx, wy = wy, inst = inst, mapID = mapID, x = x, y = y, fx = fx, fy = fy, level = Level(),
         city = ns.City() ~= nil, resting = ns.Plain(IsResting and IsResting()) == true, subZone = SubZone() }
 end
-Capture.Sample = Sample
 
 -- The logged-in character's route, begun now if it was not yet (D10: from
 -- now on, nothing before).
@@ -188,19 +187,12 @@ end
 -- What happens on the way (JRN-6, JRN-7)
 --------------------------------------------------------------------------
 
-local function Live()
-    if not Capture.On() or not ns.ownGUID then return nil end
-    local j = Journey.Mine()
-    if j and j.test then return nil end
-    return j
-end
-
 -- Capture/Together.lua's QUEST_TURNED_IN handler calls this: counted on
 -- the road, then passed on to the features (SD_QUEST_TURNED_IN, Core/
 -- Events.lua) with the quest's id, whether or not the route is kept: a
 -- feature asks that itself (ns.Journey.Kept).
 function Capture.QuestTurnedIn(questID)
-    Journey.Act(Live(), "questsOut", 1)
+    Journey.Act(Journey.Kept(), "questsOut", 1)
     questID = ns.Plain(questID)
     if type(questID) == "number" then ns.Fire("SD_QUEST_TURNED_IN", questID) end
 end
@@ -209,7 +201,7 @@ end
 -- level was reached: on the zone map outdoors, nowhere in an instance (the
 -- recap finds the dungeon by time).
 function Capture.LevelUp(level)
-    local j = Live()
+    local j = Journey.Kept()
     level = ns.Plain(level)
     if not j or type(level) ~= "number" then return end
     local mapID, x, y = ns.ZoneWhere()
@@ -220,32 +212,32 @@ end
 -- Core/Events.lua) with the quest's id, the last argument (older clients
 -- give the log index first), whether or not the route is kept.
 ns.On("QUEST_ACCEPTED", function(_, ...)
-    Journey.Act(Live(), "questsIn", 1)
+    Journey.Act(Journey.Kept(), "questsIn", 1)
     local n = select("#", ...)
     local questID = n > 0 and ns.Plain((select(n, ...))) or nil
     if type(questID) == "number" then ns.Fire("SD_QUEST_ACCEPTED", questID) end
 end)
 
 ns.On("PLAYER_DEAD", function()
-    Journey.Act(Live(), "deaths", 1)
+    Journey.Act(Journey.Kept(), "deaths", 1)
 end)
 
 -- The spirit released: what was open ends where the body lies, and the
 -- lagging position is not read.
 ns.On("PLAYER_ALIVE", function()
-    local j = Live()
+    local j = Journey.Kept()
     if not j or not Flag(UnitIsGhost, "player") then return end
     Journey.Settle(j)
     ignoreUntil = ns.Now() + GHOST_LAG
 end)
 
 ns.On("PLAYER_REGEN_DISABLED", function()
-    local j = Live()
+    local j = Journey.Kept()
     if j then Journey.FightStart(j, ns.Now()) end
 end)
 
 ns.On("PLAYER_REGEN_ENABLED", function()
-    local j = Live()
+    local j = Journey.Kept()
     if j then Journey.FightEnd(j, ns.Now()) end
 end)
 

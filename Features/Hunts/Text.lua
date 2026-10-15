@@ -64,7 +64,6 @@ local function SortedKinds(hunt)
     end)
     return kinds
 end
-Hunts.SortedKinds = SortedKinds
 
 -- `n` of a creature: "17 Sunscale Scytheclaws", "a kill" kept as "1 kill".
 local function Killed(n, name)

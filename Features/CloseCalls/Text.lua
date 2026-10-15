@@ -24,7 +24,6 @@ local function Foes(call)
     if more > 1 then return name .. " and " .. (NUMBER[more] or tostring(more)) .. " others" end
     return name
 end
-CloseCalls.Foes = Foes
 
 -- A close call in a sentence: "Got away from a Plainstrider with 6%
 -- health.", or, no creature targeted, "Got out of a fight with 6%
@@ -94,7 +93,7 @@ end
 -- The level's close calls in its prose: each close call, at most `most`,
 -- the rest counted. Nil with none. They open the fights' paragraph
 -- ("combat", the `run` it shares with the luck with a quest's drops,
--- which runs on after it: UI/JourneyText.lua's "hunts", 75).
+-- which runs on after it: Features/Hunts/Text.lua's "hunts", 75).
 local PROSE = { most = 2 }
 
 function CloseCalls.Lines(e)

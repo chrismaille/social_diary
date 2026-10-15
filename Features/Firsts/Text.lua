@@ -73,7 +73,6 @@ end
 local function Giver(rec)
     return rec.from == "trade" and rec.guid and ns.db.characters[rec.guid] and rec.guid or nil
 end
-Firsts.Giver = Giver
 
 -- One first in a sentence, how it came and where: "Found your first
 -- green in Mulgore: Wolfskin Bracers." `kind`, `rec` as Firsts.List

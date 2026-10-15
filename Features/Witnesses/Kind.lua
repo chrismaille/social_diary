@@ -146,7 +146,6 @@ ns.Rows.Register(SAVED, { witness = "helped", moment = Always, reason = "they sa
 -- Seconds a row's time may be from its moment's: both are read in the same
 -- second, so this is only leeway.
 local SLACK = 3
-Witnesses.SLACK = SLACK
 
 -- The witnesses (Journey.WitnessIndex's) to a moment at `t` whose row type
 -- is in `types` ({ [type] = true }), best first: who acted before who

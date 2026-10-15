@@ -484,9 +484,8 @@ Section("after the reunion toast: what a look in a fight reads")
 -- Nearby's reunion toast (Capture/Nearby.lua) and this capture read the
 -- same nameplate and the same target. A look read in a fight puts what the
 -- unit shows on the character's record (Characters.ObserveUnit), so it
--- comes after the toast has taken its snapshot, as it did while the
--- capture was Capture/Witnesses.lua: Features/Witnesses/Capture.lua is
--- listed after Capture/ in the TOC. A diary entry the diary knows by their
+-- comes after the toast has taken its snapshot, as it always has:
+-- Features/Witnesses/Capture.lua is listed after Capture/ in the TOC. A diary entry the diary knows by their
 -- first name only (off a chat name, say) comes into view in a fight,
 -- looking on: the toast names them as the diary knew them, and the look
 -- reads their surname after.

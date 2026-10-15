@@ -37,7 +37,7 @@ local SWEEP = 5             -- seconds between looks at the others while sitting
 local EARLY = 1             -- gone with more than this left: they stood up
 local AGAIN = 10 * 60       -- a minute done this soon after the last...
 local NEAR = 0.01           -- ...this close on the zone map is the same fire
-Campfire.AGAIN, Campfire.NEAR = AGAIN, NEAR
+Campfire.AGAIN = AGAIN
 
 local sitting   -- { id, ends, sitters = { [guid] = level or true } } while the countdown runs
 local fire      -- the last fire: { at, where, rec, rowed = { [guid] = true } }

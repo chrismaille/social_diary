@@ -25,7 +25,6 @@ ns.Interactions = Interactions
 -- good (decision of 8 Oct 2026), and the Memory settings warn when the saved
 -- file grows large instead (ns.SIZE_WARNING).
 local MAX_ROWS = 250
-Interactions.MAX_ROWS = MAX_ROWS
 
 -- INT-3: how many lines of chat are kept per character is the user's
 -- (settings.chatLines, 50 to begin with, or every line with
@@ -42,7 +41,6 @@ local Rows = ns.Rows
 -- the character is added (flow 2), but they do not make anyone "someone I
 -- just dealt with" (Since, the picker) or count as interactions on record.
 local function Observed(kind) return Rows.Get(kind).observed == true end
-Interactions.Observed = Observed
 
 --------------------------------------------------------------------------
 -- Reading

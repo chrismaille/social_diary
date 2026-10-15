@@ -429,7 +429,7 @@ local function DrawJourneyCut(plate)
     local Plate = ns.UI.JourneyPlate
     local window = Plate.Window(mapID, where.mapID and where.x or 0.5, where.mapID and where.y or 0.5, aw, ah)
     plate:Draw(ns.JourneyRecap.Sheet(nil, mapID), { kind = "level", level = 4, from = 0, to = 0 }, window,
-        { moments = {}, firsts = {}, pencil = false, fights = {}, cap = Plate.Share(s) })
+        { moments = {}, fights = {}, cap = Plate.Share(s) })
     plate:Show()
 
     -- The art box's 0..1 to the page, through the plate's window and turn.

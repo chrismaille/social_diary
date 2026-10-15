@@ -803,8 +803,7 @@ function WitnessCard.Preferred(w)
     return measurer:Preferred()
 end
 
-WitnessCard.WITNESS, WitnessCard.FORMS, WitnessCard.ORDER, WitnessCard.DOUBLE, WitnessCard.BLOOD =
-    WITNESS, FORMS, ORDER, DOUBLE, BLOOD
+WitnessCard.WITNESS, WitnessCard.FORMS, WitnessCard.BLOOD = WITNESS, FORMS, BLOOD
 
 --------------------------------------------------------------------------
 -- On the plates: the plate's one witness, its pass, its note in the margin

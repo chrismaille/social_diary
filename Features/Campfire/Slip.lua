@@ -35,7 +35,6 @@ Campfire.Slip = Slip
 -- words start clear of it.
 local SLIP = { file = "Interface\\AddOns\\" .. addonName .. "\\Fonts\\Neuton-Italic.ttf", size = 14, turn = 1.4,
     tape = { x = 1, y = 1, w = 22, h = 10, slant = { 39, 51 } } }
-Slip.SLIP = SLIP
 
 -- A number from a string, the same every time (PaperStrip's).
 local function Seed(key)

@@ -58,7 +58,6 @@ local WorldPvP = {}
 ns.WorldPvP = WorldPvP
 
 local KILL, DEATH = "pvp_kill", "pvp_death"
-WorldPvP.KILL, WorldPvP.DEATH = KILL, DEATH
 
 --------------------------------------------------------------------------
 -- The People rows

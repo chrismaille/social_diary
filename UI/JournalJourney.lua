@@ -545,7 +545,6 @@ end
 local function BuildEntryRow(list)
     local row = CreateFrame("Button", nil, list)
     local w = LEFT_W - SCROLLBAR_WIDTH - 2 - ENTRY.indent
-    local INK = Style.INK
 
     row.text = Style.Text(row, FONT.body)
     row.text:SetPoint("TOPLEFT", ENTRY.indent, 0)

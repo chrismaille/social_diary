@@ -86,16 +86,15 @@ end
 --
 --   "tester"  TestData.Write, after each of Tester's four sessions' rows:
 --             c.n (1 to 4, oldest first), c.session (its record:
---             startedAt, endedAt, id, ...), c.now, c.GUID (Tester's), and
---             c.Row(kind, time, zone, data, session): a row on Tester, the
+--             startedAt, endedAt, id, ...), c.now, and c.Row(kind, time,
+--             zone, data, session): a row on Tester (TestData.GUID), the
 --             zone alone as written, in the session given (or none)
 --   "route"   TestData.WriteJourney, the route written: c.j (the route,
---             to write a feature's list
---             on as capture keeps it), c.now, c.start (the route's first
---             evening), and c.Stop(level, subZone) → the first stop made
---             at that level there, { from, to, level, subZone, mapID, x,
---             y }, to time a record by (an error where there is none, so
---             a changed route is noticed rather than silently missed)
+--             to write a feature's list on as capture keeps it), c.now,
+--             and c.Stop(level, subZone) → the first stop made at that
+--             level there, { from, to, level, subZone, mapID, x, y }, to
+--             time a record by (an error where there is none, so a changed
+--             route is noticed rather than silently missed)
 --   "beat"    TestData.Write, at Tester's other moments, for rows that
 --             fall between the script's own rather than after a
 --             session's: c.at says which, c.t when it is
@@ -109,7 +108,7 @@ end
 --                         rows (c.session, c.t its start)
 --               "now"     the end, after the notes and the pulses seen
 --                         around (c.t: c.now)
---             with c.now, c.GUID and c.Row as at "tester"
+--             with c.now and c.Row as at "tester"
 --
 --   "remove"  TestData.Remove (/sd testdata remove, and the start of
 --             every /sd testdata), after the route is taken out and
@@ -292,7 +291,7 @@ function TestData.WriteJourney(now)
     Stop(1200, BARRENS, 0.52, 0.30, 40, { questsOut = 2, resting = 300 }, "The Crossroads")
 
     -- The features' own (TestData.Register).
-    Point("route", { j = j, now = now, start = start, Stop = function(lv, sub)
+    Point("route", { j = j, now = now, Stop = function(lv, sub)
         for _, stop in ipairs(stops) do
             if stop.level == lv and stop.subZone == sub then return stop end
         end
@@ -330,7 +329,7 @@ function TestData.Write(now)
     -- "met" and "traded"), then the add, then a first questing session
     -- (TLN-8: the add sits above the exchange).
     local function Beat(at, t, n, session)
-        Point("beat", { at = at, t = t, n = n, session = session, now = now, GUID = GUID, Row = Row })
+        Point("beat", { at = at, t = t, n = n, session = session, now = now, Row = Row })
     end
 
     local t1 = now - 6 * DAY
@@ -355,7 +354,7 @@ function TestData.Write(now)
                 killer = { source = "recap", name = "Kolkar Pack Runner", npcID = 3274, attackers = 2 } },
         } })
     Beat("began", s1.startedAt, 1, s1)
-    Point("tester", { n = 1, session = s1, now = now, GUID = GUID, Row = Row })
+    Point("tester", { n = 1, session = s1, now = now, Row = Row })
 
     -- Yesterday: three hours of questing with a dungeon in the middle, a rare
     -- and (at "tester") a green trade (TLN-3: three activities named; TLN-4:
@@ -380,7 +379,7 @@ function TestData.Write(now)
         bossesKilled = { "Lady Anacondra", "Lord Cobrahn", "Kresh", "Lord Pythas", "Skum" },
         bossTotal = 8, deaths = 4, wipes = 1, sessionIds = { s2.id },
     })
-    Point("tester", { n = 2, session = s2, now = now, GUID = GUID, Row = Row })
+    Point("tester", { n = 2, session = s2, now = now, Row = Row })
 
     -- Today: a session that was only a dungeon run (it gives way to the
     -- visit), then a short questing session with a rare and (at "tester") a
@@ -396,14 +395,14 @@ function TestData.Write(now)
         bossesKilled = { "Roogug", "Aggem Thorncurse", "Death Speaker Jargba", "Overlord Ramtusk" },
         bossTotal = 6, deaths = 2, sessionIds = { s3.id },
     })
-    Point("tester", { n = 3, session = s3, now = now, GUID = GUID, Row = Row })
+    Point("tester", { n = 3, session = s3, now = now, Row = Row })
 
     local t4 = now - 90 * MIN
     local s4 = Session(t4, 15 * MIN, { "The Barrens" },
         { quests = Quests(2, 950), levelStart = 22, levelEnd = 22,
             rares = { { name = "Rocklance", npcID = 3270, kind = "rare", time = t4 + 5 * MIN } } })
     Beat("began", s4.startedAt, 4, s4)
-    Point("tester", { n = 4, session = s4, now = now, GUID = GUID, Row = Row })
+    Point("tester", { n = 4, session = s4, now = now, Row = Row })
 
     -- Notes (DIA-11, TLN-10): one in a session, one in the dungeon inside
     -- yesterday's session, and one written when nothing was going on.

@@ -33,7 +33,7 @@ end
 local function Duration(seconds)
     return Glue(ns.UI.Duration(seconds))
 end
-Text.Duration, Text.SPACE = Duration, SPACE
+Text.Duration = Duration
 
 -- A zone's time in the ledger under an entry, short as a column of
 -- figures: "1 h 33", "2 h", "52 min".
@@ -1123,11 +1123,9 @@ end
 --   Items(n, item)        "one Hezrul's Head", "7 Plainstrider Meat"
 --   Health(call)          "6% health", glued
 --   Written(text)         the player's words, escapes taken out
---   Cut(text, most)       words cut at a word with an ellipsis; whether cut
---   Join(a, b)            two sentences as one paragraph, either missing
 --   List(items, opts)     "A, B and 2 others" (ns.UI.List)
 Text.Glue, Text.Capital, Text.MapName, Text.Who, Text.Day, Text.When = Glue, Capital, MapName, Who, Day, When
 Text.Times, Text.NUMBER, Text.WORDS, Text.Count, Text.ItemWord, Text.Items = Times, NUMBER, WORDS, Count, ItemWord, Items
 Text.Health = Health
-Text.Cut, Text.Join, Text.List = Cut, Join, List
+Text.List = List
 

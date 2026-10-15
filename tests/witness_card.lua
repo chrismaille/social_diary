@@ -196,16 +196,6 @@ Eq(card.guid, GRISHA, "the name opens nobody's page")
 --------------------------------------------------------------------------
 Section("the card: blood on a watcher's")
 
--- Every piece's middle, on the slip (from its middle, y down).
-local function Pieces()
-    local list = {}
-    local stain = card.blood and card.blood.stain
-    for _, quads in ipairs(stain and stain.levels or {}) do
-        for _, q in ipairs(quads) do list[#list + 1] = q end
-    end
-    for _, q in ipairs(stain and stain.rim or {}) do list[#list + 1] = q end
-    return list
-end
 local function Shown()
     local n = 0
     for _, t in ipairs(card.stain) do if t:IsShown() then n = n + 1 end end

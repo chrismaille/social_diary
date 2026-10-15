@@ -249,11 +249,11 @@ unstuck), cap = { x, y, w, limit, align }, notes = { x, y, w } }`. Variants:
   profession caps: `ns.ProfessionCaps.Words`, `Sentence`, `Lines`, `Tip`;
   quest chain finales: `ns.QuestFinales.Words`, `Sentence`, `Lines`, `Tip`;
   deaths: `ns.Deaths.Killed`, `KillerTip`, `DeathCross`; close calls:
-  `ns.CloseCalls.Sentence`, `Foes`, `Tag`, `Heading`, `Deed`, `Tip`,
+  `ns.CloseCalls.Sentence`, `Tag`, `Heading`, `Deed`, `Tip`,
   `FoeTip`, `Lines`; hunts: `ns.Hunts.Words`, `Line`, `ExpectedWords`,
   `Tip`, `Item`, `KillLines`, `CardTip`, `ExpectedLabel`, `KILLED`, `EACH`,
   `USUALLY`, `Fortune`, `LuckyTag`, `LuckyKind`, `LuckyCaption`, `Lines`,
-  `Kinds`, `SortedKinds`; witnesses:
+  `Kinds`; witnesses:
   `ns.Witnesses.Name`, `Others`, `Look`, `Deed`, `Foe`, `Caption`, `Tip`).
   Changes there go through the copywriter skill.
 
@@ -282,7 +282,7 @@ features' folders: `find` 5 (`Features/Firsts/Mark.lua`, `ns.Firsts.POUCH`
 drawstring pouch in the best item's ink part way (`arg`), `plate.findMarks`
 for the cards, a gift from someone in the diary `join`ed to their marks),
 `luck` 40 and `fortune` 50 (`Features/Hunts/Mark.lua`: `ns.Hunts.TALLY`,
-`plate.huntMarks` → `plate.hunt`; `ns.Hunts.FORTUNE` star,
+`plate.huntMarks` → `plate.hunt`; `FORTUNE` star,
 `plate.fortuneMarks` → `plate.lucky`), `finale` 10
 (`Features/QuestFinales/Mark.lua`, `ns.QuestFinales.MARK` tailpiece), `skill` 20
 (`Features/ProfessionCaps/Mark.lua`, `ns.ProfessionCaps.MARK` stairs, `arg` =

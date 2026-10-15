@@ -592,7 +592,6 @@ function LuckyCard.New(parent)
                 local px, py = card:Out(ix + corner[1] * half, iy + corner[2] * half)
                 x0, y0, x1, y1 = math.min(x0, px), math.min(y0, py), math.max(x1, px), math.max(y1, py)
             end
-            card.itemRect = { x0, y0, x1, y1 }
             card.item:SetFrameLevel(card:GetFrameLevel() + 2)
             card.item:ClearAllPoints()
             card.item:SetPoint("TOPLEFT", parent, "TOPLEFT", x0, -y0)
@@ -1061,7 +1060,6 @@ local PRINT_LAYERS = { shadow = { "ARTWORK", 4 }, edge = { "ARTWORK", 4 }, paper
     tagShadow = { "OVERLAY", -4 }, tagEdge = { "OVERLAY", -3 }, tagPaper = { "OVERLAY", -2 },
     underline = { "OVERLAY", 0 }, tape = { "OVERLAY", 1 } }
 local PRINT_TEXTS = { struck = { "ARTWORK", 6 }, count = { "OVERLAY", -5 }, tagText = { "OVERLAY", -1 } }
-LuckyCard.PRINT_LAYERS, LuckyCard.PRINT_TEXTS = PRINT_LAYERS, PRINT_TEXTS
 
 -- Each plate's toolkit for S (made by the pass's `new`), by plate.
 local kits = setmetatable({}, { __mode = "k" })

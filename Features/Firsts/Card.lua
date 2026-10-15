@@ -487,7 +487,6 @@ function FindCard.New(parent)
             local px, py = card:Out(At(corner[1] * (w / 2 + 1), corner[2] * (h / 2 + 1)))
             x0, y0, x1, y1 = math.min(x0, px), math.min(y0, py), math.max(x1, px), math.max(y1, py)
         end
-        card.itemRect = { x0, y0, x1, y1 }
         card.item:SetFrameLevel(card:GetFrameLevel() + 2)
         card.item:ClearAllPoints()
         card.item:SetPoint("TOPLEFT", parent, "TOPLEFT", x0, -y0)
@@ -594,7 +593,7 @@ function FindCard.ShowTip(owner, item, now)
     GameTooltip:Show()
 end
 
-FindCard.FIND, FindCard.BOX, FindCard.ICON, FindCard.NAME = FIND, BOX, ICON, NAME
+FindCard.FIND, FindCard.BOX, FindCard.ICON = FIND, BOX, ICON
 
 --------------------------------------------------------------------------
 -- The card in the plate's margin (JourneyMargin.Register)

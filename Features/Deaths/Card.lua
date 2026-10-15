@@ -441,7 +441,6 @@ function KillerCard.New(parent)
         end
         return card.model or nil
     end
-    card.Model = Model
 
     -- What the picture is: the silhouette, the print or none, down the
     -- ladder.
@@ -646,8 +645,7 @@ function KillerCard.Tip(k, now)
     return list
 end
 
-KillerCard.KILLER, KillerCard.MATCH, KillerCard.RANK = KILLER, MATCH, RANK
-KillerCard.Can, KillerCard.Inks = Can, Inks
+KillerCard.KILLER, KillerCard.RANK = KILLER, RANK
 
 --------------------------------------------------------------------------
 -- On the plates: the passes over the crosses, and the margin's notes

@@ -330,7 +330,6 @@ local function Open(j)
     end
     return o
 end
-Journey.Open = Open
 
 --------------------------------------------------------------------------
 -- Roads (JRN-4)
@@ -372,7 +371,6 @@ local function Thin(crumbs, tolerance)
     end
     return list
 end
-Journey.Thin = Thin
 
 -- A road's points as the record keeps them: one short string, two
 -- characters a coordinate (its thousandths, 0 to 1000, in a 64-letter
@@ -1101,8 +1099,8 @@ function Journey.Fight(j, outcome, guid, now, where)
     return mark
 end
 
--- A fight as Journey.Fought writes it: on the logged-in character's
--- route, while it is being kept. `where` is the row's (ns.Where's shape,
+-- Where a moment on the route is marked (Journey.Fought's fights,
+-- Journey.Append's records). `where` is the row's (ns.Where's shape,
 -- whose map may be a cave's or a district's): its position counts only on
 -- a zone map, else the mark is placed by time. Without it, here and now.
 local function Spot(where)

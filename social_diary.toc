@@ -136,7 +136,7 @@ Capture/Together.lua
 Capture/Nearby.lua
 Capture/Sightings.lua
 Capture/Journey.lua
-# Hunts' capture stays where Capture/Combat.lua was, after Capture/: it
+# Hunts' capture stays where it always was, after Capture/: it
 # shares the quest events, the kills, the loot window and the login with
 # Capture/, so every event order stays the old one
 # (Features/Hunts/Capture.lua's header).

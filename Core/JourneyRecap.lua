@@ -36,10 +36,6 @@ local STOPS = { max = 3 }
 -- still be one encounter, shown already as the meeting itself.
 local HINDSIGHT = { slack = 120, encounter = 30 * 60 }
 
--- The interaction rows that make a person matter: you grouped, traded,
--- whispered or said something to each other (D6 amended); their kind's
--- `matters` (Core/Rows.lua).
-
 -- JRN-21: at most `max` plates an entry. A window fits its moments when
 -- they span no more than `inset` of it, so no mark sits on the plate's
 -- edge (`window` stands in when a map's art gives none). Rank decides
@@ -150,7 +146,6 @@ local function Inside(seg, a, b)
     end
     return span
 end
-Recap.Inside = Inside
 
 -- The level at `t`, as far as the route knows.
 function Recap.LevelAt(j, t)
@@ -167,7 +162,6 @@ local function WeekStart(t)
     local back = (tonumber(date("%w", t)) + 6) % 7
     return ns.DayStart(ns.DayStart(t) - back * ns.DAY + 12 * 3600)
 end
-Recap.WeekStart = WeekStart
 
 local function NextWeek(start)
     return ns.DayStart(start + 7 * ns.DAY + 12 * 3600)
@@ -641,7 +635,7 @@ end
 -- the gate is not passed or no road was there.
 function Recap.FirstSightingOf(guid, now)
     local ctx = { now = now or ns.Now(), diary = ns.db.diary, interactions = ns.db.interactions,
-        sightings = ns.db.sightings, characters = ns.db.characters, own = ns.OwnCharacters() }
+        characters = ns.db.characters, own = ns.OwnCharacters() }
     local record = ctx.characters[guid]
     if not (record and record.firstSeen) or record.isSelf or ctx.own[guid] then return nil end
     local t = record.firstSeen
@@ -894,12 +888,12 @@ end
 
 -- What the diary holds of the user's character `guid`: its sessions, notes
 -- and instance visits; and, read only, the stores first sightings are
--- judged from (JRN-23): the diary, the buffer, the sightings, the records,
--- and the user's own characters.
+-- judged from (JRN-23): the diary, the buffer, the records, and the user's
+-- own characters.
 function Recap.Context(guid, now)
     local ctx = { now = now or ns.Now(), maxLevel = Journey.MaxLevel(), sessions = {}, notes = {}, visits = {},
-        diary = ns.db.diary, interactions = ns.db.interactions, sightings = ns.db.sightings,
-        characters = ns.db.characters, own = ns.OwnCharacters() }
+        diary = ns.db.diary, interactions = ns.db.interactions, characters = ns.db.characters,
+        own = ns.OwnCharacters() }
     for _, session in pairs(ns.db.sessions) do
         if session.me == guid then ctx.sessions[#ctx.sessions + 1] = session end
     end

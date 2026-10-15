@@ -42,7 +42,8 @@
 --              doorway for a dungeon, a hollow lozenge for a first
 --              sighting in hindsight (JRN-23), and whatever a feature
 --              registers (Plate.RegisterMark)
---              Each has a tooltip (UI/JourneyText.lua)
+--              Each has a tooltip (UI/JourneyText.lua's, a registered
+--              mark's its own `tip`)
 -- The page writes the margin notes and draws their pencil leaders (they
 -- cross the plate's edge, and the page does not turn): plate.where has each
 -- person's mark on the page, through plate:OnPage's transform.
@@ -295,8 +296,8 @@ local function Clamp(v, lo, hi) return v < lo and lo or (v > hi and hi or v) end
 --            ink it is drawn in); it may sort `list` (the order the kept
 --            mark and the tooltip have).
 --   tip      function(m, now) → title, lines: each moment's words under
---            the mouse (UI/JourneyText.lua's, looked up when asked: it
---            loads after this file).
+--            the mouse (the feature's Text.lua's, looked up when asked:
+--            it loads after this file).
 --   keep     optional: the plate field its marks are kept in, a list of
 --            { x, y (on the card), list (the moments on it), at = { px, py }
 --            (on the page, for a margin card's leader), arg (draw's) }:
@@ -916,7 +917,7 @@ local function New(parent, slot)
     -- marks' pools and the card's own strokes, so it turns and is lit with
     -- the card.
     local kit = { ink = markPool, inner = markInnerPool, halo = markHaloPool, Dot = Dot, Box = Box, Stroke = Stroke,
-        Quad = Quad, Place = Place, Fill = Fill, Light = Light, Clamp = Clamp, P = P, INK = INK,
+        Quad = Quad, Place = Place, Fill = Fill, Light = Light, Clamp = Clamp, P = P,
         INK_STRONG = INK_STRONG }
 
     ----------------------------------------------------------------------
