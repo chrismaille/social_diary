@@ -40,7 +40,7 @@
 -- its own shadow. Its photo corners, glue and a lifted corner are the
 -- plate's (JourneyPlate's MOUNT, GLUE, LIFT, SHADOW).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 
@@ -166,7 +166,7 @@ end
 function ns.UI.LooseSheet(parent, W, H, opts)
     opts = opts or {}
     local LOOK = opts.glued and GLUED or LOOSE
-    local CREASE = setmetatable(opts.crease or LOOK.crease or {}, { __index = CREASE })
+    local crease = setmetatable(opts.crease or LOOK.crease or {}, { __index = CREASE })
     local INK, P = Style.INK, opts.paper or LOOK.paper
     local SHADOW_LIST = opts.shadows or LOOK.shadows
 
@@ -205,7 +205,7 @@ function ns.UI.LooseSheet(parent, W, H, opts)
     -- stands (z) and how far it has drifted (dx, dy, y down). Built for each
     -- person from their seed (Crumple), like how their folds were made:
     -- { sign, lean, pressed at its start, at its end }, by line.
-    local NX, NY = #CREASE.columns, #CREASE.rows
+    local NX, NY = #crease.columns, #crease.rows
     local X, Y, mesh = {}, {}, {}
     local folds = { columns = {}, rows = {} }
 
@@ -216,7 +216,7 @@ function ns.UI.LooseSheet(parent, W, H, opts)
         local function Known(n)
             if n == 1 or n == #lines then return 0 end
             local fold = made[n]
-            return fold and fold.sign * CREASE.ridge * (fold.from + (fold.to - fold.from) * t)
+            return fold and fold.sign * crease.ridge * (fold.from + (fold.to - fold.from) * t)
         end
         local here = Known(k)
         if here then return here end
@@ -232,22 +232,22 @@ function ns.UI.LooseSheet(parent, W, H, opts)
         local function Spread(n, size) return (noise(seed * 0.37 + n) - 0.5) * 2 * size end
 
         -- The lines: the folds a little off theirs, the rest of the mesh more.
-        for i, f in ipairs(CREASE.columns) do
+        for i, f in ipairs(crease.columns) do
             local off = (i == 1 or i == NX) and 0
-                or Spread(100 + i, CREASE.folds.columns[i] and CREASE.shift or CREASE.wander * W)
+                or Spread(100 + i, crease.folds.columns[i] and crease.shift or crease.wander * W)
             X[i] = f * W + off
         end
-        for j, f in ipairs(CREASE.rows) do
+        for j, f in ipairs(crease.rows) do
             local off = (j == 1 or j == NY) and 0
-                or Spread(200 + j, CREASE.folds.rows[j] and CREASE.shift or CREASE.wander * H)
+                or Spread(200 + j, crease.folds.rows[j] and crease.shift or crease.wander * H)
             Y[j] = f * H + off
         end
         for kind, base in pairs({ columns = 300, rows = 400 }) do
             folds[kind] = {}
-            for k, sign in pairs(CREASE.folds[kind]) do
-                local press = 1 + Spread(base + k, CREASE.press)
-                local taper = Spread(base + 10 + k, CREASE.taper)
-                folds[kind][k] = { sign = sign, lean = Spread(base + 20 + k, CREASE.lean),
+            for k, sign in pairs(crease.folds[kind]) do
+                local press = 1 + Spread(base + k, crease.press)
+                local taper = Spread(base + 10 + k, crease.taper)
+                folds[kind][k] = { sign = sign, lean = Spread(base + 20 + k, crease.lean),
                     from = press * (1 + taper), to = press * (1 - taper) }
             end
         end
@@ -259,12 +259,12 @@ function ns.UI.LooseSheet(parent, W, H, opts)
                 -- How far along a column, and along a row, this crossing is.
                 local t, u = Y[j] / H, X[i] / W
                 local z = FoldHeight(X, folds.columns, i, t) + FoldHeight(Y, folds.rows, j, u)
-                local v = { z = z + (noise(n) - 0.5) * 2 * CREASE.crumple, dx = 0, dy = 0 }
+                local v = { z = z + (noise(n) - 0.5) * 2 * crease.crumple, dx = 0, dy = 0 }
                 local edgeX, edgeY = i == 1 or i == NX, j == 1 or j == NY
                 if edgeX and edgeY then
                     -- The corners stay put, unless they curl: up off the
                     -- book, and drawn in, so the outline bends round them.
-                    local curl = CREASE.curl
+                    local curl = crease.curl
                     if curl then
                         local amount = 0.5 + 0.5 * noise(n + 3)
                         v.z = v.z + curl.lift * amount
@@ -274,14 +274,14 @@ function ns.UI.LooseSheet(parent, W, H, opts)
                 elseif edgeX then
                     -- The outline wanders across itself, and is drawn in
                     -- where a fold meets it.
-                    v.dx = (noise(n + 1) - 0.5) * 2 * CREASE.edge
-                    if folds.rows[j] then v.dx = v.dx + (i == 1 and 1 or -1) * CREASE.nick end
+                    v.dx = (noise(n + 1) - 0.5) * 2 * crease.edge
+                    if folds.rows[j] then v.dx = v.dx + (i == 1 and 1 or -1) * crease.nick end
                 elseif edgeY then
-                    v.dy = (noise(n + 2) - 0.5) * 2 * CREASE.edge
-                    if folds.columns[i] then v.dy = v.dy + (j == 1 and 1 or -1) * CREASE.nick end
+                    v.dy = (noise(n + 2) - 0.5) * 2 * crease.edge
+                    if folds.columns[i] then v.dy = v.dy + (j == 1 and 1 or -1) * crease.nick end
                 else
-                    v.dx = (noise(n + 1) - 0.5) * 2 * CREASE.drift
-                    v.dy = (noise(n + 2) - 0.5) * 2 * CREASE.drift
+                    v.dx = (noise(n + 1) - 0.5) * 2 * crease.drift
+                    v.dy = (noise(n + 2) - 0.5) * 2 * crease.drift
                 end
                 -- A fold leans: its line runs across itself, one way at one
                 -- end and the other way at the other.
@@ -303,7 +303,7 @@ function ns.UI.LooseSheet(parent, W, H, opts)
                 local a, b, c, d = mesh[i][j], mesh[i + 1][j], mesh[i][j + 1], mesh[i + 1][j + 1]
                 local slopeX = ((b.z + d.z) - (a.z + c.z)) / (2 * (X[i + 1] - X[i]))
                 local slopeY = ((c.z + d.z) - (a.z + b.z)) / (2 * (Y[j + 1] - Y[j]))
-                a.light = math.max(CREASE.lo, math.min(CREASE.hi, 1 + CREASE.light * (slopeX + slopeY)))
+                a.light = math.max(crease.lo, math.min(crease.hi, 1 + crease.light * (slopeX + slopeY)))
             end
         end
     end
@@ -613,7 +613,7 @@ function ns.UI.LooseSheet(parent, W, H, opts)
         -- lit on its left or upper side and shaded on the other; a valley
         -- is a dark line. None, laid flat.
         creasePool:Begin()
-        local I, V = INK, CREASE
+        local I, V = INK, crease
         for k, fold in pairs(view.flat and {} or folds.columns) do
             local sign = fold.sign
             for j = 1, NY - 1 do

@@ -26,7 +26,7 @@
 --
 -- The spell IDs are the client's, the same in every language.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Campfire = ns.Campfire
 

@@ -6,7 +6,7 @@
 -- Listed in /sd help only while debug is on (Core/Slash.lua). Not part of a
 -- release: the TOC's Dev/ block goes.
 
-local addonName, ns = ...
+local _, ns = ...
 
 -- Each entry is { api path, requirement it backs }.
 local PROBES = {

@@ -17,7 +17,7 @@
 --
 -- Nothing here touches WorldMapFrame, so there is nothing to taint.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local MapArt = {}
 ns.UI.MapArt = MapArt

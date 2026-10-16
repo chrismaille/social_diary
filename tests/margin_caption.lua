@@ -180,7 +180,7 @@ Margin.Register("scrap", {
         local s = plate.slot
         return { scrap = plate, top = s.y + s.pad, x = s.x + s.pad }
     end,
-    write = function(note, it, c)
+    write = function(note, _it, c)
         note.seed = c.Seed("scrap")
         written[#written + 1] = note
     end,

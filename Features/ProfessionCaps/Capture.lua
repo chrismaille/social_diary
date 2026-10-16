@@ -18,7 +18,7 @@
 -- are read for the firsts, when the client has the professions loaded.
 -- A cap reached goes on the route (ProfessionCaps.Add, Kind.lua).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local ProfessionCaps = ns.ProfessionCaps
 

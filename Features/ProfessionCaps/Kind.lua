@@ -20,7 +20,7 @@
 -- This file: the route's list of caps reached, and the moment that puts
 -- them on the plates.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local ProfessionCaps = {}
 ns.ProfessionCaps = ProfessionCaps

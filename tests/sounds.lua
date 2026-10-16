@@ -5,7 +5,7 @@
 
 local T = ...
 local mock, F = T.mock, T.F
-local Section, Check, Eq = T.Section, T.Check, T.Eq
+local Section, Eq = T.Section, T.Eq
 local ns = T.Boot()
 
 local BRAM, GARRICK, PUG = F.STRANGER.guid, F.GARRICK.guid, F.PUG.guid

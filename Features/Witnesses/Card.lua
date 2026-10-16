@@ -65,7 +65,7 @@
 -- over the plate (after Deaths' and the close call's) and the card's note
 -- in the margin.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local Witnesses = ns.Witnesses

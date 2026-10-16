@@ -221,7 +221,7 @@ Eq(m.plan.form, "M1", "a card set again is not whole again")
 
 -- The leader leaves the slip nearest the star: the tag, where it is
 -- nearer.
-local cx, cy = l:Nearest(10 + 400, 10 + l.plan.tag.y + l.plan.tag.h / 2)
+local cx = l:Nearest(10 + 400, 10 + l.plan.tag.y + l.plan.tag.h / 2)
 Check(cx > 10 + l.plan.Wb, "the leader leaves the card under the tag")
 
 -- Under the mouse: the item's own tooltip over the icon, the card's over
@@ -424,7 +424,7 @@ local function Road(luck)
     return Open(12)
 end
 
-e = Road(nil)
+Road(nil)
 Eq(page.pattern, "F+L", "setup: without the luck the print is tucked in")
 e = Road(LUCK)
 Eq(e.pattern, "FL", "setup: a full plate and a light one")
@@ -494,7 +494,7 @@ ns.UI.RedrawJourneyPage()
 sp = page.plates[2].print and page.plates[2].print.s
 Check(sp ~= nil, "laid flat, S is not drawn")
 if sp then
-    local y0, y1 = Span(sp.label, 2)
+    local _, y1 = Span(sp.label, 2)
     Check(math.abs(sp.label[1][2] - sp.label[2][2]) < 1e-6, "laid flat, the slip is turned on the print")
     Check(math.abs(sp.tag[1][2] - sp.tag[2][2]) < 1e-6, "laid flat, the tag is turned")
     local _, foot = Span(sp.tag, 2)
@@ -504,7 +504,7 @@ ns.SetSetting("flatSheets", false)
 ns.UI.RedrawJourneyPage()
 
 -- A lifted print with no luck that fits: the caption keeps the words.
-e = Road({ mapID = 2665, x = 0.5, y = 0.5, level = 12, questID = 9, title = "Isle Eggs", item = "Isle Egg",
+Road({ mapID = 2665, x = 0.5, y = 0.5, level = 12, questID = 9, title = "Isle Eggs", item = "Isle Egg",
     need = 1, kills = 1, expected = 9, npcID = 7, name = "Isle Raptor Matriarch of the Northern Shore" })
 Check(page.plates[2].print == nil, "S drawn where it does not fit")
 Check(page.captionPool[2]:GetText():find("fewer than expected"), "the words left off with S not drawn: "

@@ -3,7 +3,7 @@
 -- UI/Style/Book.lua). Development tooling, listed in /sd help only while
 -- debug is on.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 

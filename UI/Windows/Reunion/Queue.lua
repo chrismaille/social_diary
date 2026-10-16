@@ -12,7 +12,7 @@
 -- UI/Windows/Reunion/Toast.lua, which lists the state shared on
 -- ns.UI.Toast; its words Words.lua's; placing it Placing.lua's.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Toast = ns.UI.Toast
 

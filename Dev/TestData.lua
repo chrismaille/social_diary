@@ -12,7 +12,7 @@
 -- Development tooling, but the in-client test runbooks use it: it stays in
 -- the TOC's Dev/ block until a release drops that.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local TestData = {}
 ns.TestData = TestData

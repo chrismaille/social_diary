@@ -11,7 +11,7 @@
 -- yet known, which is why Resolve reports the path it took under /sd debug and
 -- says so out loud when every path fails.
 
-local addonName, ns = ...
+local _, ns = ...
 
 -- Every surface the PRD asks for that exists in this build. Battle.net menus
 -- are left out: PRV-5 keeps real IDs out of the diary, and a BNet friend has

@@ -5,7 +5,7 @@
 -- calls, witnesses and the timeline say theirs with it too. Copy changes
 -- go through the copywriter skill, as every player-read word does.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Deaths = ns.Deaths
 local Text = ns.UI.JourneyText

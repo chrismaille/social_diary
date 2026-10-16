@@ -51,7 +51,7 @@
 -- shadow; the strokes are ink and stay as they are. Where text cannot
 -- turn, the slip lies straight.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 

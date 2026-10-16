@@ -9,7 +9,7 @@
 -- Its siblings: the virtual list (UI/Kit/List.lua) and the text helpers
 -- (ns.UI.Format, UI/Words/Format.lua).
 
-local addonName, ns = ...
+local _, ns = ...
 
 ns.UI = ns.UI or {}
 

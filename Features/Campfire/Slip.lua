@@ -21,7 +21,7 @@
 -- Laid flat ("Flat paper only") it lies square, without shadows, as every
 -- slip does.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local Campfire = ns.Campfire
@@ -78,7 +78,7 @@ end
 -- strip is, `overfull` where its line is wider than the column (it does
 -- not wrap or shrink, so the page leaves it off).
 local CARD = {
-    plan = function(slip, note, width)
+    plan = function(slip, _note, width)
         local l, _, r = slip:Pad()
         local text = slip.name
         local natural = (text.GetUnboundedStringWidth and text:GetUnboundedStringWidth() or text:GetStringWidth() or 0)

@@ -14,7 +14,7 @@
 -- Who said what in /say and /yell, whoever they are, is also a sighting:
 -- that is the Nearby engine's, Capture/Sightings.lua's FromChat, not this.
 
-local addonName, ns = ...
+local _, ns = ...
 
 -- INT-3's fallback. A restricted conversation still happened; the diary can
 -- say so without keeping anything the client marked secret.

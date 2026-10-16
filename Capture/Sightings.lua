@@ -22,7 +22,7 @@
 -- SIG-5 and SIG-6: in cities and instances the source handlers are
 -- unregistered, not ignored, so sighting work there is zero (NFR-1).
 
-local addonName, ns = ...
+local _, ns = ...
 
 -- A character queued this recently is dropped at the event. Also the
 -- resolution of a row's last-seen time while someone stays in view.

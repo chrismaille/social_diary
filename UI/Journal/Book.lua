@@ -32,7 +32,7 @@
 -- DAT-2 archive split, which does not exist yet and whose LoD behaviour is
 -- untested (T-H2). When it lands, ShowJournal loads it before the first query.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT

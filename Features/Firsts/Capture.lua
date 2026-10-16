@@ -38,7 +38,7 @@
 -- route and not /sd testdata's), and the diary stops watching while it is
 -- not, so the first reading after it comes back only arms.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Firsts = ns.Firsts
 

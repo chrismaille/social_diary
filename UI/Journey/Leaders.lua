@@ -7,7 +7,7 @@
 --
 -- The module and its siblings: UI/Journey/Look.lua.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local Text = ns.UI.JourneyText

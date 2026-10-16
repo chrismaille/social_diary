@@ -34,7 +34,7 @@
 -- icon included), the route's list, the recap's moment, and the writing
 -- of a series.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Duels = {}
 ns.Duels = Duels

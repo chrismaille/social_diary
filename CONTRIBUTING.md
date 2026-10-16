@@ -24,12 +24,38 @@ luajit tests/run.lua -v         # verbose
 luajit tests/run.lua people.lua # only the files you name
 ```
 
+Or through the Makefile: `make tests` runs the suite, `make lint` runs the
+pre-commit hooks over every tracked file and the new ones not yet staged,
+and `make check` runs both, the same the CI and the hooks run.
+
 A new test file only runs once it is listed in `FILES` in `tests/run.lua`.
 CI runs the suite on every push to `main` and on every pull request
 (`.github/workflows/tests.yml`).
 
 The mock does not do layout. For anything a player sees, try it in the game
 client as well.
+
+## Pre-commit hooks
+
+`.pre-commit-config.yaml` runs the suite, luacheck and the usual file
+hygiene on every commit. Install the framework once per clone, then the
+hook it manages:
+
+```sh
+pipx install pre-commit   # or: pip install --user pre-commit
+                           # or: apt install pre-commit
+pre-commit install
+```
+
+It needs LuaJIT, for the suite, and luacheck (`apt install lua-check`, or
+`luarocks install luacheck`). `make lint` runs everything by hand, over
+every tracked file and the new ones not yet staged; `pre-commit run
+--all-files` misses the latter.
+
+`.luacheckrc` lists the client's globals by hand, because WoW Forever's
+beta interface does not match the published WoW definition files: when
+luacheck reports an undefined global the client really has, add it to
+`read_globals`.
 
 ## Finding your way round
 

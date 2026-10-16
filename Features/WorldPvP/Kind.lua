@@ -52,7 +52,7 @@
 -- This file: the kinds, whole (Core/Rows.lua's spec in one call each,
 -- words and icon included), and the writing.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local WorldPvP = {}
 ns.WorldPvP = WorldPvP

@@ -17,7 +17,7 @@
 -- draft kept for the next time it opens on the same person; Cancel throws
 -- the draft away.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT

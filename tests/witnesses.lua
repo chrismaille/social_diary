@@ -235,11 +235,11 @@ Eq(line, "Bram saw you die to a Plainstrider in Red Cloud Mesa", "under 1.5 s, a
 row, line = Watched(2, 0.6)
 Eq(row and row.context.watched, 1.4, "the fraction of a second counts")
 Eq(line, "Bram saw you die to a Plainstrider in Red Cloud Mesa", "1.4 s")
-row, line = Watched(2)
+_, line = Watched(2)
 Eq(line, "Bram watched you die to a Plainstrider in Red Cloud Mesa", "from 1.5 s")
-row, line = Watched(4)
+_, line = Watched(4)
 Eq(line, "Bram watched you die to a Plainstrider in Red Cloud Mesa", "4 s")
-row, line = Watched(5)
+_, line = Watched(5)
 Eq(line, "Bram mercilessly watched you die to a Plainstrider in Red Cloud Mesa", "from 5 s")
 mock.subZone = ""
 

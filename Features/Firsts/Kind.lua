@@ -49,7 +49,7 @@
 -- This file: the firsts, their writers and readers, and the moment that
 -- puts them on the plates.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Firsts = {}
 ns.Firsts = Firsts

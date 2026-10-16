@@ -93,14 +93,14 @@ C_Item.GetItemInfoInstant = function(what)
     return realInstant(what)
 end
 local old = { item = "Intact Raptor Horn", questID = 865, need = 5, kills = 26 }
-icon, id, from = Card.Icon(old)
+icon, _, from = Card.Icon(old)
 Check(icon == 133706 and from == "name", "an old record by its name: " .. tostring(from))
 C_Item.GetItemInfoInstant = realInstant
 -- Else QuestieDB's objectives.
 local Bridge = ns.QuestieBridge
 local realFor = Bridge.ItemFor
 Bridge.ItemFor = function(questID, name) return questID == 865 and name == "Intact Raptor Horn" and 5055 or nil end
-icon, id, from = Card.Icon(old)
+icon, _, from = Card.Icon(old)
 Check(icon == 133706 and from == "questie", "an old record by its quest: " .. tostring(from))
 -- An item the client knows nothing of draws the question mark: no icon.
 mock.itemInfo[5055] = nil

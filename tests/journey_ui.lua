@@ -249,7 +249,7 @@ do
         "the doorway's head does not sit on its body's top: an arch")
     Check(math.max(by + bh / 2, hy + hh / 2) - math.min(by - bh / 2, hy - hh / 2) <= 11,
         "the doorway stands taller than the ledger's 11 pt line")
-    local r, g, b = unpack(body.recorded.calls.SetColorTexture, 1, 3)
+    local r, g = unpack(body.recorded.calls.SetColorTexture, 1, 3)
     Check(r < 0.3 and g < 0.3, "the doorway is not in ink")
     -- A zone's row under the mouse is marked as a reader marks a line: its
     -- name inked darker and a pencil line under it, never a filled box.
@@ -585,7 +585,7 @@ do
         Check(length > straight + 1e-6 or straight < 2, "a leader is dead straight")
     end
 end
-for m, at in pairs(plate.where) do
+for _, at in pairs(plate.where) do
     local x, y = plate:SheetToPage(at.x, at.y)
     Check(math.abs(x - at[1]) < 1e-9 and math.abs(y - at[2]) < 1e-9, "a mark's place on the page")
 end
@@ -838,7 +838,7 @@ local bram
 for _, strip in ipairs(Strips()) do
     if strip.guid == A then bram = strip end
 end
-local ex, ey = bram:Nearest(bram.box[1] - 50, bram.box[2] + 10)
+local ex = bram:Nearest(bram.box[1] - 50, bram.box[2] + 10)
 Check(ex <= bram.box[1] + 1 and ex >= bram.box[1] - 2, "the nearest edge of a strip to its left is not its left side")
 -- A rival's strip has its foot in rubric; no one else's.
 Check(not bram.rival:IsShown(), "a friend's strip is marked as a rival's")
@@ -964,7 +964,7 @@ bram.link:Click()
 Eq(ns.UI.JournalView(), "people", "a strip's name did not turn to People")
 Eq(ns.UI.Journal.selected, A, "a strip's name did not open their page")
 J.ribbons.journey:Click()
-e10 = Open(10)
+Open(10)
 plate = page.plates[1]
 
 -- The plate's tooltips: the pools say their ink, the lozenge the sighting.
@@ -1049,9 +1049,7 @@ Check(page.layout >= 2, "a level that travelled has one plate")
 local maps = {}
 for i = 1, page.layout do maps[#maps + 1] = page.plates[i].mapID end
 Check(maps[1] == 1412 and maps[#maps] == 1413, "the plates are not in time order: " .. table.concat(maps, ","))
-local slots = {}
 for i = 1, page.layout do
-    slots[#slots + 1] = page.plates[i].slot.w
     Check(page.plates[i].share < 1 or page.layout == 1, "a smaller plate takes the whole of the caps")
 end
 Apart("level 11, " .. page.layout .. " plates")
@@ -1648,8 +1646,6 @@ Check(by[stayed].e.a1 == by[stayed].e.a2, "a stop without a shape is not round")
 local firstPrims = {}
 for i = 1, math.min(80, #plate.prims) do firstPrims[i] = { plate.prims[i].x or plate.prims[i].x1, plate.prims[i].a } end
 ns.UI.OpenZoneSheet(1411)
-by = {}
-for _, pool in ipairs(plate.pools) do by[pool.seg] = pool end
 local same = true
 for i, f in ipairs(firstPrims) do
     local prim = plate.prims[i]
@@ -2005,12 +2001,12 @@ do
     Check(page.plates[1].slot == LAYOUT.FL[1] and page.plates[2].slot == LAYOUT.FL[2], "the tall plate's FL")
 
     -- LF: the first visit first; and three plates, LFL.
-    e = Road({ 2665, 1412 })
+    Road({ 2665, 1412 })
     Eq(page.pattern, "LF", "a first visit, then Mulgore with Bram, is not LF")
     slots = Slots()
     Check(slots[1] == LAYOUT.LF[1] and slots[2] == LAYOUT.LF[2], "LF's slots")
     Eq(page.plates[1].slot.w, 176, "LF's print is not a snapshot")
-    e = Road({ 2665, 1412, 1413 })
+    Road({ 2665, 1412, 1413 })
     Eq(page.layout, 3, "three places, three plates")
     Eq(page.pattern, "LFL", "light, full, light is not LFL")
     slots = Slots()

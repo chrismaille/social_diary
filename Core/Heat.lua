@@ -18,7 +18,7 @@
 -- The position is the user's own, as everywhere else in the addon. Instances
 -- have no coordinates (ns.Where), so they never appear here.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Heat = {}
 ns.Heat = Heat

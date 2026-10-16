@@ -21,7 +21,7 @@
 -- finds a label tucked under the book, asking whether to go back
 -- (UI/Journal/IntroLabel.lua).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT

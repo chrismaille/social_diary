@@ -55,7 +55,7 @@
 -- ends, its two edges and its lifted shadow), and STRIP.torn.teeth more
 -- for a tear, made once and hidden on a slip that was cut.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 
@@ -807,9 +807,9 @@ function ns.UI.PaperStrip(parent, card)
         -- turned, and `HIT` px round: one square button (buttons cannot
         -- turn), a level over the strip.
         local x0, y0, x1, y1 = math.huge, math.huge, -math.huge, -math.huge
-        local function Take(lx, ly, w, h, angle)
+        local function Take(du, dv, w, h, angle)
             local cc, ss = math.cos(angle), math.sin(angle)
-            local mx, my = Out(lx, ly)
+            local mx, my = Out(du, dv)
             for _, corner in ipairs({ { -1, -1 }, { 1, -1 }, { 1, 1 }, { -1, 1 } }) do
                 local u, v = corner[1] * w / 2, corner[2] * h / 2
                 local px, py = Turned(mx, my, u, v, cc, ss)

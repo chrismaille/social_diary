@@ -46,7 +46,7 @@
 --                    up to date in place, for a module to publish as it
 --                    always has (Plate.MARKS and MARK_ORDER, ...).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Registry = {}
 Registry.__index = Registry

@@ -3,7 +3,7 @@
 -- through the plate's kit: the tally (bad luck, `luck`) and the lucky star
 -- (good luck, `fortune`), each choosing the plate's one card of its kind.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Hunts = ns.Hunts
 

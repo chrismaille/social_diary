@@ -2,7 +2,6 @@
 -- at a fixed now; sessions as their index, not their id. Run through
 -- tests/golden/golden.sh (a harness farm). Not a test: diff before/after.
 local T = ...
-local mock, F = T.mock, T.F
 local ns = T.Boot()
 local out = {}
 local function W(s) out[#out + 1] = s end

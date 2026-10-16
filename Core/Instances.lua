@@ -9,7 +9,7 @@
 -- and the timeline (TLN-4) reads them through For. This file owns the ids, so
 -- capture can land here without anything else learning where visits live.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Instances = {}
 ns.Instances = Instances

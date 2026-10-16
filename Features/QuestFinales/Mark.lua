@@ -2,7 +2,7 @@
 -- UI/Journey/Plate.lua), drawn on every plate and the full zone page
 -- through the plate's kit.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local QuestFinales = ns.QuestFinales
 

@@ -55,7 +55,7 @@
 -- slots it needs (SetSlot), so their textures serve whichever plate is
 -- shown, never a new set per plate.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local Trail = ns.UI.InkTrail
@@ -341,7 +341,7 @@ local ROAD_DEATHS = 60
 local markKinds = ns.Registry.New({
     what = "Plate.RegisterMark(kind, { draw = function(kit, x, y, arg) ... })",
     key = "kind", order = "order", default = 100,
-    check = function(kind, spec) return type(spec.draw) == "function" end,
+    check = function(_kind, spec) return type(spec.draw) == "function" end,
 })
 -- The core's own turns among them (DrawMoments says what each draws):
 -- the doors, the levels' pins and the people's marks before every kind,
@@ -421,7 +421,7 @@ Plate.MARKS, Plate.MARK_ORDER, Plate.ROAD_DEATHS = MARKS, MARK_ORDER, ROAD_DEATH
 local passKinds = ns.Registry.New({
     what = "Plate.RegisterPass(key, { order, draw = function(plate, c) ... })",
     key = "key", order = "order", default = 100,
-    check = function(key, spec) return type(spec.draw) == "function" end,
+    check = function(_key, spec) return type(spec.draw) == "function" end,
 })
 local PASSES, PASS_ORDER = passKinds.specs, passKinds.list
 
@@ -1115,9 +1115,9 @@ local function New(parent, slot)
         local x1, y1, x2, y2, x3, y3, x4, y4 = CornerAt(which, W, H, size)
         local sh, M = MOUNT.shadow, MOUNT.ink
         local tone = 1 + (Noise(seed) - 0.5) * 2 * MOUNT.uneven
-        local layers = { { cornerPool, 0, 0, { M[1] * tone, M[2] * tone, M[3] * tone }, MOUNT.alpha } }
-        if not flat then table.insert(layers, 1, { cornerShadowPool, sh[1], sh[2], MOUNT.shade, sh[3] }) end
-        for _, l in ipairs(layers) do
+        local parts = { { cornerPool, 0, 0, { M[1] * tone, M[2] * tone, M[3] * tone }, MOUNT.alpha } }
+        if not flat then table.insert(parts, 1, { cornerShadowPool, sh[1], sh[2], MOUNT.shade, sh[3] }) end
+        for _, l in ipairs(parts) do
             local pool, dx, dy, colour, alpha = l[1], l[2], l[3], l[4], l[5]
             if view.canBend then
                 local texture = pool:Next()
@@ -1310,7 +1310,7 @@ local function New(parent, slot)
             return V.alpha[side] * (1 + (Style.Noise(seed * 0.71 + n) - 0.5) * 2 * V.uneven)
         end
         -- Where each band went, for Unscale to keep it there.
-        local Place = function(t, x, y, w, h)
+        local Lay = function(t, x, y, w, h)
             Place(t, x, y, w, h)
             local sx, sy = K.Screen(x + w / 2, y + h / 2)
             t.home = { sx, sy, w, h }
@@ -1318,16 +1318,16 @@ local function New(parent, slot)
         -- VERTICAL runs from the bottom up.
         local top = vignettePool:Next()
         Style.Shade(top, "VERTICAL", T[1], T[2], T[3], 0, A("top", 1))
-        Place(top, ax, ay, aw, d)
+        Lay(top, ax, ay, aw, d)
         local bottom = vignettePool:Next()
         Style.Shade(bottom, "VERTICAL", T[1], T[2], T[3], A("bottom", 2), 0)
-        Place(bottom, ax, ay + ah - d, aw, d)
+        Lay(bottom, ax, ay + ah - d, aw, d)
         local left = vignettePool:Next()
         Style.Shade(left, "HORIZONTAL", T[1], T[2], T[3], A("left", 3), 0)
-        Place(left, ax, ay, d, ah)
+        Lay(left, ax, ay, d, ah)
         local right = vignettePool:Next()
         Style.Shade(right, "HORIZONTAL", T[1], T[2], T[3], 0, A("right", 4))
-        Place(right, ax + aw - d, ay, d, ah)
+        Lay(right, ax + aw - d, ay, d, ah)
     end
 
     -- Whether the client can draw a texture part way to grey (PLATE):
@@ -1922,8 +1922,8 @@ local function New(parent, slot)
         -- and its card: in that order, so a kind's card is chosen before
         -- the next kind is drawn, as it always was.
         local function DrawKind(spec)
-            local marks, hover = {}, spec.hover or MARK.hover
-            if spec.keep then plate[spec.keep] = marks end
+            local kept, hover = {}, spec.hover or MARK.hover
+            if spec.keep then plate[spec.keep] = kept end
             for _, c in ipairs(Spots(spec.kind, spec.count and CAP[spec.count] or spec.cap or math.huge)) do
                 local x, y = Apart(c.x, c.y, Radius(spec.kind))
                 if spec.halo then Halo(x, y, spec.halo, true) end
@@ -1931,7 +1931,7 @@ local function New(parent, slot)
                 spec.draw(kit, x, y, arg)
                 hoverPool:Next(x, y, spec.tip and Tell(c.list, spec.tip) or nil, hover)
                 local px, py = OnPage(x, y)
-                marks[#marks + 1] = { x = x, y = y, list = c.list, at = { px, py }, arg = arg }
+                kept[#kept + 1] = { x = x, y = y, list = c.list, at = { px, py }, arg = arg }
                 if spec.join then
                     for _, m in ipairs(c.list) do
                         if spec.join(m) then
@@ -1941,8 +1941,8 @@ local function New(parent, slot)
                     end
                 end
             end
-            if spec.count then counts[spec.count] = #marks end
-            if spec.chosen and spec.choose then plate[spec.chosen] = spec.choose(marks, plate) end
+            if spec.count then counts[spec.count] = #kept end
+            if spec.chosen and spec.choose then plate[spec.chosen] = spec.choose(kept, plate) end
         end
         -- A death on the road has no pool to sit beside: its cross, in its
         -- fixed place among the registered marks (ROAD_DEATHS), after the

@@ -2,7 +2,7 @@
 -- its controls are UI/Settings/Kit.lua's): your own route, chat, together
 -- sessions and sightings.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local SettingsUI = ns.UI.Settings
@@ -12,7 +12,7 @@ local INDENT = Kit.INDENT
 
 local MAX_CHAT_LINES = 5000  -- above it, "No maximum" says it better
 
-local function BuildRecording(pane, c)
+local function BuildRecording(_pane, c)
     local page = SettingsUI.page
 
     -- JRN-17, through the same call as the front matter's links, so the

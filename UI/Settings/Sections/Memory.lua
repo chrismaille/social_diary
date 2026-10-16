@@ -2,7 +2,7 @@
 -- are UI/Settings/Kit.lua's): how long it keeps people, your data and where
 -- it is, and deleting. Its size and data lines are read again with the page.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT

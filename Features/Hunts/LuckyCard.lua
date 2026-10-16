@@ -44,7 +44,7 @@
 -- tag still overlaps and hangs past (the layering is geometry, not an
 -- effect); the scribble and the underline are ink and stay.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 
@@ -455,7 +455,7 @@ function LuckyCard.New(parent)
         local lw = 0
         for _, line in ipairs(lines) do lw = math.max(lw, HandWidth(line.text, F.hand)) end
         local lh = TAG.line[F.hand]
-        local tag = { w = math.ceil(TAG.pad[1] + lw + 1 + TAG.pad[3]), h = TAG.pad[2] + #lines * lh + TAG.pad[4],
+        local tagPlan = { w = math.ceil(TAG.pad[1] + lw + 1 + TAG.pad[3]), h = TAG.pad[2] + #lines * lh + TAG.pad[4],
             lines = lines, hand = F.hand, lh = lh, tape = F.side and "corner" or "left" }
         local step = card.step or 0
         local icon = step >= 2 and 0 or (width < ICON.below and ICON.narrow or ICON.size)
@@ -471,13 +471,13 @@ function LuckyCard.New(parent)
         local rowH = icon > 0 and iconH or ROW[F.struck]
         local W
         if F.side then
-            tag.x = math.ceil(send + LUCKY.clear)
-            W = tag.x + tag.w
+            tagPlan.x = math.ceil(send + LUCKY.clear)
+            W = tagPlan.x + tagPlan.w
             if W > width and not force then return nil end
         else
             W = width
-            tag.x = W - tag.w
-            if tag.x < LUCKY.show and not force then return nil end
+            tagPlan.x = W - tagPlan.w
+            if tagPlan.x < LUCKY.show and not force then return nil end
         end
         local Wb = W - F.over
         if send > Wb - 2 and not force then return nil end
@@ -490,25 +490,25 @@ function LuckyCard.New(parent)
         if F.side then
             -- Beside: its top a little over the row's, or under the heading
             -- where the heading runs that far right.
-            tag.y = (pad[1] + head.w > tag.x - 4) and headBottom + 1 or rowTop - LUCKY.rise
+            tagPlan.y = (pad[1] + head.w > tagPlan.x - 4) and headBottom + 1 or rowTop - LUCKY.rise
             local words = form == "XL" and step < 1 and Hunts.LuckyKind(hunt)
             if words then
                 card.kind:SetText(words)
-                if pad[1] + Width(card.kind) + 1 <= tag.x - 6 then
+                if pad[1] + Width(card.kind) + 1 <= tagPlan.x - 6 then
                     creature = { text = words, y = rowBottom + LUCKY.after }
                 end
             end
             Hb = (creature and creature.y + LUCKY.creature or rowBottom) + pad[4]
-            H = math.max(Hb, tag.y + tag.h)
+            H = math.max(Hb, tagPlan.y + tagPlan.h)
         else
             -- Under: on the card's lower right, hanging past its foot.
-            tag.y = rowBottom + LUCKY.drop
-            Hb = tag.y + LUCKY.land
-            H = tag.y + tag.h
+            tagPlan.y = rowBottom + LUCKY.drop
+            Hb = tagPlan.y + LUCKY.land
+            H = tagPlan.y + tagPlan.h
         end
         return { form = form, W = W, H = H, Wb = Wb, Hb = Hb, head = head, icon = icon, iconH = iconH,
             rowTop = rowTop, rowH = rowH, struck = { text = label, size = F.struck, x = sx, w = sw },
-            tag = tag, creature = creature, over = F.over }
+            tag = tagPlan, creature = creature, over = F.over }
     end
 
     -- `text` laid with its left at x, its middle at y (from the card's
@@ -975,13 +975,13 @@ function LuckyCard.Print(kit, chosen, slot, seed, flat)
 
     -- Where it all went, for the page (its leader, the mouse) and the tests.
     local function Bounds(...)
-        local x0, y0, x1, y1 = math.huge, math.huge, -math.huge, -math.huge
+        local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
         for _, list in ipairs({ ... }) do
             for _, pt in ipairs(list) do
-                x0, y0, x1, y1 = math.min(x0, pt[1]), math.min(y0, pt[2]), math.max(x1, pt[1]), math.max(y1, pt[2])
+                minX, minY, maxX, maxY = math.min(minX, pt[1]), math.min(minY, pt[2]), math.max(maxX, pt[1]), math.max(maxY, pt[2])
             end
         end
-        return { x = x0, y = y0, w = x1 - x0, h = y1 - y0 }
+        return { x = minX, y = minY, w = maxX - minX, h = maxY - minY }
     end
     local labelCorners = Corners(Lx, Ly, a, plan.Wb, plan.Hb)
     local tagCorners = Corners(Tx, Ty, b, t.w, t.h)
@@ -1011,7 +1011,7 @@ LuckyCard.LUCKY, LuckyCard.FORMS, LuckyCard.TAG, LuckyCard.SCRIBBLE, LuckyCard.U
 -- will not go on the tucked print (LuckyCard.PrintFits). On a card it is
 -- taken as shown, as the hunt's is, until the card is left off.
 do
-    local function Printed(plate)
+    local function AsPrinted(plate)
         return plate.print and { hunt = plate.print.hunt, print = true } or nil
     end
     ns.UI.JourneyMargin.Register("lucky", {
@@ -1030,10 +1030,10 @@ do
         end,
         mark = function(it) return it.lucky.mark end,
         assume = function(said, plate, slot)
-            said.fortune = Printed(plate) or (plate.lucky and not slot.light and { hunt = plate.lucky.hunt })
+            said.fortune = AsPrinted(plate) or (plate.lucky and not slot.light and { hunt = plate.lucky.hunt })
         end,
         say = function(said, shown, plate)
-            said.fortune = Printed(plate) or (shown[1] and { hunt = shown[1].lucky.hunt })
+            said.fortune = AsPrinted(plate) or (shown[1] and { hunt = shown[1].lucky.hunt })
         end,
         fits = function(plan, slot) return LuckyCard.PrintFits(plan, slot) end,
         after = function(plate, c)

@@ -5,7 +5,7 @@
 -- of a fight. What it looks like, and the state shared on ns.UI.Parcel, is
 -- UI/Windows/Intro/Scene.lua's; its pieces Wrapped.lua and Torn.lua.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local Parcel = ns.UI.Parcel

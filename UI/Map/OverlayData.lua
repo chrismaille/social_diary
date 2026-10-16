@@ -5,7 +5,7 @@
 -- offsetY, { file, ... } }, as C_MapExplorationInfo.GetExploredMapTextures
 -- hands back an explored one (UI/Map/Art.lua).
 
-local addonName, ns = ...
+local _, ns = ...
 
 ns.UI.MapOverlayData = {
     [1411] = { -- Durotar

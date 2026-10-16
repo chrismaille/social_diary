@@ -19,7 +19,7 @@
 -- The user's commands are here. The diagnostics live in Dev/ and register
 -- themselves, so dropping that folder drops them and nothing else.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Slash = {}
 ns.Slash = Slash

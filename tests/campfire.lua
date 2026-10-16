@@ -175,7 +175,7 @@ ns._test.Campfire().reset()
 mock.now = mock.now + 7200
 mock.position = { x = 0.2, y = 0.2 }
 secret = true
-aura = Sit()
+Sit()
 Check(not ns._test.Campfire().sitting, "a countdown read while auras were secret")
 secret = false
 

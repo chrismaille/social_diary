@@ -487,4 +487,3 @@ ns.db.settings.keepRoute = false
 ns.CreatureNames.Note(2000, "Gnoll Brute", mock.now)
 Eq(j.names[2000], nil, "a name kept with the route off")
 ns.db.settings.keepRoute = true
-

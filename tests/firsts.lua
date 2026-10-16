@@ -268,7 +268,7 @@ Check(Text.MarginWhat({ { kind = "session", seconds = 2700 }, { kind = "note" },
 local head, line = Firsts.Tip(Find("bag", gift), d0)
 Eq(head, "Your first bag", "a first's tooltip heading")
 Check(line:find("^Small Brown Pouch, from Koko Skybluff, at level 5, "), "a first's tooltip line: " .. line)
-head, line = Firsts.Tip(Find("uncommon", loot), d0)
+_, line = Firsts.Tip(Find("uncommon", loot), d0)
 Check(line:find("^Wolfskin Bracers, looted, at level 6, "), "a looted first's tooltip line: " .. line)
 
 -- The entry's prose ends with its firsts.

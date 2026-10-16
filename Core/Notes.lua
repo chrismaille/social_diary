@@ -16,7 +16,7 @@
 -- (DIA-7), after which they come back with the person if they are added
 -- again. Only deleting everything about someone takes them out.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Notes = {}
 ns.Notes = Notes

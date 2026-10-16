@@ -1,0 +1,40 @@
+# Pre-commit hooks for Social Diary. Install once per clone:
+#
+#   pre-commit install
+#
+# then every commit runs what the CI runs (tests), plus luacheck and the
+# usual file hygiene. The Lua tooling is a system package:
+#
+#   sudo apt install luajit lua-check     # luajit and luacheck
+#
+# `make lint` runs everything by hand, over every tracked file and the new
+# ones not yet staged (`pre-commit run --all-files` misses the latter).
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+
+  # Luacheck, configured by .luacheckrc (the client's globals by hand).
+  - repo: local
+    hooks:
+      - id: luacheck
+        name: luacheck
+        entry: luacheck
+        language: system
+        types: [lua]
+
+      # The offline suite, the only regression net the addon has.
+      - id: tests
+        name: tests (luajit)
+        entry: luajit tests/run.lua
+        language: system
+        pass_filenames: false
+        files: \.lua$

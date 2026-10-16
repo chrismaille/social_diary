@@ -7,7 +7,7 @@
 -- Features/Deaths/), which write them into the session (Sessions.Rare,
 -- Sessions.Death).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local TICK_SECONDS = 30
 

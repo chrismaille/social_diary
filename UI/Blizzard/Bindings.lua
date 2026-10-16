@@ -6,7 +6,7 @@
 -- (UI/Journal/Book.lua), the page to add someone on (UI/Windows/Entry.lua)
 -- and the quick note (UI/Paper/NoteSheet.lua).
 
-local addonName, ns = ...
+local _, ns = ...
 
 --------------------------------------------------------------------------
 -- DIA-2's keybind

@@ -14,7 +14,7 @@
 -- that reads a name goes through NormalizeName, which reconciles all four
 -- shapes into the same { first, surname } pair (D12).
 
-local addonName, ns = ...
+local _, ns = ...
 
 --------------------------------------------------------------------------
 -- GUIDs

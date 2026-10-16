@@ -5,7 +5,7 @@
 -- their margin note (Firsts.PERSON). Copy changes go through the
 -- copywriter skill, as every player-read word does.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Firsts = ns.Firsts
 local Text = ns.UI.JourneyText

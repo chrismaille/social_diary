@@ -14,7 +14,7 @@
 -- received, from Tester. Nothing else reads j.firsts while the route is
 -- written, so writing it after the route leaves the route as it was.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local TestData = ns.TestData
 local Link = TestData.Link

@@ -20,7 +20,7 @@
 --   hostile   true when they were attackable at some point in it
 --   src       which source saw them first ("plate", "target", "say", ...)
 
-local addonName, ns = ...
+local _, ns = ...
 
 -- SIG-4: at most one row per character per zone per hour.
 local BUCKET_SECONDS = 60 * 60

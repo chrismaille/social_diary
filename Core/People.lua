@@ -17,7 +17,7 @@
 --
 -- No frames here, so the smoke test can hold all of it to account.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local People = {}
 ns.People = People

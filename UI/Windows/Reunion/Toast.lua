@@ -43,7 +43,7 @@
 --   .Build               this file's; .Snapshot Words.lua's; .Dismiss,
 --                        .Hover, .Pump, .InCombat Queue.lua's
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT
@@ -145,7 +145,6 @@ local function Build()
     local rules = K.Pool("ARTWORK", 0)
     host.rules = rules
     local function Rule(x0, y0, x1, y1)
-        local R = Style.RUBRIC
         K.Split(x0, y0, x1, y1, function(a, b, c, d, light)
             local texture = rules:Next()
             texture:SetColorTexture(R[1] * light, R[2] * light, R[3] * light, WARN_RULE.alpha)

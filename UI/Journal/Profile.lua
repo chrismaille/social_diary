@@ -9,7 +9,7 @@
 -- state (ns.UI.Journal, from UI/Journal/Book.lua). The timeline's rows are
 -- UI/Journal/Timeline.lua's, which loads first.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Format = ns.UI.Format
 

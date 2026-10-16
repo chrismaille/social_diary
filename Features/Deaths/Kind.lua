@@ -45,7 +45,7 @@
 --
 -- This file: the route's list of the user's deaths, and its writers.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Deaths = {}
 ns.Deaths = Deaths

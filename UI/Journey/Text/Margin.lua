@@ -5,7 +5,7 @@
 --
 -- The module and its siblings: UI/Journey/Text/Grammar.lua.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Text = ns.UI.JourneyText
 local Glue, Duration, NUMBER, Short = Text.Glue, Text.Duration, Text.NUMBER, Text.Short

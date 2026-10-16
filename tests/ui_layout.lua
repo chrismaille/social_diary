@@ -13,7 +13,7 @@
 -- add it here with the caller that needs it".
 
 local T = ...
-local Section, Check, Eq = T.Section, T.Check, T.Eq
+local Section, Check = T.Section, T.Check
 local ns = T.Boot()
 
 -- Loose names, each with who calls it from outside UI/.

@@ -6,7 +6,7 @@
 --
 -- The module and its siblings: UI/Journey/Text/Grammar.lua.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Text = ns.UI.JourneyText
 local List = ns.UI.Format.List
@@ -215,7 +215,7 @@ end
 local PARAGRAPHS = {
     { at = 10, key = "opening", lines = function(e, now) return Opening(e, now) end },
     { at = 20, key = "time", lines = function(e) return Join(Stops(e), Flights(e)) end },
-    { at = 30, key = "people", lines = function(e, now, index) return Join(People(e), Fights(e, index)) end },
+    { at = 30, key = "people", lines = function(e, _now, index) return Join(People(e), Fights(e, index)) end },
 }
 -- The diary's paragraphs are the registry's core entries, first among
 -- the kinds at their numbers; Ordered() is every paragraph in its place,
@@ -223,7 +223,7 @@ local PARAGRAPHS = {
 local paragraphKinds = ns.Registry.New({
     what = "Text.RegisterLines(key, { at, lines = function(e, now, index) ... })",
     key = "key", order = "at",
-    check = function(key, spec) return type(spec.at) == "number" and type(spec.lines) == "function" end,
+    check = function(_key, spec) return type(spec.at) == "number" and type(spec.lines) == "function" end,
 })
 for _, p in ipairs(PARAGRAPHS) do paragraphKinds:Core(p.key, p, -1) end
 

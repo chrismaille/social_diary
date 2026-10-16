@@ -42,7 +42,7 @@ Eq(_G.SocialDiaryCharDB.data.schema, 4, "the diary has no version")
 local Migrate, ran = ns._test.Migrate, {}
 local steps = {
     [3] = function(t) ran[#ran + 1] = 3; t.renamed, t.old = t.old, nil end,
-    [4] = function(t) ran[#ran + 1] = 4 end,
+    [4] = function(_t) ran[#ran + 1] = 4 end,
 }
 local t = { schema = 2, old = "kept" }
 Migrate(t, 4, steps)

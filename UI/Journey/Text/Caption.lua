@@ -7,7 +7,7 @@
 --
 -- The module and its siblings: UI/Journey/Text/Grammar.lua.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Format = ns.UI.Format
 

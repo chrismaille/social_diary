@@ -20,7 +20,7 @@
 -- nothing here is stored; names and colours come from the diary when a page
 -- is drawn, so a rename or a new alt grouping shows everywhere at once.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Journey = ns.Journey
 

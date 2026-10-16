@@ -12,7 +12,7 @@
 -- level. Nothing else writes j.closeCalls, so writing it after the route
 -- leaves the route as it was.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local TestData = ns.TestData
 local BARRENS, STONETALON = 1413, 1442

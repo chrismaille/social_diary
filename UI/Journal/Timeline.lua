@@ -8,7 +8,7 @@
 -- The words are UI/Words/Timeline.lua's. The profile (UI/Journal/Profile.lua)
 -- owns the list and fills it, through the three functions at the end.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Format = ns.UI.Format
 

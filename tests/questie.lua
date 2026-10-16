@@ -119,7 +119,7 @@ Eq(Q.DropRate(4739, 3108), nil, "a creature that does not drop it")
 -- Questie's own reckoning, where it runs.
 _G.QuestieLoader = { ImportModule = function(_, name)
     if name == "DropDB" then
-        return { tableWowhead = {}, GetItemDroprate = function(item, npc) return { 77.5, "questie" } end }
+        return { tableWowhead = {}, GetItemDroprate = function(_item, _npc) return { 77.5, "questie" } end }
     end
     return { private = {} }
 end }

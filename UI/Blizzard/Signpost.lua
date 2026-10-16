@@ -4,7 +4,7 @@
 -- and RegisterAddOnCategory; the declarative Settings API has changed
 -- signature between client versions and is unverified in this build.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local category
 

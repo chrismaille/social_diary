@@ -22,7 +22,7 @@
 -- LOC-1: the outcome is read from the numeric message id, never from the
 -- English text ("Trade complete."), which would break in any other locale.
 
-local addonName, ns = ...
+local _, ns = ...
 
 -- Prefer the client's own constants; fall back to what Session 1 observed.
 local TRADE_COMPLETE = LE_GAME_ERR_TRADE_COMPLETE or 251

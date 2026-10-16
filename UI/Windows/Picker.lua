@@ -8,7 +8,7 @@
 -- frames, no protected calls, and every identity read goes through the same
 -- gates the rest of the addon uses.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local MAX_ROWS = 12
 local ROW_HEIGHT = ns.Style.ROW_HEIGHT

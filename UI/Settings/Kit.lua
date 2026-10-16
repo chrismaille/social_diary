@@ -5,7 +5,7 @@
 -- (Switch, Number, DependsOn, Saved). The page and its registry are in
 -- UI/Settings/Page.lua; the sections in UI/Settings/Sections/.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT
@@ -85,10 +85,10 @@ local function Column(parent, x, y, width)
         local height = math.max(18, row.label:GetStringHeight())
         row:SetSize(self.width, height)
 
-        function row:Refresh() self.box:Refresh() end
-        function row:SetAvailable(available)
-            self:SetAlpha(available and 1 or 0.45)
-            if available then self.box:Enable() else self.box:Disable() end
+        function row.Refresh() row.box:Refresh() end
+        function row.SetAvailable(_, available)
+            row:SetAlpha(available and 1 or 0.45)
+            if available then row.box:Enable() else row.box:Disable() end
         end
 
         return self:Place(row, height)

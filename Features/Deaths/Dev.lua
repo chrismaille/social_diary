@@ -13,7 +13,7 @@
 -- it was. A session's deaths (Tester's sessions' deathLog) are fields of
 -- the session the script makes whole, and stay there.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local TestData = ns.TestData
 local DUROTAR, BARRENS, STONETALON = 1411, 1413, 1442

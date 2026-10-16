@@ -1,5 +1,6 @@
-# Runs the offline test suite (tests/run.lua against the WoW API mock) on
-# every push to main and every pull request. Releases run it again before
+# Runs the lint and the offline test suite (tests/run.lua against the WoW
+# API mock) on every push to main and every pull request. These are the same
+# `make` targets the pre-commit hooks run. Releases run them again before
 # packaging (release.yml).
 
 name: Tests
@@ -15,8 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install LuaJIT
-        run: sudo apt-get update && sudo apt-get install -y luajit
+      - name: Install LuaJIT and luacheck
+        run: sudo apt-get update && sudo apt-get install -y luajit lua-check
 
-      - name: Run tests
-        run: luajit tests/run.lua
+      - name: Lint
+        run: make lint
+
+      - name: Tests
+        run: make tests

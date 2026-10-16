@@ -13,7 +13,7 @@
 -- Sightings never run inside instances (SIG-6); dungeon groups join this
 -- page once instance visits (INS-1, INS-2) record their members.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Format = ns.UI.Format
 

@@ -27,7 +27,7 @@
 -- (the "Keep my own route" setting, the logged-in character's route, not
 -- a test one).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Hunts = ns.Hunts
 

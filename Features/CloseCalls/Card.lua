@@ -19,7 +19,7 @@
 -- Card.lua) charts a rescue with VITALS, read at call time as
 -- ns.CloseCalls.Card.VITALS.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local CloseCalls = ns.CloseCalls

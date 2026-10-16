@@ -13,7 +13,6 @@
 local T = ...
 local mock, F = T.mock, T.F
 local Section, Check, Eq = T.Section, T.Check, T.Eq
-local DAY = T.DAY
 local ns = T.Boot()
 local SELF = F.SELF
 local Text = ns.UI.JourneyText
@@ -178,7 +177,6 @@ Section("on a light plate's print, and good luck keeping it")
 
 ns.Diary.Add(BRAM, { source = "test" })
 local page
-local LAYOUT = ns.UI.JourneyLook.LAYOUT
 local j
 local function Seg(seg)
     j.segments[#j.segments + 1] = seg
@@ -295,7 +293,7 @@ do
     -- print (FL, its S not on the tucked one); the duel has no room under
     -- FL's print's caption, so the words say it, or, where that would run
     -- them past the foot, the flag alone.
-    e = Road({ won = 1, last = "won", guid = BRAM, subZone = "Zephras Isle" }, LUCK)
+    Road({ won = 1, last = "won", guid = BRAM, subZone = "Zephras Isle" }, LUCK)
     Eq(page.pattern, "FL", "setup: the luck gives up the tucked print")
     onPrint = page.plates[2]
     Check(onPrint.print ~= nil, "setup: good luck on the print")
@@ -440,7 +438,7 @@ end
 -- note beside Tester's (never folded into it), lost 3 to 2.
 do
     local week
-    for i, e in ipairs(page.recap.entries) do
+    for i, _ in ipairs(page.recap.entries) do
         OpenAt(i)
         if page.pattern == "LF" then week = i break end
     end

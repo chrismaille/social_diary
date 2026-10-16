@@ -20,7 +20,7 @@
 -- route's list of fires sat by, and the moment that puts them on the
 -- plates.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Campfire = {}
 ns.Campfire = Campfire

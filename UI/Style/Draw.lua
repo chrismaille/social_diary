@@ -6,7 +6,7 @@
 -- draw with is UI/Style/Art.lua's; the widgets built from them are in
 -- UI/Style/Widgets.lua and UI/Style/Person.lua.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 
@@ -193,7 +193,7 @@ end
 -- the client cannot move corners there are no teeth: the paper stays a
 -- plain edge.
 function Style.TornEdge(parent, layer, sublevel, x1, y1, x2, y2, teeth, depth, seed, colour)
-    local Noise = Style.Noise
+    local noise = Style.Noise
     local edge = {}
     for i = 1, teeth do
         local tooth = parent:CreateTexture(nil, layer, nil, sublevel)
@@ -208,8 +208,8 @@ function Style.TornEdge(parent, layer, sublevel, x1, y1, x2, y2, teeth, depth, s
             local a, b = (i - 1) / teeth, i / teeth
             -- Its point leans a little along the edge, and stands as high
             -- as it tore.
-            local lean = flat and 0 or (Noise(seed + i * 3.1) - 0.5) * 0.7 / teeth
-            local high = depth * (i % 2 == 1 and 1 or 0.45) * (flat and 0.7 or (0.3 + 0.7 * Noise(seed + i)))
+            local lean = flat and 0 or (noise(seed + i * 3.1) - 0.5) * 0.7 / teeth
+            local high = depth * (i % 2 == 1 and 1 or 0.45) * (flat and 0.7 or (0.3 + 0.7 * noise(seed + i)))
             local m = (a + b) / 2 + lean
             tooth:SetShown(Style.Quad(tooth, parent,
                 x1 + dx * a, y1 + dy * a,

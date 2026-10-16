@@ -8,7 +8,7 @@
 -- commands, listed only while debug is on. Not part of a release: the TOC's
 -- Dev/ block goes.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Journey = ns.Journey
 

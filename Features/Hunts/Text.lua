@@ -10,7 +10,7 @@
 -- (Text.When). Copy changes go through the copywriter skill, as every
 -- player-read word does.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Hunts = ns.Hunts
 local Text = ns.UI.JourneyText

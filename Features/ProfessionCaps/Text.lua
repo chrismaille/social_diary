@@ -3,7 +3,7 @@
 -- (Text.RegisterCaption) and the stairs' tooltip (Mark.lua). Copy changes
 -- go through the copywriter skill, as every player-read word does.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local ProfessionCaps = ns.ProfessionCaps
 local Text = ns.UI.JourneyText

@@ -15,7 +15,7 @@
 -- they are seen. The user's own characters are not strangers: an alt in a
 -- roster (record.isSelf) and the logged-in character get no row.
 
-local addonName, ns = ...
+local _, ns = ...
 
 ns.On("SD_LEVEL_ROSE", function(_, guid, from, level)
     local record = ns.Characters.Get(guid)

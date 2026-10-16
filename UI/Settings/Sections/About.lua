@@ -1,7 +1,7 @@
 -- Settings: About, the last section (UI/Settings/Page.lua lists them; the
 -- controls are UI/Settings/Kit.lua's): thanks to those who helped.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT

@@ -5,7 +5,7 @@
 -- The query lives in the journal's shared state (ns.UI.Journal, from
 -- UI/Journal/Book.lua), so the box, the menus and the list read the one copy.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Format = ns.UI.Format
 

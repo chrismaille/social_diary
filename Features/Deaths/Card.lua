@@ -53,7 +53,7 @@
 --     reads the crosses' deaths the killer's pass leaves and may clear
 --     plate.killer (or the close call's plate.foe).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 
@@ -615,7 +615,7 @@ function KillerCard.New(parent)
     end
     -- Wearing a face, laid once more with its picture drawn small where it
     -- stood taller than the margin's room.
-    function hooks.again(self, w, h, room)
+    function hooks.again(self, _w, h, room)
         if self.face and self.picture and room and h > room then
             self.compact = true
             return true

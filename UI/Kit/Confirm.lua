@@ -6,7 +6,7 @@
 -- Asked from the settings (UI/Settings/), the entry page
 -- (UI/Windows/Entry.lua) and /sd forget and /sd remove (Core/Slash.lua).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Dialog = {}
 ns.UI.Dialog = Dialog

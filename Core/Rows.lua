@@ -62,7 +62,7 @@
 -- Unknown kinds: activity "other" (chatter, "N other interactions"), not a
 -- moment, no excerpt, nothing else.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Rows = {}
 ns.Rows = Rows

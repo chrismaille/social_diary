@@ -15,7 +15,7 @@ ns.Off("TEST_EVENT", handler)
 Check(not mock.registered.TEST_EVENT, "event not unregistered after the last handler")
 
 -- SIG-5 needs a handler to be able to remove itself mid-dispatch.
-local seen, a, b = {}, nil, nil
+local seen, a, b = {}
 a = function() seen[#seen + 1] = "a"; ns.Off("DISPATCH_TEST", a) end
 b = function() seen[#seen + 1] = "b" end
 ns.On("DISPATCH_TEST", a)
@@ -140,4 +140,3 @@ ns.Fire("SD_DUEL_STARTED", nil)
 Eq(ns.Duelling(B), true, "a duel with someone unread is not on for them")
 mock.now = mock.now + 10 * 60 + 1
 Eq(ns.Duelling(), false, "a duel whose end never came lasts for ever")
-

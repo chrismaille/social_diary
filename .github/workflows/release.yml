@@ -29,11 +29,11 @@ jobs:
             exit 1
           fi
 
-      - name: Install LuaJIT
-        run: sudo apt-get update && sudo apt-get install -y luajit
+      - name: Install LuaJIT and luacheck
+        run: sudo apt-get update && sudo apt-get install -y luajit lua-check
 
-      - name: Run tests
-        run: luajit tests/run.lua
+      - name: Lint and tests
+        run: make check
 
   package:
     needs: test

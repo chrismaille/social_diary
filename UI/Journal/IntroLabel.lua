@@ -10,7 +10,7 @@
 -- sheet (UI/Paper/Sheet.lua) hanging below the book's right page, clear of
 -- the ribbons, folded once and turned a little like the slip at login.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT

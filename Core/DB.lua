@@ -17,7 +17,7 @@
 -- load-on-demand archive; only the core lives here. The archive is a separate
 -- addon and does not exist yet.
 
-local addonName, ns = ...
+local _, ns = ...
 
 -- Three version numbers, each saved as `schema` in what it numbers: a diary
 -- (the shared one, or a character's own), the account file around it, and

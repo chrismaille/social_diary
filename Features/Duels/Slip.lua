@@ -34,7 +34,7 @@
 -- Laid flat ("Flat paper only") both lie square, without shadows, as every
 -- slip does.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local Duels = ns.Duels

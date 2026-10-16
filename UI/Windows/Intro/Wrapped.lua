@@ -7,7 +7,7 @@
 -- UI/Windows/Intro/Scene.lua's, which lists the state shared on
 -- ns.UI.Parcel; torn open is Torn.lua; the host Parcel.lua.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT

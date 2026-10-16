@@ -10,7 +10,7 @@
 -- the title in English, for when the client cannot name the quest; a
 -- second route where the other faction comes to the same end another way.
 
-local addonName, ns = ...
+local _, ns = ...
 
 ns.QuestFinales.CHAINS = {
     [46] = { title = "Bounty on Murlocs", routes = { { 40, 35, 37, 45, 71, 39, 46 } } },

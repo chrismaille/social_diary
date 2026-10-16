@@ -4,7 +4,7 @@
 -- Quiet.Build). UI/Settings/Page.lua reads it again with the page
 -- (Quiet.Refresh).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT
@@ -79,10 +79,10 @@ local function RefreshQuietCount()
 end
 
 local function UpdateQuietRow(row, item)
-    local quiet = ns.Diary.IsQuietNearby(item.guid)
-    row.tick:SetChecked(quiet)
+    local on = ns.Diary.IsQuietNearby(item.guid)
+    row.tick:SetChecked(on)
     row.name:SetText(item.name)
-    row.name:SetFontObject(quiet and FONT.strong or FONT.body)
+    row.name:SetFontObject(on and FONT.strong or FONT.body)
     row.tags:SetText(item.tags)
     Style.ClassIconOrInk(row.icon, item.record and item.record.class)
 end

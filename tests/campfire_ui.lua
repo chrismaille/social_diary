@@ -311,7 +311,7 @@ end
 -- and the full plate's fire stepped aside from the time together's ring.
 do
     local week
-    for i, e in ipairs(page.recap.entries) do
+    for i, _ in ipairs(page.recap.entries) do
         Open(i)
         if page.pattern == "LF" then week = i break end
     end

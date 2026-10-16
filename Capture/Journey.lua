@@ -31,7 +31,7 @@
 -- that holds what the character has against its last reading to take its
 -- first one then.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Journey = ns.Journey
 local T = Journey.T

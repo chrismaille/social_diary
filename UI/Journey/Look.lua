@@ -52,7 +52,7 @@
 -- ns.UI.JourneyLook (made at the foot of Page.lua), ns.UI.JourneyMargin
 -- (Margin.lua).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 

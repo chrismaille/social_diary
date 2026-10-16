@@ -8,7 +8,7 @@ local Section, Check, Eq = T.Section, T.Check, T.Eq
 local DAY = T.DAY
 local ns = T.Boot()
 
-local J, R, Text = ns.Journey, ns.JourneyRecap, ns.UI.JourneyText
+local J, R, Text = ns.Journey, ns.JourneyRecap
 local TUNE = J.T
 local SELF = F.SELF
 
@@ -298,7 +298,7 @@ mock.mapID = 1414
 Eq(ns.ZoneWhere(), nil, "a continent gave a point")
 -- A little past the edge reads as the edge.
 mock.mapID, mock.position = MULGORE, { x = 1.004, y = -0.002 }
-zone, zx, zy = ns.ZoneWhere()
+_, zx, zy = ns.ZoneWhere()
 Eq(zx, 1, "past the right edge not clamped")
 Eq(zy, 0, "past the top edge not clamped")
 mock.position = mock.secret({ x = 0.5, y = 0.5 })
@@ -1090,7 +1090,7 @@ end
 
 local target = 0
 for l = 1, 59 do target = target + (0.4 + 0.06 * l) * 3600 end
-local perLevel, untilNext = {}, 0
+local perLevel, untilNext = {}
 for l = 1, 59 do perLevel[l] = (0.4 + 0.06 * l) * 3600 end
 untilNext = played + perLevel[1]
 local zones = 0
@@ -1337,7 +1337,6 @@ for i = 0, 10 do
 end
 J.Act(j, "deaths", 1)
 J.Feed(j, S(t, 850, 1000))
-t = t + 10
 J.Settle(j)
 local deathStops = Of(j, "stop")
 Eq(#deathStops, 1, "a death released at once left no mark")
@@ -1544,7 +1543,7 @@ C_Map.GetMapWorldSize = function(mapID)
     local a, b = swapped(mapID)
     return b, a
 end
-w, h = J.MapYards(MULGORE)
+w = J.MapYards(MULGORE)
 Eq(w, 5000, "a world size given down-first was not put back in order")
 C_Map.GetMapWorldSize = function() return 0, 0 end
 w = J.MapYards(MULGORE)
@@ -1706,7 +1705,7 @@ Eq(R.WhereAt(j, d0 + 2 * h + 600), nil, "a time ten minutes off the route was pl
 
 -- On the recap: each first sighting on its level's entry, and the faces.
 recap = R.Build(j, hs)
-local L1, L2, L3 = recap.entries[1], recap.entries[2], recap.entries[3]
+local L1, L2 = recap.entries[1], recap.entries[2]
 Eq(L1.level, 1, "setup: level 1 first")
 Eq(#L1.hindsight, 2, "level 1's first sightings")
 Eq(#L2.hindsight, 0, "level 2's first sightings")
@@ -2099,7 +2098,7 @@ Eq(Text.PlateHeading(after, now, plate), "Forty-five minutes later", "a later pl
 Eq(select(3, Text.PlateHeading(after, now, plate)), nil, "a later plate in the same zone moves a day")
 after.mapID = BARRENS
 Eq(Text.PlateHeading(after, now, plate), "Forty-five minutes later, in The Barrens", "a later plate in another zone")
-local line, zone, day = Text.PlateHeading(after, now, plate)
+local _, zone, day = Text.PlateHeading(after, now, plate)
 Eq(zone, "The Barrens", "a later plate's zone, for a narrow column")
 Eq(day, "forty-five minutes later", "a later plate's time, for a narrow column")
 after.t = plate.t + 20 * 60

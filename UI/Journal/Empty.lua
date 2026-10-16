@@ -12,7 +12,7 @@
 -- The first person added takes it all away: nothing here has to be
 -- dismissed.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT
@@ -192,9 +192,9 @@ local function BuildRight(w)
 
     -- How far right a pencilled line ends, as the client sets it, capped
     -- at `width` for one that wraps.
-    local function RightOf(text, x, width)
+    local function RightOf(text, x0, width)
         local measured = text:GetUnboundedStringWidth() or 0
-        return x + (width and math.min(measured, width) or measured)
+        return x0 + (width and math.min(measured, width) or measured)
     end
 
     local note = Pencilled(w, FONT.pencil, 0, 88, "Helped me with the Nagas at the lake.")

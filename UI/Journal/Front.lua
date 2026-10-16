@@ -23,7 +23,7 @@
 -- Shown, it has been read: the slip at login stops asking
 -- (UI/Windows/Intro/Parcel.lua).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT

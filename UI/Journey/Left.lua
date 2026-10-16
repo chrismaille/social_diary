@@ -8,7 +8,7 @@
 --
 -- The module and its siblings: UI/Journey/Look.lua.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT
@@ -98,7 +98,7 @@ end
 
 local function Linked(line, names)
     local marks = {}
-    for i, n in ipairs(names) do
+    for _, n in ipairs(names) do
         local pattern = n.name:gsub("%p", "%%%0")
         line = line:gsub(pattern, function()
             marks[#marks + 1] = LINK:format(n.guid, n.name)

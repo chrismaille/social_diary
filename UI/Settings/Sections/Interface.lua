@@ -2,14 +2,14 @@
 -- controls are UI/Settings/Kit.lua's): tooltips, and how the book looks. Its
 -- subpages are Toasts.lua and Shortcuts.lua beside it.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local SettingsUI = ns.UI.Settings
 local Kit = SettingsUI.Kit
 local Switch, DependsOn = Kit.Switch, Kit.DependsOn
 local INDENT = Kit.INDENT
 
-local function BuildInterface(pane, c)
+local function BuildInterface(_pane, c)
     local page = SettingsUI.page
 
     c:Heading("Tooltips")

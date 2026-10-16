@@ -17,7 +17,7 @@ Section("timeline taxonomy (TLN-1 to TLN-9)")
 do
     local shown = {}
     local list = ns.UI.VirtualList(UIParent, 20, 5, function(l) return CreateFrame("Frame", nil, l) end,
-        function(row, item) shown[#shown + 1] = item.n end)
+        function(_row, item) shown[#shown + 1] = item.n end)
     list:SetData({ { n = 1 }, { n = 2, height = 58 }, { n = 3 }, { n = 4 }, { n = 5 }, { n = 6, height = 6 } })
     Eq(table.concat(shown, ","), "1,2,3", "lines past the list's height were shown")
     Eq(list.bar.max, 2, "the scroll range does not reach the last line")

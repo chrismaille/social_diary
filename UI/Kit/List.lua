@@ -2,7 +2,7 @@
 -- Its siblings: Panel, Label and Button (UI/Kit/Chrome.lua), the text
 -- helpers (UI/Words/Format.lua).
 
-local addonName, ns = ...
+local _, ns = ...
 
 --------------------------------------------------------------------------
 -- The virtual list (JNL-6)

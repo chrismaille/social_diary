@@ -47,7 +47,7 @@
 -- This file: the route's list of close calls, its writers and readers,
 -- and the moment that puts them on the plates.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local CloseCalls = {}
 ns.CloseCalls = CloseCalls

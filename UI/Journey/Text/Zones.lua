@@ -3,7 +3,7 @@
 --
 -- The module and its siblings: UI/Journey/Text/Grammar.lua.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Text = ns.UI.JourneyText
 local List = ns.UI.Format.List

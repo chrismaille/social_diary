@@ -9,7 +9,7 @@
 -- old one. None reads what another writes anyway: World PvP takes only
 -- players, this only creatures, and it writes only the session's rares.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local RARE_KINDS = { rare = true, rareelite = true, worldboss = true }
 

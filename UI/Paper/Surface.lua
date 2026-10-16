@@ -35,7 +35,7 @@
 -- Pure placing and arithmetic: it makes nothing at load, so its place in
 -- the TOC (before the strip) moves no frame.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Surface = {}
 ns.UI.Surface = Surface

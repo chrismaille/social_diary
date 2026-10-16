@@ -6,7 +6,7 @@
 -- that lays these words out is UI/Windows/Reunion/Toast.lua, which also
 -- lists the module's shared state; the queue is Queue.lua's.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Format = ns.UI.Format
 

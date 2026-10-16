@@ -617,13 +617,13 @@ do
     local FACE
     FACE = Card.RegisterFace("scrap", {
         methods = { SetScrap = function(card, k) card:Wear(FACE, k, { name = k.name, what = "scrapped" }) end },
-        plan = function(card, note, width, room, pic, Least)
+        plan = function(_card, note, width, room, _pic, Least)
             Called("plan")
             Check(type(room) == "number" and room < width and type(Least) == "function", "the plan's room")
             note.under = { w = 20, h = 6, gap = 2, after = 2 }
             return { width = width }
         end,
-        top = function(card, plan)
+        top = function(_card, plan)
             Called("top")
             Check(plan.width ~= nil, "the plan is not handed to the drawing")
         end,

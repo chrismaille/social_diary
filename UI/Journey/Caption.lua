@@ -7,7 +7,7 @@
 --
 -- The module and its siblings: UI/Journey/Look.lua.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT
@@ -121,7 +121,7 @@ local function Plated(ctx, slot, over)
     end
     local tall = Write(words, FONT.body, Words(first), cap.x, top, cap.w, cap.align)
     if over and not Short(tall) then return false end
-    local at, shown, all = Mark(), nil, 0
+    local at, shown, all = Mark(), nil
     local people, byKind, left, rewrite, quiet
     for pass = 1, 4 do
         -- Its notes: in their own column first and then under the

@@ -4,7 +4,7 @@
 -- person's pieces (portrait, heading, medallion, boss marks, rubric) are in
 -- UI/Style/Person.lua; strokes and the other drawing in UI/Style/Draw.lua.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 

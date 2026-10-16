@@ -53,7 +53,7 @@ _G.C_DamageMeter = {
         end
         return { combatSources = sources }
     end,
-    GetCombatSessionSourceFromID = function(id, kind, guid)
+    GetCombatSessionSourceFromID = function(id, _kind, guid)
         local spells = {}
         for _, heal in ipairs(meter.sessions[id].heals) do
             if heal.from == guid then

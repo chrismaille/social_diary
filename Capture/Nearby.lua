@@ -18,7 +18,7 @@
 -- beside this file rather than through it until the toast is moved over.
 -- Until then these handlers still fire in cities.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local GROUP_SECONDS = 30
 

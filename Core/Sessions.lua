@@ -32,7 +32,7 @@
 -- participant's GUID and diary rows are never pruned, so the stamp is enough
 -- for the journal to show them inside the session instead of beside it.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Sessions = {}
 ns.Sessions = Sessions

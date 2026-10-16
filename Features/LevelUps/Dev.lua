@@ -10,7 +10,7 @@
 -- level-ups come before the trade and the whispers written at the same
 -- point, as when they were the script's own.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local TestData = ns.TestData
 local MIN = 60

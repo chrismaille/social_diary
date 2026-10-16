@@ -25,7 +25,7 @@
 -- Everything is computed per read; nothing here is saved (TLN-1), so older
 -- history follows any change to these rules.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Timeline = {}
 ns.Timeline = Timeline

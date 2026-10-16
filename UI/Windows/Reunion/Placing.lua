@@ -3,7 +3,7 @@
 -- keeps where it was dragged to, and lists the state shared on
 -- ns.UI.Toast); the queue that waits meanwhile is Queue.lua's.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Toast = ns.UI.Toast
 

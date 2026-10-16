@@ -3,7 +3,7 @@
 -- UI/Settings/Kit.lua's): both keys, the books to drag onto a bar
 -- (UI/Settings/Macro.lua), and the slash commands.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT

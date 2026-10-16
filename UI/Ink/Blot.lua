@@ -43,7 +43,7 @@
 -- same turn as a box on the screen), a triangle repeating its last corner.
 -- Tested off the client (tests/ink_blot.lua).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Blot = {}
 ns.UI.InkBlot = Blot

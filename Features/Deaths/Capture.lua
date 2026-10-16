@@ -47,7 +47,7 @@
 -- hunts, listed after Capture/) reach LookUp (below) at call time for a close call's or a hunt's
 -- creature's display, guarded by `ns.Deaths`.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Deaths = ns.Deaths
 

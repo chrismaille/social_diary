@@ -45,7 +45,7 @@
 -- This file: the kinds, whole (Core/Rows.lua's spec in one call each,
 -- words and icon included), and At.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Witnesses = {}
 ns.Witnesses = Witnesses

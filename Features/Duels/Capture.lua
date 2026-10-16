@@ -39,7 +39,7 @@
 -- fighting and the sightings, each reading only ns.Duelling and its own
 -- state, so their order among themselves does not matter.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Duels = ns.Duels
 

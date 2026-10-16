@@ -7,7 +7,7 @@
 -- ns.UI.Keys.Setter(parent, action, status) builds one; the rest is what it
 -- is made of, for the tests and for a page that needs only a piece.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT

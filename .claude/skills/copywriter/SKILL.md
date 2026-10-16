@@ -7,7 +7,7 @@ argument-hint: "[what to write | audit <file or area>]"
 # Social Diary copy
 
 The brand voice is set in `.impeccable.md` → *Brand Personality*: **warm,
-personal, timeworn; a diary, quiet, never shouts during 
+personal, timeworn; a diary, quiet, never shouts during
 play.** This skill turns that into rules per surface. The changelog has its
 own rule (`.claude/rules/changelog.md`); follow that one there.
 

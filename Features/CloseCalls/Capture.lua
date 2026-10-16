@@ -34,7 +34,7 @@
 -- Deaths' (Features/Deaths/Capture.lua, before it in the TOC) and before
 -- the witnesses' (after Capture/), as it was.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local CloseCalls = ns.CloseCalls
 local Journey = ns.Journey

@@ -8,7 +8,7 @@
 -- sentence on the left page (the user, 15 Oct), so no Text.RegisterLines;
 -- the caption's words are registered at the foot (Text.RegisterCaption).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Duels = ns.Duels
 local Text = ns.UI.JourneyText

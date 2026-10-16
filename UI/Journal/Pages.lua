@@ -44,7 +44,7 @@
 -- The containers are made by key, alphabetically (ByKey()): the order the
 -- golden dump has always seen them made in, its `pairs` walking keys sorted.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local J = ns.UI.Journal
 

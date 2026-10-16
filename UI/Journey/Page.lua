@@ -43,7 +43,7 @@
 -- file, the last of them, builds it, refreshes it and turns it to. The
 -- others, their order and what they share: UI/Journey/Look.lua.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT

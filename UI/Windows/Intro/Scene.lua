@@ -65,7 +65,7 @@
 -- The named fonts (SocialDiaryFontParcel*) are made as this file loads, in
 -- the order below; keep it.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 

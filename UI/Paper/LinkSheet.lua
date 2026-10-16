@@ -17,7 +17,7 @@
 -- first. A click on a row links or unlinks them at once; nothing waits on
 -- Done, so a click beside the card puts it away too.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT

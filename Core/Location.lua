@@ -8,7 +8,7 @@
 -- Session 1 confirmed this build uses the retail map system: GetBestMapForUnit
 -- returned 1412 in Mulgore and all four zone-text calls worked.
 
-local addonName, ns = ...
+local _, ns = ...
 
 -- Map coordinates are 0..1 floats. Three decimals is roughly a step's
 -- precision at zone scale and keeps stored rows short (DAT-3).

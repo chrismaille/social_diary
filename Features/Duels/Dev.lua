@@ -4,7 +4,7 @@
 -- tooling: listed in the TOC's do-not-package block, and left out by
 -- .pkgmeta.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local TestData = ns.TestData
 local MIN, DAY = 60, 24 * 60 * 60

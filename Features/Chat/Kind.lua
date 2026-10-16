@@ -35,7 +35,7 @@
 -- This file: the five kinds, whole (Core/Rows.lua's spec in one call
 -- each, words and icon included), and the whisper and party bubbles.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Chat = {}
 ns.Chat = Chat

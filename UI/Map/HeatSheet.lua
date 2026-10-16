@@ -29,7 +29,7 @@
 -- maps they were seen on. A click on the book beside the sheet puts it
 -- away (`onPutAway`).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Format = ns.UI.Format
 
@@ -135,7 +135,7 @@ function ns.UI.MapSheet.New(parent)
 
     local view, K = ns.UI.LooseSheet(parent, W, H)
     local S = view.sheet
-    local Place, PlaceButton, PlaceText, Width = K.Place, K.PlaceButton, K.PlaceText, K.Width
+    local Place, PlaceText, Width = K.Place, K.PlaceText, K.Width
     local Texture, Pool, Split, Bend, Quad, Light, Link = K.Texture, K.Pool, K.Split, K.Bend, K.Quad, K.Light, K.Link
 
     ----------------------------------------------------------------------

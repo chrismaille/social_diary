@@ -2,7 +2,7 @@
 -- UI/Journey/Plate.lua; .claude/ui-proposal/campfire.md), drawn on every
 -- plate and the full zone page through the plate's kit.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Campfire = ns.Campfire
 

@@ -10,7 +10,7 @@
 -- Stats come from ns.People.Stats, which works out one person at a time, so
 -- a mouseover never pays for rebuilding the whole journal index.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Format = ns.UI.Format
 

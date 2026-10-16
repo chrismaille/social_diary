@@ -4,7 +4,7 @@
 -- same way. Its sounds are in UI/Style/Sound.lua; the gradients, shades,
 -- hairlines and noise the book is drawn with in UI/Style/Draw.lua.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 

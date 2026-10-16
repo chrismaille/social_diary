@@ -6,7 +6,7 @@
 -- fonts and kit are UI/Windows/Intro/Scene.lua's, which lists the state
 -- shared on ns.UI.Parcel; wrapped is Wrapped.lua; the host Parcel.lua.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT

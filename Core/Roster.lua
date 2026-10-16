@@ -10,7 +10,7 @@
 -- whole group as joining again after every reload, and SES-3 says a reload
 -- must not duplicate anything.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Roster = {}
 ns.Roster = Roster

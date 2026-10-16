@@ -2,7 +2,7 @@
 -- controls are UI/Settings/Kit.lua's): the addons it reads from
 -- (Core/Bridges), and those it will one day.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local SettingsUI = ns.UI.Settings
 local Kit = SettingsUI.Kit
@@ -31,7 +31,7 @@ end
 
 -- Addons it reads from (Core/Bridges), each a status the user cannot
 -- change: ticked where it is there and answers.
-local function BuildIntegrations(pane, c)
+local function BuildIntegrations(_pane, c)
     local page = SettingsUI.page
 
     c:Heading("Questie")

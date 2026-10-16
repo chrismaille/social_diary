@@ -14,7 +14,7 @@
 --     fewer members are readable than the client says there are, the scan is
 --     incomplete: joins are recorded, leaves are not.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Group = {}
 ns.Group = Group

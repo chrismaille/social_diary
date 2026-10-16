@@ -30,7 +30,7 @@
 -- The compaction is plain functions over that record, so the tests drive it
 -- with made-up samples and no client at all.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Journey = {}
 ns.Journey = Journey
@@ -224,20 +224,20 @@ local function Unpack(line)
     if kind == "stop" then
         seg.x, seg.y, seg.r = M(7), M(8), N(9)
         seg.seconds = N(10) or (seg.to - seg.from)
-        local at = 11
+        local idx = 11
         if line:sub(1, 1) == "S" then
             local sdx, sdy, rho = N(11), N(12), N(13)
             if sdx and sdy then seg.sdx, seg.sdy, seg.rho = sdx / 100000, sdy / 100000, (rho or 0) / 100 end
-            at = 14
+            idx = 14
         end
-        if f[at] and f[at] ~= "" then
+        if f[idx] and f[idx] ~= "" then
             seg.act = {}
-            for letter, n in f[at]:gmatch("(%a)(%d+)") do
+            for letter, n in f[idx]:gmatch("(%a)(%d+)") do
                 local key = ACT_OF[letter]
                 if key then seg.act[key] = tonumber(n) end
             end
         end
-        seg.subZone = S(at + 1)
+        seg.subZone = S(idx + 1)
     elseif kind == "road" then
         seg.pts = f[7] or ""
     elseif kind == "flight" then
@@ -1441,7 +1441,7 @@ local function Provisional(j)
         if road.tail and road.tail.t > crumbs[#crumbs].t then crumbs[#crumbs + 1] = road.tail end
         if #crumbs >= 2 then
             local seg = Segment(o, "road", crumbs[1].t, crumbs[#crumbs].t, road.mapID, road.levelFrom)
-            local tolerance, kept = T.tolerance, nil
+            local tolerance, kept = T.tolerance
             repeat
                 kept = Thin(crumbs, tolerance)
                 tolerance = tolerance * 1.5

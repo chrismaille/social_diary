@@ -11,7 +11,7 @@
 -- meta.greeted[guid] = when they last got a toast. Saved, so a /reload does
 -- not reset it.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Reunions = {}
 ns.Reunions = Reunions

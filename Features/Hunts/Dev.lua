@@ -15,7 +15,7 @@
 -- Nothing else writes j.hunts, so writing it after the route leaves the
 -- route as it was.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local TestData = ns.TestData
 local DUROTAR, BARRENS, STONETALON = 1411, 1413, 1442

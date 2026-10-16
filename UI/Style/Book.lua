@@ -3,7 +3,7 @@
 -- the cover's corners and the medallions share. The cover, the loose sheet
 -- and the book closed are in UI/Style/Cover.lua.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local Noise = Style.Noise
@@ -205,10 +205,10 @@ local function PageStack(book, height)
             end
 
             for k, page in ipairs(pages) do
-                local outer, above, top, bottom = page.outer, page.above, page.top, page.bottom
+                local outer, pageAbove, top, bottom = page.outer, page.above, page.top, page.bottom
                 local seed = s * 1000 + k * 100
-                if outer < above then
-                    local width = above - outer
+                if outer < pageAbove then
+                    local width = pageAbove - outer
                     -- A turned-down corner, row by row from the corner:
                     -- where `x + row < size` (x in from the page's outer
                     -- side) the corner is gone, then comes the flap and
@@ -227,7 +227,7 @@ local function PageStack(book, height)
                                     Tone(Shade(STACK - outer + step) * 0.90, seed + row))
                             end
                             if fold < width then
-                                Flat(Place(-8, outer + fold, above, y, y + 1),
+                                Flat(Place(-8, outer + fold, pageAbove, y, y + 1),
                                     Tone(Shade(STACK - outer) * 1.04, seed + row))
                                 Flat(Place(-7, outer + fold, outer + fold + inkWidth, y, y + 1),
                                     { INK[1], INK[2], INK[3], 0.45 })
@@ -235,7 +235,7 @@ local function PageStack(book, height)
                         end
                     end
                     local from, to = top + (ear.top or 0), bottom - (ear.bottom or 0)
-                    Drift(-8, outer, above, from, to, seed, function(n) return Tone(Shade(STACK - outer), n) end)
+                    Drift(-8, outer, pageAbove, from, to, seed, function(n) return Tone(Shade(STACK - outer), n) end)
                     Drift(-7, outer, outer + inkWidth, from, to, seed + 50, Ink(k == bottomPage and 0.55 or 0.30))
                 end
             end
@@ -583,11 +583,11 @@ function Style.BookRibbon(book, x, width, cover, colour, label, onClick)
         texture:SetSize(w, h)
         texture:Show()
     end
-    local function Cast(texture, colour, from, to)
+    local function Cast(texture, tint, from, to)
         if from == to then
-            texture:SetColorTexture(colour[1], colour[2], colour[3], from)
+            texture:SetColorTexture(tint[1], tint[2], tint[3], from)
         else
-            Style.Shade(texture, "HORIZONTAL", colour[1], colour[2], colour[3], from, to)
+            Style.Shade(texture, "HORIZONTAL", tint[1], tint[2], tint[3], from, to)
         end
     end
 
@@ -655,7 +655,7 @@ function Style.BookRibbon(book, x, width, cover, colour, label, onClick)
             elseif mid < edge then
                 surface, ends = "cover", edge
             end
-            local o, colour, alpha, soft = unpack(RIBBON_CAST[surface])
+            local o, tint, alpha, soft = unpack(RIBBON_CAST[surface])
             if surface == "world" then
                 local shade = BookShade(mid + o - edge)
                 alpha = math.max(0, (alpha - shade) / (1 - shade))
@@ -664,11 +664,11 @@ function Style.BookRibbon(book, x, width, cover, colour, label, onClick)
             local shadowH = math.min(bottom + o, ends) - shadowTop
             if shadowH > 0 and alpha > 0 then
                 Place(slice.shadow, left + o, shadowTop, w, shadowH)
-                Cast(slice.shadow, colour, alpha, alpha)
+                Cast(slice.shadow, tint, alpha, alpha)
                 Place(slice.softLeft, left + o - soft, shadowTop, soft, shadowH)
-                Cast(slice.softLeft, colour, 0, alpha)
+                Cast(slice.softLeft, tint, 0, alpha)
                 Place(slice.softRight, left + o + w, shadowTop, soft, shadowH)
-                Cast(slice.softRight, colour, alpha, 0)
+                Cast(slice.softRight, tint, alpha, 0)
             else
                 slice.shadow:Hide()
                 slice.softLeft:Hide()
@@ -683,7 +683,7 @@ function Style.BookRibbon(book, x, width, cover, colour, label, onClick)
         local sway = Drape(cloth.drape, d)
         local angle = math.atan((sway - Drape(cloth.drape, d - 2)) / 2)
         local size = w / math.sqrt(2)
-        local o, colour, alpha = unpack(RIBBON_CAST.world)
+        local o, tint, alpha = unpack(RIBBON_CAST.world)
         for _, part in ipairs({ { ribbon.tip, 0 }, { ribbon.tipShadow, o } }) do
             local texture, shift = part[1], part[2]
             texture:ClearAllPoints()
@@ -691,7 +691,7 @@ function Style.BookRibbon(book, x, width, cover, colour, label, onClick)
             texture:SetPoint("CENTER", ribbon, "TOPLEFT", sway + width / 2 + shift, -length - shift)
             texture:SetRotation(math.pi / 4 + angle)
         end
-        Cast(ribbon.tipShadow, colour, alpha, alpha)
+        Cast(ribbon.tipShadow, tint, alpha, alpha)
         tipLight = (1 - 0.7 * narrow) * (1 - BookShade(d))
     end
 

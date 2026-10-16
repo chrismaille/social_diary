@@ -24,7 +24,7 @@
 --   - the "rare" art (UI/Style/Art.lua);
 --   - /sd sessions' count of a session's rares (Core/Slash.lua).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Rares = {}
 ns.Rares = Rares

@@ -95,7 +95,7 @@ end
 Items(ns.Timeline.For(PAL), 0)
 W("== single rows")
 for _, kind in ipairs(TYPES) do
-    local when, text, sub, icon = ns.UI.DescribeItem({ kind = "row", time = 0,
+    local _, text, sub, icon = ns.UI.DescribeItem({ kind = "row", time = 0,
         row = { type = kind, excerpt = "hi", zone = "The Barrens", context = CONTEXT[kind] } }, PAL)
     W(("ONE %s | %s | %s | %s"):format(kind, tostring(text), tostring(sub), tostring(icon)))
     W(("ART %s | %s"):format(kind, Dump(ns.Style.ART[icon or ""] or "nil")))

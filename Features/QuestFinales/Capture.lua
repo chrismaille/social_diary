@@ -15,7 +15,7 @@
 -- route (QuestFinales.Add, Kind.lua), a chain's start on j.chainStarts
 -- (QuestFinales.Begun).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local QuestFinales = ns.QuestFinales
 

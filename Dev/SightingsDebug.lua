@@ -6,7 +6,7 @@
 -- Registered under /sd sightings, listed in its help only while debug is on.
 -- Not part of a release: the TOC's Dev/ block goes.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local MapName = ns.MapName
 local ResolveArgument = ns.Slash.ResolveArgument

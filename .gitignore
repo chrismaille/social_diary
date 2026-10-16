@@ -10,3 +10,5 @@ __pycache__/
 .claude/*
 !.claude/skills/
 !.claude/rules/
+
+.idea/

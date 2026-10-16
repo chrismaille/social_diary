@@ -11,7 +11,7 @@
 -- diary, so adding somebody promotes their existing buffer to permanent
 -- history in one assignment. Removing them (DIA-7, "keep") demotes it again.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Diary = {}
 ns.Diary = Diary

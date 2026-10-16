@@ -17,7 +17,7 @@
 -- apply wherever the edit came from. It saves as you write: a chip saves on
 -- click, the lines on Enter or losing focus.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Format = ns.UI.Format
 

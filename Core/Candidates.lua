@@ -12,7 +12,7 @@
 -- Sightings (M2) are the one source not gathered yet. The seam is the source
 -- list below: SIG-* adds a gatherer there and nothing else changes.
 
-local addonName, ns = ...
+local _, ns = ...
 
 -- How far back the buffer is worth offering as "someone I just dealt with".
 local RECENT_WINDOW = 60 * 60

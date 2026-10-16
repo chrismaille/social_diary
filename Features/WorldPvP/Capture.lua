@@ -26,7 +26,7 @@
 -- the mark are written where the calls into this feature used to be, before
 -- the route's death record and its killer. Only a player is a fight.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local WorldPvP = ns.WorldPvP
 

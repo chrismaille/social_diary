@@ -22,7 +22,7 @@
 -- This file: the route's finales and chains begun, and the moment that
 -- puts the finales on the plates.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local QuestFinales = {}
 ns.QuestFinales = QuestFinales

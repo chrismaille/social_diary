@@ -602,7 +602,7 @@ do
     Eq(plate.counts.corners, 4, "the photo corners")
     Eq(plate.counts.folds, 4, "the photo corners carry no fold")
     local pocket = On(plate.over, "OVERLAY", 7)[1]
-    local r, g, b = unpack(pocket.recorded.calls.SetColorTexture, 1, 3)
+    local r, _, b = unpack(pocket.recorded.calls.SetColorTexture, 1, 3)
     Check(r > 0.2 and r > b * 2, "a photo corner is black, not kraft")
     local folds = On(plate.folds, "OVERLAY")
     Eq(#folds, 4, "the folds")

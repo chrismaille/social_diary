@@ -3,7 +3,7 @@
 -- frontispiece's turns to the front matter (UI/Journal/Frontispiece.lua),
 -- the front matter's to Your Diary (UI/Journal/Front.lua).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT

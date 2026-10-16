@@ -8,7 +8,7 @@
 -- margin note ("gave you your first blue", Text.lua's Firsts.PERSON) and
 -- its leader may come here.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Firsts = ns.Firsts
 

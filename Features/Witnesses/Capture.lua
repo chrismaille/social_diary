@@ -58,7 +58,7 @@
 -- pcall now, so an error here no longer unwinds the judge: its close call
 -- is still kept).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Witnesses = ns.Witnesses
 

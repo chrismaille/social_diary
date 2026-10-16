@@ -1,7 +1,7 @@
 -- Settings: Sounds (UI/Settings/Page.lua lists the sections; the controls
 -- are UI/Settings/Kit.lua's): the foe alert.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT

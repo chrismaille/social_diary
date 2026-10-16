@@ -13,7 +13,7 @@
 -- (Dev/JourneyDebug.lua) changes in place, so it is made here once and
 -- never replaced.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Pen = {}
 ns.UI.Pen = Pen

@@ -33,7 +33,7 @@
 --   .SizeText, .SizeWarning, .DataText  Memory's lines, read again here
 -- A section refreshes the page through ns.UI.Settings.Refresh.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT
@@ -78,7 +78,7 @@ local sections = ns.Registry.New({
     what = "Settings.RegisterSection(key, { order, label, about, parent, build })",
     order = "order",
     default = 100,
-    check = function(key, spec)
+    check = function(_key, spec)
         return type(spec.label) == "string" and type(spec.about) == "string" and type(spec.build) == "function"
             and (spec.parent == nil or type(spec.parent) == "string")
     end,

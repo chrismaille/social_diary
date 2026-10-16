@@ -8,7 +8,7 @@
 -- are the only marks the script writes, so writing them at "route", after
 -- the route, leaves j.marks in the order it had.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local TestData = ns.TestData
 local DAY = 24 * 60 * 60

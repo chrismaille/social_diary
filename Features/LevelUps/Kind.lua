@@ -36,7 +36,7 @@
 -- This file: the kind, whole (Core/Rows.lua's spec in one call, words and
 -- icon included).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local LevelUps = {}
 ns.LevelUps = LevelUps

@@ -19,7 +19,7 @@
 --   Note(npcID, name, now) a name read off a unit now
 --   Prune(j, now)          at login (Journey.Prune): put right, then dropped
 
-local addonName, ns = ...
+local _, ns = ...
 
 local CreatureNames = {}
 ns.CreatureNames = CreatureNames

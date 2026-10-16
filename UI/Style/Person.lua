@@ -4,7 +4,7 @@
 -- the onboarding pages share. Loaded after UI/Style/Book.lua, whose brass
 -- rings the medallions; the other widgets are in UI/Style/Widgets.lua.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 -- The cover's brass (UI/Style/Book.lua), for the medallions' rings.

@@ -5,7 +5,7 @@
 -- (UI/Journal/Timeline.lua) lays the lines out, this file only writes them.
 -- What an episode's rows add up to is Core/Timeline.lua's (Timeline.Tally).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Format = ns.UI.Format
 

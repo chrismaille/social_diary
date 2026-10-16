@@ -2,7 +2,7 @@
 -- the sections; the controls are UI/Settings/Kit.lua's): when a toast
 -- shows, where it lies, and the quiet-nearby list (UI/Settings/Quiet.lua).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local FONT = Style.FONT

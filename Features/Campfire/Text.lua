@@ -3,7 +3,7 @@
 -- found no room (Text.RegisterCaption, UI/Journey/Text/Caption.lua). Copy
 -- changes go through the copywriter skill, as every player-read word does.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Campfire = ns.Campfire
 local Text = ns.UI.JourneyText

@@ -11,7 +11,7 @@
 -- at both points the trade comes before the whispers about it ("ty!
 -- inviting", "omg thank you").
 
-local addonName, ns = ...
+local _, ns = ...
 
 local TestData = ns.TestData
 local Link = TestData.Link

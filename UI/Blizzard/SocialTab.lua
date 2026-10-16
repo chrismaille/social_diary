@@ -6,7 +6,7 @@
 -- button: it never joins Blizzard's tab system (taint), so it is never
 -- "selected". Clicking it closes the Social window and opens the journal.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local GAP = 3
 

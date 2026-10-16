@@ -14,7 +14,7 @@
 -- and a per-GUID table answers those without scanning. The day log (JNL-7) is
 -- M3 and will want a chronological pass over the same rows.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Interactions = {}
 ns.Interactions = Interactions

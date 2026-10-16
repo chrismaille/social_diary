@@ -63,7 +63,7 @@ Section("every registered name is reachable")
 for _, under in ipairs({ "", "sightings" }) do
     local prefix = under == "" and "" or under .. " "
     for _, command in ipairs(Commands(under)) do
-        local was, got = command.fn, nil
+        local was, got = command.fn
         command.fn = function(rest, name) got = { rest = rest, name = name } end
         for _, name in ipairs(command.names) do
             got = nil

@@ -4,7 +4,7 @@
 -- so it reads ns.UI.Format when it writes. Its siblings: the chrome
 -- (ns.UI.Chrome, UI/Kit/Chrome.lua), the virtual list (UI/Kit/List.lua).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Format = {}
 ns.UI.Format = Format

@@ -34,7 +34,7 @@
 -- shares with the page's leaders and the cards, are ns.UI.Pen
 -- (UI/Ink/Pen.lua, loaded first).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local Pen = ns.UI.Pen
@@ -577,10 +577,10 @@ function Ink.Build(sheet, box, opts)
     local counts = { quads = 0, dots = 0, dabs = 0, pools = 0, droplets = 0, stops = 0, roads = 0 }
     local points = opts.points or function(seg) return seg.pts end
     local KindOf = opts.kind or DefaultKind
-    local CAP = CAP
+    local cap = CAP
     if opts.cap and opts.cap < 1 then
         local share = max(opts.cap, 0)
-        CAP = { quads = floor(CAP.quads * share), dots = floor(CAP.dots * share), dabs = floor(CAP.dabs * share),
+        cap = { quads = floor(CAP.quads * share), dots = floor(CAP.dots * share), dabs = floor(CAP.dabs * share),
             stops = floor(CAP.stops * share) }
     end
 
@@ -590,7 +590,7 @@ function Ink.Build(sheet, box, opts)
     for _, seg in ipairs(sheet.stops or {}) do list[#list + 1] = seg end
     table.sort(list, function(a, b) return (a.seconds or 0) > (b.seconds or 0) end)
     local pools, of = {}, {}
-    for i = 1, min(#list, CAP.stops) do
+    for i = 1, min(#list, cap.stops) do
         local seg = list[i]
         local x, y = box.at(seg.x, seg.y)
         if x then
@@ -658,11 +658,11 @@ function Ink.Build(sheet, box, opts)
         for k = 3, #p, 2 do length = length + sqrt((p[k] - p[k - 2]) ^ 2 + (p[k + 1] - p[k - 1]) ^ 2) end
     end
     local step = ROAD.step
-    while length / step * ROAD.stepRoom > CAP.quads and step < ROAD.stepMost do step = step + ROAD.stepGrow end
+    while length / step * ROAD.stepRoom > cap.quads and step < ROAD.stepMost do step = step + ROAD.stepGrow end
     counts.step, counts.length = step, length
 
     for i, road in ipairs(roads) do
-        local room = { quads = CAP.quads - counts.quads, dots = CAP.dots - counts.dots, step = step }
+        local room = { quads = cap.quads - counts.quads, dots = cap.dots - counts.dots, step = step }
         if room.quads <= 0 then break end
         local q, d = Ink.Road(out, road, pts[i], pressure[i], { first = Near(road, true), last = Near(road, false) },
             floor(road.from or i) % 9973, room)
@@ -673,7 +673,7 @@ function Ink.Build(sheet, box, opts)
     -- The pools, longest first, each keeping one dab for every pool still
     -- to come: past the cap a short stay is at least its wash or its dot.
     for i, pool in ipairs(pools) do
-        local room = { dabs = min(POOL.perPool, CAP.dabs - counts.dabs - (#pools - i)) }
+        local room = { dabs = min(POOL.perPool, cap.dabs - counts.dabs - (#pools - i)) }
         if room.dabs <= 0 then break end
         counts.dabs = counts.dabs + Ink.Pool(out, pool, floor(pool.seg.from or 0) % 9973, room)
         pool.drawn = true

@@ -5,7 +5,7 @@
 -- the page (Style.PastedPlate). The open book, its ribbons and the brass are
 -- in UI/Style/Book.lua, which loads first.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 -- The brass (UI/Style/Book.lua), and the book's shadow on the world.
@@ -194,11 +194,11 @@ function Style.Cover(frame, margin, spineX)
     Split(-5, "full", nil, 0, Ramp("VERTICAL", { 0, 0, 0, 0.30 }, { 1, 0.85, 0.65, 0.08 }))
 
     -- Worn edges, darker toward every side.
-    local w = 16
-    Style.Shade(Strip(Texture(-4), "TOPLEFT", 0, 0, "BOTTOMLEFT", 0, 0, w), "HORIZONTAL", 0, 0, 0, 0.40, 0)
-    Style.Shade(Strip(Texture(-4), "TOPRIGHT", 0, 0, "BOTTOMRIGHT", 0, 0, w), "HORIZONTAL", 0, 0, 0, 0, 0.50)
-    Split(-4, "top", w, 0, Ramp("VERTICAL", { 0, 0, 0, 0 }, { 0, 0, 0, 0.30 }))
-    Split(-4, "bottom", w, 0, Ramp("VERTICAL", { 0, 0, 0, 0.55 }, { 0, 0, 0, 0 }))
+    local worn = 16
+    Style.Shade(Strip(Texture(-4), "TOPLEFT", 0, 0, "BOTTOMLEFT", 0, 0, worn), "HORIZONTAL", 0, 0, 0, 0.40, 0)
+    Style.Shade(Strip(Texture(-4), "TOPRIGHT", 0, 0, "BOTTOMRIGHT", 0, 0, worn), "HORIZONTAL", 0, 0, 0, 0, 0.50)
+    Split(-4, "top", worn, 0, Ramp("VERTICAL", { 0, 0, 0, 0 }, { 0, 0, 0, 0.30 }))
+    Split(-4, "bottom", worn, 0, Ramp("VERTICAL", { 0, 0, 0, 0.55 }, { 0, 0, 0, 0 }))
 
     -- A raised edge: dark outline, light top and left, shadow bottom and right.
     local function Edge(sublevel, a, ax, ay, b, bx, by, thickness, color)

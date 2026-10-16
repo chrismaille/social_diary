@@ -50,7 +50,7 @@
 -- square on the screen, at the box's 3 degrees at most it would differ by
 -- a pixel and a half across the box's height, which no eye can see.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 
@@ -400,7 +400,7 @@ function FindCard.New(parent)
 
         local G = BOX.ground
         card.boxGround:SetColorTexture(G[1], G[2], G[3], 1)
-        local left, top = -w / 2 + BOX.pad[1], -h / 2 + BOX.pad[2]
+        local left, boxTop = -w / 2 + BOX.pad[1], -h / 2 + BOX.pad[2]
         if wash then
             -- A wash: the ground out to where the rule was, the colour
             -- multiplied into it, deep at the left edge, `left` where the
@@ -441,7 +441,7 @@ function FindCard.New(parent)
         local size = chip.icon
         local ink, edge = FindCard.Ink(card.quality), FindCard.Edge(card.quality)
         if size > 0 then
-            local iu, iv = left + chip.iconAt[1], top + chip.iconAt[2]
+            local iu, iv = left + chip.iconAt[1], boxTop + chip.iconAt[2]
             local S = ICON.shadow
             card.iconShadow:SetColorTexture(INK[1], INK[2], INK[3], S[3])
             Lay(card.iconShadow, iu + S[1], iv + S[2], size + 2 * ICON.edge, size + 2 * ICON.edge)
@@ -457,7 +457,7 @@ function FindCard.New(parent)
             card.iconEdge:Hide()
             card.icon:Hide()
         end
-        local tx, ty = left + chip.textAt[1], top + chip.textAt[2]
+        local tx, ty = left + chip.textAt[1], boxTop + chip.textAt[2]
         for i, words in ipairs(chip.lines) do
             local line = card.itemLines[i]
             if not line then
@@ -611,7 +611,7 @@ ns.UI.JourneyMargin.Register("find", {
             ns.Firsts.GiftLine(it.item.rec, c.named))
     end,
     mark = function(it) return it.item.mark end,
-    assume = function(said, plate, slot, plan)
+    assume = function(said, _plate, _slot, plan)
         local all = {}
         for _, m in ipairs(plan.moments or {}) do
             if m.kind == "find" then all[m.find or m] = true end

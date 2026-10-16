@@ -18,7 +18,7 @@
 -- (UI/Journey/Plate.lua, left whole for its own refactor). It makes
 -- nothing at load.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Pool = {}
 ns.UI.Pool = Pool

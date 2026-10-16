@@ -48,7 +48,7 @@
 -- This file: the hunts, their writers and readers, the luck read off them,
 -- and the moments that put them on the plates.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Hunts = {}
 ns.Hunts = Hunts

@@ -18,13 +18,16 @@ M.units, M.byGUID = {}, {}
 -- Fake secret values
 --------------------------------------------------------------------------
 --
--- A real secret errors on ==, arithmetic, #, indexing and use as a table key.
--- Lua 5.1 only fires __eq when both operands share a metatable, so `secret ==
--- nil` cannot be made to error here; indexing, length and concat can, and
--- those catch the common mistakes. Treat a green run as necessary, not
--- sufficient: the == rule still has to hold by inspection.
+-- A secret errors on ==, arithmetic, #, indexing and use as a table key. It
+-- is userdata (newproxy), not a table: `type()` must not say "table", or
+-- code that branches on type would treat a secret as one and skip the guard
+-- (a secret GUID is a string in the client, never a table). Indexing, length
+-- and concat error through the metatable; Lua 5.1 only fires __eq when both
+-- operands share a metatable, so `secret == nil` cannot be made to error
+-- here. Treat a green run as necessary, not sufficient: the == rule still
+-- has to hold by inspection.
 
-local SECRET = {}
+local SECRET = setmetatable({}, { __mode = "k" })
 
 local function Forbidden(op)
     return function()
@@ -32,7 +35,7 @@ local function Forbidden(op)
     end
 end
 
-local secretMeta = {
+local secretOps = {
     __index = Forbidden("indexing"),
     __len = Forbidden("length"),
     __concat = Forbidden("concat"),
@@ -41,15 +44,19 @@ local secretMeta = {
 }
 
 function M.secret(value)
-    return setmetatable({ [SECRET] = value }, secretMeta)
+    local proxy = newproxy(true)
+    local mt = getmetatable(proxy)
+    for k, v in pairs(secretOps) do mt[k] = v end
+    SECRET[proxy] = { value = value }
+    return proxy
 end
 
 _G.issecretvalue = function(value)
-    return getmetatable(value) == secretMeta
+    return SECRET[value] ~= nil
 end
 
 _G.scrubsecretvalues = function(value)
-    if getmetatable(value) == secretMeta then return nil end
+    if SECRET[value] ~= nil then return nil end
     return value
 end
 

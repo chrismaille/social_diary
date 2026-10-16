@@ -8,7 +8,7 @@
 -- Nothing here promotes anyone into the diary: DIA-1 says that only ever
 -- happens because the user asked.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Characters = {}
 ns.Characters = Characters

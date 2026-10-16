@@ -2,7 +2,7 @@
 -- them on the cursor (ns.UI.Settings.Macro.BookButton), on the Keybinds &
 -- Shortcuts subpage (UI/Settings/Sections/Shortcuts.lua).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 local SettingsUI = ns.UI.Settings

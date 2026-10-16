@@ -10,7 +10,7 @@
 -- written; each answer is kept for the session, since QuestieDB decodes a
 -- table afresh on every read.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Bridge = {}
 ns.QuestieBridge = Bridge

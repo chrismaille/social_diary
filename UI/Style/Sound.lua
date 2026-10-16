@@ -1,7 +1,7 @@
 -- The journal's sounds (Style, from UI/Style/Tokens.lua), kept by key as
 -- its art is (UI/Style/Art.lua): Style.SOUNDS and Style.PlaySound.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Style = ns.Style
 

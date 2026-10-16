@@ -17,7 +17,7 @@
 -- (and again before they are written, as a second /sd testdata replaces
 -- the first).
 
-local addonName, ns = ...
+local _, ns = ...
 
 local TestData = ns.TestData
 local Witnesses = ns.Witnesses

@@ -11,7 +11,7 @@
 -- the thanks come after the trade, and the first session's lines before
 -- the fire sat by with Tester.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local TestData = ns.TestData
 local MIN = 60

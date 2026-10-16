@@ -35,7 +35,7 @@
 -- as it loads (`local Capital = Text.Capital`), so it loads after the file
 -- that writes them.
 
-local addonName, ns = ...
+local _, ns = ...
 
 local Text = {}
 ns.UI.JourneyText = Text

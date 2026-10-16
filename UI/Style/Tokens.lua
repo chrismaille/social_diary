@@ -251,7 +251,7 @@ function Style.Inkify(text)
         return "|cff" .. (QUALITY_INK[tonumber(quality)] or Style.HEX.strong)
     end)
     text = text:gsub("|cn[^:|]+:", "|cff" .. Style.HEX.strong)
-    text = text:gsub("|c(%x%x)(%x%x)(%x%x)(%x%x)", function(a, r, g, b)
+    text = text:gsub("|c(%x%x)(%x%x)(%x%x)(%x%x)", function(_a, r, g, b)
         local dark = Darken(r, g, b)
         return dark and ("|cff" .. dark) or nil
     end)
