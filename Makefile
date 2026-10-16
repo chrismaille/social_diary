@@ -6,9 +6,22 @@ LUAJIT ?= luajit
 LUACHECK ?= luacheck
 PRECOMMIT ?= pre-commit
 
-.PHONY: check lint tests
+.PHONY: all check install lint tests
 
 all: check
+
+# First run after a clone: the commit hooks plus the link into the game
+# (scripts/link-addon.sh, which remembers the path in .wow-addons). Pass the
+# game once -- its root, _retail_ or Interface/AddOns:
+#
+#   make install ADDONS="/path/to/World of Warcraft"
+install:
+	@if command -v $(PRECOMMIT) >/dev/null 2>&1; then \
+		$(PRECOMMIT) install; \
+	else \
+		echo "pre-commit not found: install it for the commit hooks (CONTRIBUTING.md)"; \
+	fi
+	@sh scripts/link-addon.sh "$(ADDONS)"
 
 # Everything a change must pass.
 check: lint tests

@@ -12,3 +12,6 @@ __pycache__/
 !.claude/rules/
 
 .idea/
+
+# Where the game lives, remembered by `make install` (scripts/link-addon.sh).
+.wow-addons

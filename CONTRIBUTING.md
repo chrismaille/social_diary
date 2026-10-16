@@ -4,10 +4,29 @@ Thank you for helping.
 
 ## Setting up
 
-The addon folder sits inside the game install, where copy and sync tools
-possibly mark files executable. Git would then list each file as changed
-with no lines added or removed which is annoying. Here's the fix for it. Tell git to ignore the executable bit in your
-clone:
+Clone the repository anywhere — it does not need to sit inside the game
+folder. One command links it into the game and installs the commit hooks:
+
+```sh
+make install ADDONS="/path/to/World of Warcraft"
+```
+
+`ADDONS` may be the game folder, its `_retail_` folder, or `Interface/AddOns`
+directly; it is remembered in `.wow-addons` (gitignored), so later runs are
+just `make install`.
+
+The link is named `social_diary`, the name the TOC and `.pkgmeta` use: the
+client loads a folder's `social_diary.toc` only when the folder is called the
+same, so a clone under another folder name would not load at all. On Linux
+and macOS the link is a symlink (Wine follows it); on Windows, run the script
+from Git Bash and it makes a junction. Until the TOC's Interface version is
+raised to Retail's, the client lists the addon as out of date: tick _Load out
+of date AddOns_.
+
+If you do keep the clone inside the game install, name the folder itself
+`social_diary`. Copy and sync tools there possibly mark files executable,
+and git then lists each file as changed with no lines added or removed; tell
+git to ignore the executable bit:
 
 ```sh
 git config core.fileMode false
@@ -32,6 +51,11 @@ A new test file only runs once it is listed in `FILES` in `tests/run.lua`.
 CI runs the suite on every push to `main` and on every pull request
 (`.github/workflows/tests.yml`).
 
+The UI can also be run and inspected without the game, through the simulator
+in `docker-compose.yml`: `docker compose run --rm sim lua-errors` prints the
+startup errors as JSON, `docker compose run --rm sim dump-tree --visible-only`
+dumps the frame tree.
+
 The mock does not do layout. For anything a player sees, try it in the game
 client as well.
 
@@ -39,7 +63,7 @@ client as well.
 
 `.pre-commit-config.yaml` runs the suite, luacheck and the usual file
 hygiene on every commit. Install the framework once per clone, then the
-hook it manages:
+hook it manages — `make install` runs the second step for you:
 
 ```sh
 pipx install pre-commit   # or: pip install --user pre-commit

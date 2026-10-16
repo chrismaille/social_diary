@@ -14,4 +14,6 @@ ignore:
   - Dev
   - Features/*/Dev.lua
   - tests
+  - scripts
+  - docker-compose.yml
   - Questie-v12.0.4+v1.0.5

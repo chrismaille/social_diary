@@ -1,4 +1,6 @@
-# Pre-commit hooks for Social Diary. Install once per clone:
+# Pre-commit hooks for Social Diary. After a clone run `make install`, which
+# links the clone into the game and installs the hook; by hand, once the
+# framework is there:
 #
 #   pre-commit install
 #

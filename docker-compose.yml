@@ -1,0 +1,28 @@
+# Run Social Diary outside the game, against the closest Retail build the
+# simulator ships.
+#
+# `latest` models Retail 12.0.7 (the tag `12.0.5` is older);
+# WOW_SIM_LOAD_OUT_OF_DATE_ADDONS lets the addon load while its TOC still
+# carries the old Interface version (16001) -- it goes away once the
+# conversion bumps the TOC.
+#
+# The volume mounts the repo as `social_diary`, the name the TOC and .pkgmeta
+# already use: the client (and the simulator, faithfully) loads
+# Interface/AddOns/<folder>/<folder>.toc, so a clone in any other folder
+# name would not load at all.
+#
+# Usage, from the repo root:
+#
+#   docker compose run --rm sim lua-errors                # startup errors as JSON
+#   docker compose run --rm sim dump-tree --visible-only  # what the UI draws
+#   docker compose run --rm sim --delay 2000 dump-tree --filter SettingsPanel
+#
+# The simulator builds no image: the service is the published one.
+
+services:
+  sim:
+    image: ghcr.io/osso/wow-ui-sim:latest
+    environment:
+      WOW_SIM_LOAD_OUT_OF_DATE_ADDONS: "1"
+    volumes:
+      - .:/app/Interface/AddOns/social_diary

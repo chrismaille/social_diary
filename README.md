@@ -20,7 +20,7 @@ retail addon API. Current version: 1.5.0.
 
 ## Install
 
-Install the Addon like you do with any oter WoW Addon: Put it in your game's `Interface/AddOns` folder.
+Install the addon like you do with any other WoW addon: put it in your game's `Interface/AddOns` folder.
 
 Download a release rather than the repository itself.
 
@@ -52,6 +52,21 @@ QuestieDB are installed, the diary reads their data as well:
 ## Privacy
 
 All data stays on your computer.
+
+## Developing
+
+The addon runs from a normal clone, linked into the game as `social_diary`.
+After cloning anywhere, one command sets everything up — the commit hooks
+plus the link:
+
+```sh
+make install ADDONS="/path/to/World of Warcraft"
+```
+
+The path is remembered, so later runs are just `make install`. Tests run
+offline (`make check`), and the UI can be inspected without the game through
+the simulator in `docker-compose.yml` (`docker compose run --rm sim
+lua-errors`). Details: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Contributing
 
