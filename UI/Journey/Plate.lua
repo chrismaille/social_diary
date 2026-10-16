@@ -32,7 +32,8 @@
 --              the plates, Decision 7): "Quested here, 25 min"
 --   deaths     a death's cross on paper at a pool's upper left (no kind's
 --              glyph: the tint and the tooltip say what was done there)
---   flights    dashed, in red-brown, cut at the window's edge
+--   flights    dashed, in red-brown, cut at the window's edge, from one
+--              ring a flight master (DrawFlights)
 --   marks      what put the plate there, in ink, at one size on the screen
 --              however close the plate (MARK): a level's two ends, where it
 --              began (ink round paper) and where the next was reached (a
@@ -207,7 +208,12 @@ local HOVER = { most = 200, size = { 12, 28 } }
 -- is paper inside a ring of ink `ring` px wide, its number in ink.
 local PIN = { gap = 5, leader = 1.2, leaderAlpha = 0.8, ring = 1.5 }
 -- A flight: dashes `dash` long, `gap` apart, `width` wide.
-local FLIGHT = { dash = 5, gap = 4, width = 1.5, alpha = 0.9, ring = 8 }
+-- Its ends are rings `ring` px across, one a flight master: ends on one
+-- map within `node` yards are one node. The take-off is the last spot seen
+-- before the taxi (a capture tick is 5 s, so up to a mount's run short of
+-- the master), the landing the first after, a little way off the master's
+-- feet; two masters in one zone stand hundreds of yards apart.
+local FLIGHT = { dash = 5, gap = 4, width = 1.5, alpha = 0.9, ring = 8, node = 50 }
 -- The marks: their sizes in pixels on the screen, the paper halo round
 -- them, the square that takes the mouse. `first` is the hollow lozenge
 -- (wide, tall), its ink `line` px; a note a slip with a corner folded
@@ -1517,64 +1523,158 @@ local function New(parent, slot)
         return pools
     end
 
-    -- A flight's end in the window, its other end where the client can say
-    -- (ns.ProjectMapPos), the dashes between cut at the window's edge, in
-    -- red-brown: the open entry's only.
-    local function DrawFlights(flights, mapID, At, entry, now)
+    -- The flights: one small red-brown ring for each flight master in the
+    -- window (a node: the ends on this map within FLIGHT.node yards of
+    -- each other), placed through Apart once, its tooltip telling every
+    -- flight that left or landed there; each flight's dashes from its
+    -- ring toward its other end (a node's ring too when that end is on
+    -- this map, else where the client can say: ns.ProjectMapPos), cut at
+    -- the window's edge, in red-brown: the open entry's only. One route
+    -- flown more than once is dashed once.
+    -- (16 Oct, in the client: three flights out of one flight master drew
+    -- three rings side by side, each pushed off the last by Apart, and
+    -- three lines from where the rings should have been.)
+    local function DrawFlights(flights, mapID, At, entry, now, fullW, fullH)
         local shown, dashes = 0, 0
         local step = FLIGHT.dash + FLIGHT.gap
         local w = plate.window
+        -- Yards across and down the map, to measure a node in: the client's,
+        -- else the trail's guess across and the art's shape down.
+        local across, down = ns.Journey.MapYards(mapID)
+        if type(across) ~= "number" or across <= 0 then across = Trail.FOOT.yards end
+        if type(down) ~= "number" or down <= 0 then down = across * fullH / fullW end
+        local near = FLIGHT.node * FLIGHT.node
+
+        -- The node an end at x, y (this map's units) belongs to: the first
+        -- whose first end lies within FLIGHT.node yards, else a new one.
+        local nodes = {}
+        local function Node(seg, x, y)
+            local into
+            for _, node in ipairs(nodes) do
+                local dx, dy = (x - node.x0) * across, (y - node.y0) * down
+                if dx * dx + dy * dy <= near then
+                    into = node
+                    break
+                end
+            end
+            if not into then
+                into = { x0 = x, y0 = y, sx = 0, sy = 0, n = 0, flights = {} }
+                nodes[#nodes + 1] = into
+            end
+            into.sx, into.sy, into.n = into.sx + x, into.sy + y, into.n + 1
+            if into.flights[#into.flights] ~= seg then into.flights[#into.flights + 1] = seg end
+            return into
+        end
+
+        -- Each flight of the open entry with an end on this map: `a` the
+        -- node of that end (the take-off's when both are here), `b` the
+        -- other end's node when it is here too, else `other`, `ox`, `oy`.
+        local list = {}
         for i = 1, math.min(#flights, CAP.flights) do
             local seg = flights[i]
-            local hx, hy, other, ox, oy
-            if seg.mapID1 == mapID and seg.x1 then
-                hx, hy, other, ox, oy = seg.x1, seg.y1, seg.mapID2, seg.x2, seg.y2
-            elseif seg.mapID2 == mapID and seg.x2 then
-                hx, hy, other, ox, oy = seg.x2, seg.y2, seg.mapID1, seg.x1, seg.y1
-            end
-            if hx and During(seg.from, seg.to, entry) then
-                local tx, ty
-                if ox and other ~= mapID then
-                    tx, ty = ns.ProjectMapPos(other, mapID, ox, oy)
-                elseif ox then
-                    tx, ty = ox, oy
+            if During(seg.from, seg.to, entry) then
+                local here1 = seg.mapID1 == mapID and seg.x1 and seg.y1
+                local here2 = seg.mapID2 == mapID and seg.x2 and seg.y2
+                local f = { seg = seg }
+                if here1 then
+                    f.a = Node(seg, seg.x1, seg.y1)
+                    if here2 then
+                        f.b = Node(seg, seg.x2, seg.y2)
+                    else
+                        f.other, f.ox, f.oy = seg.mapID2, seg.x2, seg.y2
+                    end
+                elseif here2 then
+                    f.a = Node(seg, seg.x2, seg.y2)
+                    f.other, f.ox, f.oy = seg.mapID1, seg.x1, seg.y1
                 end
-                if tx then
-                    local cx1, cy1, cx2, cy2 = Clip(hx, hy, tx, ty, w[1], w[2], w[3], w[4])
-                    if cx1 then
-                        local ax, ay = At(cx1, cy1, true)
-                        local bx, by = At(cx2, cy2, true)
+                if f.a then list[#list + 1] = f end
+            end
+        end
+
+        -- A ring per node in the window, at the middle of its ends, stepped
+        -- aside once; one hover, telling each flight in time order.
+        local rings = 0
+        for _, node in ipairs(nodes) do
+            node.mx, node.my = node.sx / node.n, node.sy / node.n
+            local x, y = At(node.mx, node.my)
+            if x then
+                x, y = Apart(x, y, FLIGHT.ring / 2 + 1)
+                node.x, node.y = x, y
+                rings = rings + 1
+                Halo(x, y, FLIGHT.ring + 4, true)
+                Dot(markPool, x, y, FLIGHT.ring, Style.ACCENT, 0.95)
+                Dot(markInnerPool, x, y, FLIGHT.ring - 4, P, 1)
+                local segs = node.flights
+                hoverPool:Next(x, y, function()
+                    local tip = {}
+                    for _, seg in ipairs(segs) do
+                        local title, lines = Text.Flight(seg, mapID, now)
+                        Style.TipList(title, lines, tip)
+                    end
+                    return tip
+                end)
+            end
+        end
+
+        -- The dashes: from the ring (the node's middle where it is out of
+        -- the window) toward the other end, cut at the window's edge, and
+        -- into the other ring where that end is a node here. A route
+        -- already dashed (the same two nodes, or the same node toward the
+        -- same far spot) is not dashed again.
+        local lines, routes = {}, {}
+        local function Dashed(f, tx, ty)
+            for _, r in ipairs(routes) do
+                if f.b then
+                    if (r.a == f.a and r.b == f.b) or (r.a == f.b and r.b == f.a) then return true end
+                elseif r.a == f.a and not r.b then
+                    local dx, dy = (tx - r.tx) * across, (ty - r.ty) * down
+                    if dx * dx + dy * dy <= near then return true end
+                end
+            end
+            routes[#routes + 1] = { a = f.a, b = f.b, tx = tx, ty = ty }
+            return false
+        end
+        for _, f in ipairs(list) do
+            local a, b = f.a, f.b
+            if a.x or (b and b.x) then shown = shown + 1 end
+            local tx, ty
+            if b then
+                tx, ty = b.mx, b.my
+            elseif f.ox and f.oy and f.other then
+                tx, ty = ns.ProjectMapPos(f.other, mapID, f.ox, f.oy)
+            end
+            if tx and b ~= a then
+                local cx1, cy1, cx2, cy2, t0, t1 = Clip(a.mx, a.my, tx, ty, w[1], w[2], w[3], w[4])
+                if cx1 then
+                    local ax, ay = At(cx1, cy1, true)
+                    if t0 == 0 and a.x then ax, ay = a.x, a.y end
+                    local bx, by = At(cx2, cy2, true)
+                    if t1 == 1 and b and b.x then bx, by = b.x, b.y end
+                    local line = { seg = f.seg, node = a, x1 = ax, y1 = ay, x2 = bx, y2 = by, dashes = 0 }
+                    lines[#lines + 1] = line
+                    if not Dashed(f, tx, ty) then
                         local dx, dy = bx - ax, by - ay
                         local length = math.sqrt(dx * dx + dy * dy)
                         local d = 0
                         while d < length and dashes < CAP.dashes do
-                            local t1, t2 = d / length, math.min(d + FLIGHT.dash, length) / length
-                            Stroke(dashPool, ax + dx * t1, ay + dy * t1, ax + dx * t2, ay + dy * t2,
+                            local s1, s2 = d / length, math.min(d + FLIGHT.dash, length) / length
+                            Stroke(dashPool, ax + dx * s1, ay + dy * s1, ax + dx * s2, ay + dy * s2,
                                 FLIGHT.width, Style.ACCENT, FLIGHT.alpha)
                             dashes = dashes + 1
+                            line.dashes = line.dashes + 1
                             d = d + step
                         end
                     end
                 end
-                -- Its end here: a small red-brown ring.
-                local ends = { { hx, hy } }
-                if other == mapID and seg.mapID1 == mapID and seg.mapID2 == mapID and seg.x2 then
-                    ends[2] = { seg.x2, seg.y2 }
-                end
-                for k, at in ipairs(ends) do
-                    local x, y = At(at[1], at[2])
-                    if x then
-                        if k == 1 then shown = shown + 1 end
-                        x, y = Apart(x, y, FLIGHT.ring / 2 + 1)
-                        Halo(x, y, FLIGHT.ring + 4, true)
-                        Dot(markPool, x, y, FLIGHT.ring, Style.ACCENT, 0.95)
-                        Dot(markInnerPool, x, y, FLIGHT.ring - 4, P, 1)
-                        if k == 1 then hoverPool:Next(x, y, function() return Tip(Text.Flight(seg, mapID, now)) end) end
-                    end
-                end
             end
         end
-        plate.counts.flights, plate.counts.dashes = shown, dashes
+        -- For the tests: the nodes ({ x, y on the card (nil out of the
+        -- window), mx, my in map units, flights }) and each flight's line ({ seg, node,
+        -- x1, y1 (where its dashes start), x2, y2, dashes }).
+        plate.flightNodes, plate.flightLines = nodes, lines
+        -- `flights`: the flights with a ring on this plate; `flightNodes`:
+        -- the rings.
+        plate.counts.flights, plate.counts.flightNodes, plate.counts.dashes = shown, rings, dashes
     end
 
     -- A page point for a point of the card: through the card's turn, from
@@ -1911,7 +2011,7 @@ local function New(parent, slot)
         local yards = ns.Journey.MapYards(mapID)
         if type(yards) ~= "number" or yards <= 0 then yards = Trail.FOOT.yards end
         local pools = DrawTrail(sheet, entry, At, fullW, fullH, fullW / yards, opts)
-        DrawFlights(sheet.flights, mapID, At, entry, now)
+        DrawFlights(sheet.flights, mapID, At, entry, now, fullW, fullH)
 
         -- Hover squares over the pools, as wide as their footprints (within
         -- reason), droplets too; the marks over them are placed after, so
@@ -2222,7 +2322,7 @@ function Plate.Share(slot)
 end
 
 Plate.MOUNT, Plate.GLUE, Plate.LIFT, Plate.SHARE, Plate.MARK = MOUNT, GLUE, LIFT, SHARE, MARK
-Plate.PRIORITY, Plate.DOOR = PRIORITY, DOOR
+Plate.PRIORITY, Plate.DOOR, Plate.FLIGHT = PRIORITY, DOOR, FLIGHT
 Plate.CAP = CAP
 Plate.ZOOM, Plate.FULLZOOM, Plate.DRAG = ZOOM, FULLZOOM, DRAG
 Plate.PLATE, Plate.SHADOW, Plate.THICKNESS, Plate.VIGNETTE = PLATE, SHADOW, THICKNESS, VIGNETTE

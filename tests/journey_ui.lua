@@ -2139,4 +2139,84 @@ do
     p:Hide()
 end
 
+Section("a flight master is one ring, every flight drawn from it")
+
+do
+    local Plate = ns.UI.JourneyPlate
+    local mapID = 1412   -- Mulgore in the mock: 5000 yards across, 3333 down
+    local function Sheet(flights)
+        return { mapID = mapID, stops = {}, roads = {}, flights = flights, dungeons = {}, pins = {}, meetings = {} }
+    end
+    local t = now - 4000
+    local function Flight(m1, x1, y1, m2, x2, y2)
+        t = t + 600
+        return { kind = "flight", from = t, to = t + 300, mapID1 = m1, x1 = x1, y1 = y1, mapID2 = m2, x2 = x2,
+            y2 = y2, levelFrom = 12, levelTo = 12 }
+    end
+    -- One flight master: two take-offs a few yards apart (the last spot
+    -- seen before the taxi) and a landing a little way off its feet, all
+    -- to and from one spot in The Barrens.
+    local flights = {
+        Flight(mapID, 0.500, 0.500, 1413, 0.50, 0.30),
+        Flight(1413, 0.50, 0.30, mapID, 0.506, 0.497),
+        Flight(mapID, 0.497, 0.504, 1413, 0.50, 0.30),
+    }
+    local p = Plate(page.right, { x = 0, y = 0, w = 214, h = 138, t = 0, pad = 7, pc = 20, corners = {} })
+    local window = Plate.Window(mapID, 0.5, 0.5, 200, 124)
+    p:Draw(Sheet(flights), nil, window, { moments = {} })
+    Eq(p.counts.flightNodes, 1, "three flights from one flight master are not one ring")
+    Eq(p.counts.flights, 3, "the flights with a ring on the plate")
+    Eq(p.hover.used, 1, "the flight master's ring has more than one hover")
+    local rings = 0
+    for _, s in ipairs(p.spots) do
+        if s[3] == Plate.FLIGHT.ring / 2 + 1 then rings = rings + 1 end
+    end
+    Eq(rings, 1, "more than one ring was placed (Apart)")
+    local node = p.flightNodes[1]
+    Eq(#node.flights, 3, "the ring does not keep every flight")
+    Eq(#p.flightLines, 3, "a flight has no line")
+    local dashed = 0
+    for i, line in ipairs(p.flightLines) do
+        Check(line.node == node and line.x1 == node.x and line.y1 == node.y,
+            "flight " .. i .. "'s dashes do not start at the ring")
+        dashed = dashed + line.dashes
+    end
+    Check(p.flightLines[1].dashes > 0, "the route to The Barrens is not dashed")
+    Eq(dashed, p.flightLines[1].dashes, "one route flown three times is dashed more than once")
+    Eq(p.counts.dashes, dashed, "the dashes counted")
+    local tips = Tips(p)
+    Eq(#tips, 1, "the ring has no tooltip")
+    local _, out = (tips[1] or ""):gsub("Flew to The Barrens", "")
+    local _, back = (tips[1] or ""):gsub("Flew in from The Barrens", "")
+    Check(out == 2 and back == 1, "the ring's tooltip does not tell each flight: " .. tostring(tips[1]))
+    Check((tips[1] or ""):find("^Flew to The Barrens|"), "the ring's tooltip is not in time order")
+
+    -- A second flight master 300 yards off, flown to within the zone: its
+    -- own ring, and the flight's dashes from one ring into the other.
+    flights[4] = Flight(mapID, 0.502, 0.499, mapID, 0.56, 0.45)
+    p:Draw(Sheet(flights), nil, window, { moments = {} })
+    Eq(p.counts.flightNodes, 2, "two flight masters are not two rings")
+    Eq(p.hover.used, 2, "a ring each, a hover each")
+    local line = p.flightLines[4]
+    local a, b = p.flightNodes[1], p.flightNodes[2]
+    Check(line and line.x1 == a.x and line.y1 == a.y and line.x2 == b.x and line.y2 == b.y,
+        "the flight within the zone is not dashed from ring to ring")
+    Check(line and line.dashes > 0, "the flight within the zone has no dashes")
+    tips = Tips(p)
+    Check(Any(tips, "|A flight|") or Any(tips, "^A flight|"), "the flight within the zone is not told at its ring")
+
+    -- A third master just past FLIGHT.node yards: its own ring, which
+    -- lands on the first and steps aside (Apart); its flight's dashes
+    -- start where the ring went, not where it belonged.
+    flights[5] = Flight(mapID, 0.512, 0.500, 1413, 0.50, 0.30)
+    p:Draw(Sheet(flights), nil, window, { moments = {} })
+    Eq(p.counts.flightNodes, 3, "a master 60 yards off is not its own ring")
+    local c = p.flightNodes[3]
+    local cx, cy = p.At(c.mx, c.my)
+    Check(c.x and math.abs(c.x - cx) + math.abs(c.y - cy) > 1, "the third ring did not step aside")
+    line = p.flightLines[5]
+    Check(line and line.x1 == c.x and line.y1 == c.y, "a ring stepped aside, its flight's dashes start where it was")
+    p:Hide()
+end
+
 ns.UI.CloseJournal()
