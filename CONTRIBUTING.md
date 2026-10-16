@@ -2,6 +2,17 @@
 
 Thank you for helping.
 
+## Setting up
+
+The addon folder sits inside the game install, where copy and sync tools
+possibly mark files executable. Git would then list each file as changed
+with no lines added or removed which is annoying. Here's the fix for it. Tell git to ignore the executable bit in your
+clone:
+
+```sh
+git config core.fileMode false
+```
+
 ## Running the tests
 
 The suite runs offline, against a mock of the WoW API (`tests/wowmock.lua`).
